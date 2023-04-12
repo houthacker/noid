@@ -1861,21 +1861,21 @@ using testing::Return;
 
 class MockFoo : public Foo {
  public:
-  MOCK_METHOD(int, GetValue, (), (override));
+  MOCK_METHOD(int, Value, (), (override));
 };
 ...
   int x = 0;
   MockFoo foo;
-  EXPECT_CALL(foo, GetValue())
+  EXPECT_CALL(foo, Value())
       .WillRepeatedly(Return(std::ref(x)));  // Wrong!
   x = 42;
-  EXPECT_EQ(42, foo.GetValue());
+  EXPECT_EQ(42, foo.Value());
 ```
 
 Unfortunately, it doesn't work here. The above code will fail with error:
 
 ```text
-Value of: foo.GetValue()
+Value of: foo.Value()
   Actual: 0
 Expected: 42
 ```
@@ -1895,10 +1895,10 @@ using testing::ReturnPointee;
 ...
   int x = 0;
   MockFoo foo;
-  EXPECT_CALL(foo, GetValue())
+  EXPECT_CALL(foo, Value())
       .WillRepeatedly(ReturnPointee(&x));  // Note the & here.
   x = 42;
-  EXPECT_EQ(42, foo.GetValue());  // This will succeed now.
+  EXPECT_EQ(42, foo.Value());  // This will succeed now.
 ```
 
 ### Combining Actions
