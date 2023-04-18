@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <sstream>
-#include <stdexcept>
+#include <cstring>
 
 #include "BPlusTreeInternalNode.h"
 #include "Algorithm.h"
@@ -367,6 +367,32 @@ TreeStructureChange BPlusTreeInternalNode::Rearrange(const K &removed) {
   }
 
   return this->Merge();
+}
+
+void BPlusTreeInternalNode::Write(std::stringstream &out) {
+  out << '[';
+  for (auto i = 0; i < this->keys.size(); i++) {
+    auto record = this->keys[i].get();
+
+    if (i > 0) {
+      out << " ";
+    }
+
+    byte copy[8];
+    std::memcpy(copy, &record->Key()[8], 8);
+    std::reverse(copy, copy + 8);
+
+    uint64_t least_significant;
+    std::memcpy(&least_significant, copy, sizeof(uint64_t));
+    out << +least_significant;
+  }
+  out << ']';
+
+  auto next = this->RightSibling();
+  if (next) {
+    out << ' ';
+    next->Write(out);
+  }
 }
 
 }

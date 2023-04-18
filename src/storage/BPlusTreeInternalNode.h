@@ -241,6 +241,13 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
      * @return Any significant side effect of this rearrangement.
      */
     TreeStructureChange Rearrange(const K& removed) override;
+
+    /**
+     * @brief Writes a textual representation of this node to the given stream.
+     *
+     * @param out The stream to Write the output to.
+     */
+    void Write(std::stringstream& out) override;
 };
 
 }

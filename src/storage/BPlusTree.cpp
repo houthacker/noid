@@ -120,4 +120,24 @@ std::optional<V> BPlusTree::Remove(const K &key) {
   return std::nullopt;
 }
 
+void BPlusTree::Write(std::stringstream &out) {
+  if (this->root) {
+    BPlusTreeNode* node = this->root.get();
+    while (node) {
+      node->Write(out);
+      out << std::endl;
+
+      if (IsInternalNode(*node)) {
+        auto internal = reinterpret_cast<BPlusTreeInternalNode*>(node);
+        auto smallest = internal->Smallest();
+
+        node = smallest ? smallest->left_child.get() : nullptr;
+      } else {
+        node = nullptr; // no layer after a leaf
+      }
+
+    }
+  }
+}
+
 }

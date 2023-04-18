@@ -1,5 +1,8 @@
 #include "gtest/gtest.h"
 
+#include <sstream>
+#include <iostream>
+
 #include "storage/BPlusTree.h"
 #include "storage/BPlusTreeInternalNode.h"
 
@@ -44,4 +47,9 @@ TEST_F(BPlusTreeFixture, TestSplit) {
   // After inserting BTREE_MIN_ORDER * 2 distinct items, the initial root must have been split,
   // therefore the root node must be a BPlusTreeInternalNode and not a BPlusTreeLeafNode.
   EXPECT_NE(dynamic_cast<BPlusTreeInternalNode*>(tree->Root()), nullptr) << "Expect root to be a BPlusTreeInternalNode after a split";
+
+  std::stringstream buf;
+  tree->Write(buf);
+
+  EXPECT_STREQ(buf.str().c_str(), "[2]\n[0* 1*] [2* 3* 4*]\n");
 }

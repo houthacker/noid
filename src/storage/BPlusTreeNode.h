@@ -1,6 +1,8 @@
 #ifndef NOID_SRC_STORAGE_BPLUSTREENODE_H_
 #define NOID_SRC_STORAGE_BPLUSTREENODE_H_
 
+#include <sstream>
+
 #include "Shared.h"
 
 namespace noid::storage {
@@ -71,6 +73,13 @@ class BPlusTreeNode {
      * @return Any significant side effect of this rearrangement.
      */
     virtual TreeStructureChange Rearrange(const K& removed)= 0;
+
+    /**
+     * @brief Writes a textual representation of this node and its children to the given stream.
+     *
+     * @param out The stream to Write the output to.
+     */
+    virtual void Write(std::stringstream& out)= 0;
 };
 
 }

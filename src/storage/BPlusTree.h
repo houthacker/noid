@@ -92,6 +92,13 @@ class BPlusTree {
      * @return The associated value, or an empty optional if no such record exists.
      */
     std::optional<V> Remove(const K& key);
+
+    /**
+     * @brief Writes a textual representation of this tree to the given stream.
+     *
+     * @param out The stream to Write the output to.
+     */
+    void Write(std::stringstream& out);
 };
 
 }
