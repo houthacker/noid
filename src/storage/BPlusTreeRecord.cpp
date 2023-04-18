@@ -17,8 +17,12 @@ const K &BPlusTreeRecord::Key() const {
   return this->key;
 }
 
-const V &BPlusTreeRecord::Value() {
+const V &BPlusTreeRecord::Value() const& {
   return this->value;
+}
+
+V BPlusTreeRecord::Value() && {
+  return std::move(this->value);
 }
 
 void BPlusTreeRecord::Replace(V &replacement) {

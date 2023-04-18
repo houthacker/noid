@@ -36,6 +36,29 @@ TEST_F(BPlusTreeInternalNodeFixture, Saturate) {
   EXPECT_TRUE(node.IsFull()) << "Expect " << +(order * 2) << " inserts to cause a full node.";
 }
 
+TEST_F(BPlusTreeInternalNodeFixture, Contains) {
+  K key = {57, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  uint8_t order = BTREE_MIN_ORDER;
+  auto node = BPlusTreeInternalNode(nullptr, order, key, nullptr, nullptr);
+
+  for (auto i = 0; i < order; i++) {
+    auto k = key;
+    k[BTREE_KEY_SIZE - 1] = i + 1;
+
+    node.Insert(k, nullptr, nullptr);
+  }
+
+  // Verification
+  auto second_key = key;
+  second_key[BTREE_KEY_SIZE - 1] = 1;
+
+  auto non_existing_key = key;
+  non_existing_key[BTREE_KEY_SIZE - 1] = order + 1;
+
+  EXPECT_TRUE(node.Contains(second_key)) << "Expect node to contain inserted key";
+  EXPECT_FALSE(node.Contains(non_existing_key)) << "Expect node to report that is doesn't contain a non-inserted key";
+}
+
 TEST_F(BPlusTreeInternalNodeFixture, SmallestKey) {
   K key = {57, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   uint8_t order = BTREE_MIN_ORDER;
@@ -77,7 +100,7 @@ TEST_F(BPlusTreeInternalNodeFixture, Split) {
   EXPECT_EQ(node.Parent(), nullptr) << "Expect node to be parent before split";
 
   // Execute the split
-  EXPECT_EQ(node.Split(), SplitSideEffect::NewRoot) << "Expect splitting the node creates a new parent";
+  EXPECT_EQ(node.Split(), TreeStructureChange::NewRoot) << "Expect splitting the node creates a new parent";
 
   // Verify
   auto parent = node.Parent();

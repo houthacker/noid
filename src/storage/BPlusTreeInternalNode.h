@@ -34,6 +34,24 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
     BPlusTreeInternalNode* parent;
 
     /**
+     * @return The left sibling, or @c nullptr if no such node exists.
+     */
+    BPlusTreeInternalNode* LeftSibling();
+
+    /**
+     * @return The right sibling, or @c nullptr if no such node exists.
+     */
+    BPlusTreeInternalNode* RightSibling();
+
+    /**
+     * @brief Returns whether this node could take the keys from the given sibling before getting full.
+     *
+     * @param sibling The sibling to possibly merge with.
+     * @return Whether this node can merge with the given @p sibling.
+     */
+    bool IsMergeableWith(BPlusTreeInternalNode& sibling);
+
+    /**
      * @brief Moves the given @p key to the parent node.
      * @details If so required, this method creates and attaches a new parent node to contain the given @p key.
      *
@@ -43,11 +61,53 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
     bool PushUp(std::unique_ptr<BPlusTreeKey> key);
 
     /**
+     * @brief Redistributes the keys between itself, its parent and its left- or right sibling.
+     *
+     * @return Whether any keys were distributed.
+     */
+    bool Redistribute();
+
+    /**
+     * @brief Merges the keys of this node with its left- or right sibling.
+     * @details Merging two nodes also removes the 'middle' parent key with points to both merged nodes.
+     *
+     * If so required, the indicated change in tree structure is used by the containing tree to replace the
+     * (then empty) root node by the merged child.
+     *
+     * @return The change to the tree structure that occurred during this merge.
+     */
+    TreeStructureChange Merge();
+
+    /**
      * @brief Inserts the given @p key and sorts the keys afterwards to ensure the correct order.
      *
      * @param key The key to insert.
      */
     void InsertInternal(std::unique_ptr<BPlusTreeKey> key);
+
+    /**
+     * @brief Removes the largest key from this node and returns it for later usage.
+     *
+     * @return The largest key of this node.
+     */
+    std::unique_ptr<BPlusTreeKey> TakeLargest();
+
+    /**
+     * @brief Removes the smallest key from this node and returns it for later usage.
+     *
+     * @return The smallest key of this node.
+     */
+    std::unique_ptr<BPlusTreeKey> TakeSmallest();
+
+    /**
+     * @brief Removes the key which points to @p left as its left child and @p right as its right child and returns
+     * it for later usage.
+     *
+     * @param left The left child node of the key.
+     * @param right The right child node of the key.
+     * @return The middle key, or @c nullptr if no such key exists.
+     */
+    std::unique_ptr<BPlusTreeKey> TakeMiddle(BPlusTreeInternalNode& left, BPlusTreeInternalNode& right);
 
     /**
      * Internal constructor to support @c BPlusTreeInternalNode::Split() and @c BPlusTreeInternalNode::PushUp().
@@ -89,6 +149,27 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
     bool IsFull() override;
 
     /**
+     * @return Whether this node contains no keys.
+     */
+    bool IsEmpty();
+
+    /**
+     * @return Whether this node contains less than the minimum amount of keys, including zero.
+     */
+    bool IsPoor() override;
+
+    /**
+     * @return Whether this node contains more than tme minimum amount of keys. Full nodes are rich as well.
+     */
+    bool IsRich() override;
+
+    /**
+     * @param key The search key.
+     * @return Whether this node contains the given key.
+     */
+    bool Contains(const K& key) override;
+
+    /**
      * @return The parent node, or @c nullptr if this is the root node.
      */
     BPlusTreeInternalNode* Parent() override;
@@ -99,12 +180,20 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
     BPlusTreeKey* Smallest();
 
     /**
-     * @brief Returns the largest @c BPlusInternalKey which is less than or equal to the given @p key.
+     * @brief Returns the largest @c BPlusTreeKey which is less than or equal to the given @p key.
      *
      * @param key The search key.
-     * @return The largest @c BPlusInternalKey that not exceeds @p key.
+     * @return The largest @c BPlusTreeKey that not exceeds @p key.
      */
     BPlusTreeKey* GreatestNotExceeding(const K& key);
+
+    /**
+     * @brief Returns the @c BPlusTreeKey with the immediate next largest key compared to the given @p key.
+     *
+     * @param key The search key.
+     * @return The next largest key, or @c nullptr if no such key exists.
+     */
+    BPlusTreeKey* NextLargest(const K& key);
 
     /**
      * @brief Sets the parent of this node to the given one.
@@ -135,7 +224,23 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
      *
      * @return The side effect this split has on the containing tree.
      */
-    SplitSideEffect Split() override;
+    TreeStructureChange Split() override;
+
+    /**
+     * @brief Removes the given key and returns whether the size of this node changed as a result.
+     *
+     * @param key The key to remove.
+     * @return Whether ths node size changed due to this removal.
+     */
+    bool Remove(const K& key);
+
+    /**
+     * @brief Rearranges the records contained in this node, its siblings and their common parent node.
+     *
+     * @param removed The key whose removal caused this rearrangement.
+     * @return Any significant side effect of this rearrangement.
+     */
+    TreeStructureChange Rearrange(const K& removed) override;
 };
 
 }

@@ -55,7 +55,7 @@ int64_t BinarySearch(const std::vector<std::unique_ptr<T>>& haystack, int64_t lo
  * @param low The lowest index to search.
  * @param high The highest index to search.
  * @param needle The needle that must be found.
- * @param get_key_reference The function which returns a @c &K,
+ * @param get_key_reference The function which returns a @c &K, given a @c &T.
  * @return The index at which the searched element resides, or -1 if no such element exists.
  */
 template<typename T, typename Func>
@@ -78,6 +78,40 @@ int64_t GreatestNotExceeding(const std::vector<std::unique_ptr<T>>& haystack, in
   }
 
   return GreatestNotExceeding(haystack, low, middle_index, needle, get_key_reference);
+}
+
+/**
+ * @brief Recursively searches the first element which is considered greater than the given needle.
+ * @note The needle itself does not need to reside in the haystack. This allows for searching sparse haystacks.
+ *
+ * @tparam T The haystack element type.
+ * @tparam Func The type of function that, given a @c &T, returns the key @c &K it contains.
+ * @param haystack The vector of @c std::unique_ptr containing the elements that must be searched.
+ * @param low The lowest index to search.
+ * @param high The highest index to search.
+ * @param needle The needle to retrieve the next largest of.
+ * @param get_key_reference The function which returns a @c &K, given a @c &T.
+ * @return The index at which the requested element resides, or -1 if no such element exists.
+ */
+template<typename T, typename Func>
+int64_t NextLargest(const std::vector<std::unique_ptr<T>>& haystack, int64_t low,
+                         int64_t high, const K& needle, Func get_key_reference) {
+  auto middle_index = low + (high - low) / 2;
+  auto& middle_element = get_key_reference(*haystack[middle_index]);
+
+  if (low != high) {
+    if (middle_element < needle || middle_element == needle) {
+      return NextLargest(haystack, middle_index + 1, high, needle, get_key_reference);
+    } else {
+      return NextLargest(haystack, low, middle_index, needle, get_key_reference);
+    }
+  }
+
+  if (needle < middle_element) {
+    return middle_index;
+  }
+
+  return -1;
 }
 
 }

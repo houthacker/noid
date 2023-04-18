@@ -40,7 +40,12 @@ class BPlusTreeRecord : public KeyBearer {
     /**
      * @return A reference to the record value.
      */
-    const V& Value();
+    [[nodiscard]] V const& Value() const&;
+
+    /**
+     * @return Moves the value out of this record and returns it.
+     */
+    V Value() &&;
 
     /**
      * @brief Replaces the current value with the given one.

@@ -23,9 +23,25 @@ class BPlusTreeNode {
     virtual bool IsRoot()= 0;
 
     /**
-     * @return Whether this node contains more than the maximum amount of keys.
+     * @return Whether this node contains more than the maximum amount of entries.
      */
     virtual bool IsFull()= 0;
+
+    /**
+     * @return Whether this node contains less than the minimum amount of entries, including zero.
+     */
+    virtual bool IsPoor()= 0;
+
+    /**
+     * @return Whether this node contains more than tme minimum amount of entries. Full nodes are rich as well.
+     */
+    virtual bool IsRich()= 0;
+
+    /**
+     * @param key The search key.
+     * @return Whether this node contains the given key.
+     */
+    virtual bool Contains(const K& key)= 0;
 
     /**
      * @return The parent node, or @c nullptr if this is the root node.
@@ -42,11 +58,19 @@ class BPlusTreeNode {
     /**
      * @brief Redistributes the keys or records evenly between itself and a new sibling.
      * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
-     * return @c SplitSideEffect::None.
+     * return @c TreeStructureChange::None.
      *
-     * @return The caused side effect of this split.
+     * @return Any significant side effect of this split.
      */
-    virtual SplitSideEffect Split()= 0;
+    virtual TreeStructureChange Split()= 0;
+
+    /**
+     * @brief Rearranges the entries contained in this node, its siblings and their common parent.
+     *
+     * @param removed The key whose removal caused this rearrangement.
+     * @return Any significant side effect of this rearrangement.
+     */
+    virtual TreeStructureChange Rearrange(const K& removed)= 0;
 };
 
 }

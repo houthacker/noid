@@ -9,6 +9,10 @@ const K &BPlusTreeKey::Key() const {
   return this->key;
 }
 
+void BPlusTreeKey::Replace(const K &replacement) {
+  this->key = replacement;
+}
+
 bool operator==(const BPlusTreeKey& lhs, const BPlusTreeKey& rhs) {
   return lhs.Key() == rhs.Key();
 }

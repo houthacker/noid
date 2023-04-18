@@ -45,6 +45,13 @@ class BPlusTreeKey : public KeyBearer {
      * @return A reference to the key.
      */
     [[nodiscard]] const K& Key() const override;
+
+    /**
+     * @brief Replaces the current key by copying in the given one. The previous key is discarded.
+     *
+     * @param replacement The replacement key.
+     */
+    void Replace(const K& replacement);
 };
 
 /**

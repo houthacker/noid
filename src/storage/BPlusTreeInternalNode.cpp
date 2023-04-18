@@ -15,6 +15,28 @@ static bool LeftKeyIsLess(std::unique_ptr<BPlusTreeKey>& lhs, std::unique_ptr<BP
   return *lhs < *rhs;
 }
 
+BPlusTreeInternalNode* BPlusTreeInternalNode::LeftSibling() {
+  if (this->IsRoot()) {
+    return nullptr;
+  }
+
+  return reinterpret_cast<BPlusTreeInternalNode*>(
+      this->parent->GreatestNotExceeding(this->keys[0]->Key())->left_child.get());
+}
+
+BPlusTreeInternalNode* BPlusTreeInternalNode::RightSibling() {
+  if (this->IsRoot()) {
+    return nullptr;
+  }
+
+  return reinterpret_cast<BPlusTreeInternalNode*>(
+      this->parent->NextLargest(this->keys[this->keys.size() - 1]->Key())->right_child.get());
+}
+
+bool BPlusTreeInternalNode::IsMergeableWith(BPlusTreeInternalNode &sibling) {
+  return this->keys.size() + sibling.keys.size() <= this->order * 2;
+}
+
 bool BPlusTreeInternalNode::PushUp(std::unique_ptr<BPlusTreeKey> container) {
   auto must_increase_tree_height = this->IsRoot();
   if (must_increase_tree_height) {
@@ -28,6 +50,87 @@ bool BPlusTreeInternalNode::PushUp(std::unique_ptr<BPlusTreeKey> container) {
   }
 
   return must_increase_tree_height;
+}
+
+bool BPlusTreeInternalNode::Redistribute() {
+  if (this->IsRoot()) {
+    return false; // nothing to redistribute since root has no siblings.
+  }
+
+  auto sibling = this->LeftSibling();
+  if (sibling && sibling->IsRich()) {
+    // Retrieve GreatestNotExceeding(my smallest) from parent
+    auto parent_key = this->parent->GreatestNotExceeding(this->keys[0]->Key());
+
+    // Prepend to our keys
+    this->keys.insert(this->keys.begin(), std::make_unique<BPlusTreeKey>(parent_key->Key()));
+
+    // Take the largest from the left sibling
+    auto largest = sibling->TakeLargest();
+
+    // Replace the parent key with the largest key we took from our sibling.
+    parent_key->Replace(largest->Key());
+
+    return true;
+  }
+
+  sibling = this->RightSibling();
+  if (sibling && sibling->IsRich()) {
+    // Take the smallest from the right sibling.
+    auto smallest = sibling->TakeSmallest();
+
+    // Retrieve GreatestNotExceeding(siblings smallest) from parent
+    auto parent_key = this->parent->GreatestNotExceeding(smallest->Key());
+
+    // Append the parent key to our keys
+    this->keys.push_back(std::make_unique<BPlusTreeKey>(parent_key->Key()));
+
+    // Replace the parent key value with the smallest key we took from our sibling.
+    parent_key->Replace(smallest->Key());
+
+    return true;
+  }
+
+  return false;
+}
+
+TreeStructureChange BPlusTreeInternalNode::Merge() {
+  auto left_sibling = this->LeftSibling();
+  auto right_sibling = this->RightSibling();
+  BPlusTreeInternalNode* smallest = nullptr;
+  BPlusTreeInternalNode* largest = nullptr;
+
+  if (left_sibling && left_sibling->IsMergeableWith(*this)) {
+    smallest = left_sibling;
+    largest = this;
+  } else if (right_sibling && right_sibling->IsMergeableWith(*this)) {
+    smallest = this;
+    largest = right_sibling;
+  } else {
+    // todo No mergeable sibling. Called out of order? Can we prove this never happens?
+    return TreeStructureChange::None;
+  }
+
+  // After determining the smallest (smaller) and largest (larger) node, merging can take place. Always merge largest
+  // into smallest, because this allows appending instead of prepending. But first pull down the 'middle' key from the
+  // parent, which points to both the smaller and larger node.
+  auto pulled_down = largest->parent->TakeMiddle(*smallest, *largest);
+
+  // And update its child pointers
+  pulled_down->left_child = smallest->keys[smallest->keys.size() - 1]->right_child;
+  pulled_down->right_child = largest->keys[0]->left_child;
+
+  // Since we only end up here if redistribution fails, we assume the node we will merge with is not rich,
+  // and therefore a merge with this node and the sibling will by definition not lead to a full node, since this
+  // node is poor.
+  smallest->keys.reserve(smallest->keys.size() + this->keys.size() + 1);
+  smallest->keys.push_back(std::move(pulled_down));
+
+  for (auto& key : largest->keys) {
+    smallest->keys.push_back(std::move(key));
+  }
+
+  return smallest->parent->IsRoot() && smallest->parent->IsEmpty() ? TreeStructureChange::EmptyRoot : TreeStructureChange::None;
 }
 
 void BPlusTreeInternalNode::InsertInternal(std::unique_ptr<BPlusTreeKey> container) {
@@ -55,6 +158,48 @@ void BPlusTreeInternalNode::InsertInternal(std::unique_ptr<BPlusTreeKey> contain
     this->keys[index + 1]->left_child = ptr->right_child;
   }
 }
+
+std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeLargest() {
+  if (this->keys.empty()) {
+    return {nullptr};
+  }
+
+  auto index = this->keys.size() - 1;
+  auto element = std::move(this->keys[index]);
+  this->keys.erase(this->keys.begin() + static_cast<int64_t>(index));
+
+  return std::move(element);
+}
+
+std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeSmallest() {
+  if (this->keys.empty()) {
+    return {nullptr};
+  }
+
+  auto element = std::move(this->keys[0]);
+  this->keys.erase(this->keys.begin());
+
+  return std::move(element);
+}
+
+std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeMiddle(BPlusTreeInternalNode &left,
+                                                                BPlusTreeInternalNode &right) {
+  auto index = noid::storage::GreatestNotExceeding(
+      this->keys, 0, static_cast<int64_t>(this->keys.size() - 1), right.Smallest()->Key(), GetKeyReference);
+  if (index >= 1 /* The element at index zero has no left child */ ) {
+    auto candidate = this->keys[index].get();
+
+    if (candidate->left_child.get() == &left && candidate->right_child.get() == &right) {
+      auto middle = std::move(this->keys[index]);
+      this->keys.erase(this->keys.begin() + index);
+
+      return std::move(middle);
+    }
+  }
+
+  return {nullptr};
+}
+
 
 BPlusTreeInternalNode::BPlusTreeInternalNode(BPlusTreeInternalNode* parent, uint8_t order, std::vector<std::unique_ptr<BPlusTreeKey>> keys)
     : parent(parent), order(order), keys(std::move(keys)) {
@@ -96,6 +241,23 @@ bool BPlusTreeInternalNode::IsFull() {
   return this->keys.size() > this->order * 2;
 }
 
+bool BPlusTreeInternalNode::IsEmpty() {
+  return this->keys.empty();
+}
+
+bool BPlusTreeInternalNode::IsPoor() {
+  return this->IsRoot() ? this->keys.empty() : this->keys.size() < this->order;
+}
+
+bool BPlusTreeInternalNode::IsRich() {
+  return this->IsRoot() ? this->keys.size() > 1 : this->keys.size() > this->order;
+}
+
+bool BPlusTreeInternalNode::Contains(const K &key) {
+  return BinarySearch(this->keys, 0, static_cast<int64_t>(this->keys.size() - 1),
+                      key, GetKeyReference) >= 0;
+}
+
 BPlusTreeInternalNode *BPlusTreeInternalNode::Parent() {
   return this->parent;
 }
@@ -107,6 +269,17 @@ BPlusTreeKey* BPlusTreeInternalNode::Smallest() {
 BPlusTreeKey* BPlusTreeInternalNode::GreatestNotExceeding(const K &key) {
   auto index = noid::storage::GreatestNotExceeding(
       this->keys, 0, static_cast<int64_t>(this->keys.size() - 1), key, GetKeyReference);
+  if (index >= 0) {
+    return this->keys[index].get();
+  }
+
+  return nullptr;
+}
+
+BPlusTreeKey* BPlusTreeInternalNode::NextLargest(const K &key) {
+  auto index = noid::storage::NextLargest(this->keys, 0, static_cast<int64_t>(this->keys.size() - 1),
+                                          key,GetKeyReference);
+
   if (index >= 0) {
     return this->keys[index].get();
   }
@@ -136,9 +309,9 @@ bool BPlusTreeInternalNode::Insert(const K& key, BPlusTreeNode* left_child, BPlu
   return false;
 }
 
-SplitSideEffect BPlusTreeInternalNode::Split() {
+TreeStructureChange BPlusTreeInternalNode::Split() {
   if (this->keys.size() < BTREE_MIN_ORDER) {
-    return SplitSideEffect::None;
+    return TreeStructureChange::None;
   }
 
   auto middle_index = this->keys.size() / 2;
@@ -166,10 +339,34 @@ SplitSideEffect BPlusTreeInternalNode::Split() {
 
   // Push up the previously removed middle key.
   if (this->PushUp(std::move(middle_key))) {
-    return SplitSideEffect::NewRoot;
+    return TreeStructureChange::NewRoot;
   }
 
-  return SplitSideEffect::None;
+  return TreeStructureChange::None;
+}
+
+bool BPlusTreeInternalNode::Remove(const K &key) {
+  if (this->keys.empty()) {
+    return false;
+  }
+
+  auto index = BinarySearch(
+      this->keys, 0, static_cast<int64_t>(this->keys.size() - 1), key, GetKeyReference);
+  if (index >= 0) {
+    this->keys.erase(this->keys.begin() + index);
+
+    return true;
+  }
+
+  return false;
+}
+
+TreeStructureChange BPlusTreeInternalNode::Rearrange(const K &removed) {
+  if (this->Redistribute()) {
+    return TreeStructureChange::None;
+  }
+
+  return this->Merge();
 }
 
 }
