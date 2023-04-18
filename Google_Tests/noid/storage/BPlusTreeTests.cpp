@@ -21,7 +21,7 @@ class BPlusTreeFixture : public ::testing::Test {
     }
 };
 
-TEST_F(BPlusTreeFixture, TestUpsert) {
+TEST_F(BPlusTreeFixture, Upsert) {
   K key = {57, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   V value_one = {1, 3, 3, 7};
   V value_two = {1, 3, 3, 8};
@@ -30,7 +30,7 @@ TEST_F(BPlusTreeFixture, TestUpsert) {
   EXPECT_EQ(tree->Insert(key, value_two), InsertType::Upsert);
 }
 
-TEST_F(BPlusTreeFixture, TestSplit) {
+TEST_F(BPlusTreeFixture, Splitting) {
   K key_base = {57, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   V value_base = {1, 3, 3, 0};
 
@@ -52,4 +52,22 @@ TEST_F(BPlusTreeFixture, TestSplit) {
   tree->Write(buf);
 
   EXPECT_STREQ(buf.str().c_str(), "[2]\n[0* 1*] [2* 3* 4*]\n");
+}
+
+TEST_F(BPlusTreeFixture, Redistribution) {
+  K key_base = {57, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  V value = {1, 3, 3, 7};
+
+  std::vector<byte> key_values = {2, 5, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29};
+  for (auto b : key_values) {
+    K key = key_base;
+    key[BTREE_KEY_SIZE - 1] = b;
+
+    tree->Insert(key, value);
+  }
+
+  std::stringstream buf;
+  tree->Write(buf);
+
+  std::cout << buf.str() << std::endl;
 }

@@ -20,8 +20,8 @@ BPlusTreeInternalNode* BPlusTreeInternalNode::LeftSibling() {
     return nullptr;
   }
 
-  return reinterpret_cast<BPlusTreeInternalNode*>(
-      this->parent->GreatestNotExceeding(this->keys[0]->Key())->left_child.get());
+  auto parent_gne = this->parent->GreatestNotExceeding(this->keys[0]->Key());
+  return parent_gne ? reinterpret_cast<BPlusTreeInternalNode*>(parent_gne->left_child.get()) : nullptr;
 }
 
 BPlusTreeInternalNode* BPlusTreeInternalNode::RightSibling() {
@@ -29,8 +29,8 @@ BPlusTreeInternalNode* BPlusTreeInternalNode::RightSibling() {
     return nullptr;
   }
 
-  return reinterpret_cast<BPlusTreeInternalNode*>(
-      this->parent->NextLargest(this->keys[this->keys.size() - 1]->Key())->right_child.get());
+  auto parent_next_largest = this->parent->NextLargest(this->keys[this->keys.size() - 1]->Key());
+  return parent_next_largest ? reinterpret_cast<BPlusTreeInternalNode*>(parent_next_largest->right_child.get()) : nullptr;
 }
 
 bool BPlusTreeInternalNode::IsMergeableWith(BPlusTreeInternalNode &sibling) {
@@ -152,7 +152,11 @@ void BPlusTreeInternalNode::InsertInternal(std::unique_ptr<BPlusTreeKey> contain
   auto index = BinarySearch(
       this->keys, 0, static_cast<int64_t>(this->keys.size() - 1), ptr->Key(), GetKeyReference);
   if (index > 0) {
-    this->keys[index - 1]->right_child = ptr->left_child;
+    auto& key = this->keys[index - 1];
+
+    if (key->right_child != ptr->left_child) {
+      key->right_child = ptr->left_child;
+    }
   }
   if (index < highest_index) {
     this->keys[index + 1]->left_child = ptr->right_child;
