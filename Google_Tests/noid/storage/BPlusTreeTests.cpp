@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 
 #include <sstream>
 #include <iostream>
@@ -6,6 +7,7 @@
 #include "storage/BPlusTree.h"
 #include "storage/BPlusTreeInternalNode.h"
 
+using ::testing::ContainerEq;
 using namespace noid::storage;
 
 class BPlusTreeFixture : public ::testing::Test {
@@ -69,5 +71,19 @@ TEST_F(BPlusTreeFixture, Redistribution) {
   std::stringstream buf;
   tree->Write(buf);
 
-  std::cout << buf.str() << std::endl;
+  auto expected_after_setup = "[17]\n[12 15] [19 21 23 25]\n[2* 5*] [12* 13*] [15* 16*] [17* 18*] [19* 20*] [21* 22*] [23* 24*] [25* 26* 27* 29*]\n";
+  EXPECT_STREQ(buf.str().c_str(), expected_after_setup);
+
+  auto remove_key = key_base;
+  remove_key[BTREE_KEY_SIZE - 1] = 24;
+  auto removed = tree->Remove(remove_key);
+
+  EXPECT_TRUE(removed.has_value()) << "Expect a removed value";
+  EXPECT_THAT(removed.value(), ContainerEq(value));
+
+  buf = std::stringstream();
+  tree->Write(buf);
+
+  auto expected_after_redistribution = "[17]\n[12 15] [19 21 23 27]\n[2* 5*] [12* 13*] [15* 16*] [17* 18*] [19* 20*] [21* 22*] [23* 26*] [27* 29*]\n";
+  EXPECT_STREQ(buf.str().c_str(), expected_after_redistribution) << "Expect redistribution of [23* 24*] [25* 26* 27* 29*] -> [23* 26*] [27* 29*] after removal of 24*";
 }

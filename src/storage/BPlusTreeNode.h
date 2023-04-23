@@ -1,6 +1,7 @@
 #ifndef NOID_SRC_STORAGE_BPLUSTREENODE_H_
 #define NOID_SRC_STORAGE_BPLUSTREENODE_H_
 
+#include <memory>
 #include <sstream>
 
 #include "Shared.h"
@@ -48,14 +49,14 @@ class BPlusTreeNode {
     /**
      * @return The parent node, or @c nullptr if this is the root node.
      */
-    virtual BPlusTreeInternalNode* Parent()= 0;
+    virtual std::shared_ptr<BPlusTreeInternalNode> Parent()= 0;
 
     /**
      * @brief Sets the parent of this node to the given one.
      *
      * @param parent The new parent node. May be @c nullptr
      */
-    virtual void SetParent(BPlusTreeInternalNode* parent)= 0;
+    virtual void SetParent(std::shared_ptr<BPlusTreeInternalNode> parent)= 0;
 
     /**
      * @brief Redistributes the keys or records evenly between itself and a new sibling.

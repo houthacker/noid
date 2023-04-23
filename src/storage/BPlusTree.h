@@ -32,7 +32,7 @@ class BPlusTree {
     /**
      * The root node is @c nullptr before the first insert.
      */
-    std::unique_ptr<BPlusTreeNode> root;
+    std::shared_ptr<BPlusTreeNode> root;
 
     /**
      * @brief Recursively finds the leaf having a key range containing the given @p key, starting with @p node.
@@ -44,7 +44,7 @@ class BPlusTree {
      * @param key The search key.
      * @return A reference to the leaf node.
      */
-    BPlusTreeLeafNode& FindLeafRangeMatch(BPlusTreeNode& node, const K& key);
+    std::shared_ptr<BPlusTreeLeafNode> FindLeafRangeMatch(std::shared_ptr<BPlusTreeNode> node, const K& key);
 
     /**
      * @brief Recursively finds the node(s) containing the given @p key, starting at @p node.
@@ -57,7 +57,7 @@ class BPlusTree {
      * @param key The search key.
      * @return The found nodes.
      */
-    std::pair<BPlusTreeInternalNode*, BPlusTreeLeafNode&> FindNodes(BPlusTreeNode& node, const K& key);
+    std::pair<std::shared_ptr<BPlusTreeInternalNode>, std::shared_ptr<BPlusTreeLeafNode>> FindNodes(std::shared_ptr<BPlusTreeNode> node, const K& key);
 
  public:
 

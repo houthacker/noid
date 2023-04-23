@@ -14,7 +14,7 @@
 
 namespace noid::storage {
 
-class BPlusTreeInternalNode : public BPlusTreeNode {
+ class BPlusTreeInternalNode : public BPlusTreeNode, public std::enable_shared_from_this<BPlusTreeInternalNode> {
  private:
 
     /**
@@ -31,17 +31,17 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
     /**
      * The parent node. If @c nullptr, this node is the root node.
      */
-    BPlusTreeInternalNode* parent;
+    std::shared_ptr<BPlusTreeInternalNode> parent;
 
     /**
      * @return The left sibling, or @c nullptr if no such node exists.
      */
-    BPlusTreeInternalNode* LeftSibling();
+    std::shared_ptr<BPlusTreeInternalNode> LeftSibling();
 
     /**
      * @return The right sibling, or @c nullptr if no such node exists.
      */
-    BPlusTreeInternalNode* RightSibling();
+    std::shared_ptr<BPlusTreeInternalNode> RightSibling();
 
     /**
      * @brief Returns whether this node could take the keys from the given sibling before getting full.
@@ -110,18 +110,29 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
     std::unique_ptr<BPlusTreeKey> TakeMiddle(BPlusTreeInternalNode& left, BPlusTreeInternalNode& right);
 
     /**
-     * Internal constructor to support @c BPlusTreeInternalNode::Split() and @c BPlusTreeInternalNode::PushUp().
+     * Internal constructor to support the Create factory methods.
      *
      * @param parent The parent node, or @c nullptr.
      * @param order The tree order.
-     * @param keys The initial set of keys.
      */
-    BPlusTreeInternalNode(BPlusTreeInternalNode* parent, uint8_t order, std::vector<std::unique_ptr<BPlusTreeKey>> keys);
+    BPlusTreeInternalNode(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order);
+
+    /**
+     * @brief Creates a new @c BPlusTreeInternalNode whose pointer is managed by the wrapping @c std::shared_ptr.
+     * @details Additionally adopts the given @p keys by iterating over them and setting the parent of its children
+     * to the new @c BPlusTreeInternalNode.
+     *
+     * @param parent The parent of this node, or @c nullptr if this is the root node.
+     * @param order The tree order.
+     * @param keys The keys to adopt.
+     * @return The new internal node.
+     */
+    static std::shared_ptr<BPlusTreeInternalNode> Create(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, std::vector<std::unique_ptr<BPlusTreeKey>> keys);
 
  public:
 
     /**
-     * @brief Creates a new @c BPlusTreeInternalNode
+     * @brief Creates a new @c BPlusTreeInternalNode whose pointer is managed by the wrapping @c std::shared_ptr.
      * @details Inserts the given @p key, @p left_child and @p right_child as a new @c BPlusTreeKey. Since a
      * @c BPlusTreeInternalNode can only exist if there are leaf child nodes, at least one of @p left_child and
      * @p right_child must have a value. When adding the child nodes, their parent instance is set to this node.
@@ -131,12 +142,12 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
      * @param key The search key.
      * @param left_child The left child, containing the lesser elements.
      * @param right_child The right child, containing the equal- and greater elements.
-     * @throws std::invalid_argument If both @p left_child and @p right_child are @c nullptr.
+     * @return the new internal node.
      */
-    BPlusTreeInternalNode(BPlusTreeInternalNode* parent, uint8_t order, const K& key, BPlusTreeNode* left_child,
-                          BPlusTreeNode* right_child);
+     static std::shared_ptr<BPlusTreeInternalNode> Create(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, const K& key,
+                                                        std::shared_ptr<BPlusTreeNode> left_child, std::shared_ptr<BPlusTreeNode> right_child);
 
-    ~BPlusTreeInternalNode() override = default;
+     ~BPlusTreeInternalNode() override = default;
 
     /**
      * @return Whether this node is the containing trees' root node
@@ -172,7 +183,7 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
     /**
      * @return The parent node, or @c nullptr if this is the root node.
      */
-    BPlusTreeInternalNode* Parent() override;
+    std::shared_ptr<BPlusTreeInternalNode> Parent() override;
 
     /**
      * @return The smallest key in this node.
@@ -201,7 +212,7 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
      *
      * @param parent The new parent node.
      */
-    void SetParent(BPlusTreeInternalNode* parent) override;
+    void SetParent(std::shared_ptr<BPlusTreeInternalNode> parent) override;
 
     /**
      * @brief Creates and inserts a new @c BPlusTreeKey based on the given key and children.
@@ -214,7 +225,7 @@ class BPlusTreeInternalNode : public BPlusTreeNode {
      * @param right_child  The right child node, which may be @c nullptr.
      * @return Whether the key was inserted.
      */
-    bool Insert(const K& key, BPlusTreeNode* left_child, BPlusTreeNode* right_child);
+    bool Insert(const K& key, std::shared_ptr<BPlusTreeNode> left_child, std::shared_ptr<BPlusTreeNode> right_child);
 
     /**
      * @brief Redistributes the node keys evenly between this node and a newly created sibling, pushing up

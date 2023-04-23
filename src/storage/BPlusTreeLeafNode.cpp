@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstring>
+#include <utility>
 
 #include "Algorithm.h"
 #include "BPlusTreeLeafNode.h"
@@ -23,10 +24,9 @@ bool BPlusTreeLeafNode::IsMergeableWith(BPlusTreeLeafNode& sibling) {
 bool BPlusTreeLeafNode::CopyUp(const K &key) {
   auto must_increase_tree_height = this->IsRoot();
   if (must_increase_tree_height) {
-    auto new_root = new BPlusTreeInternalNode(nullptr, this->order, key, this, this->next);
-    this->parent = new_root;
+    this->parent = BPlusTreeInternalNode::Create(nullptr, this->order, key, shared_from_this(), this->next);
   } else {
-    this->parent->Insert(key, this, this->next);
+    this->parent->Insert(key, shared_from_this(), this->next);
   }
 
   return must_increase_tree_height;
@@ -59,14 +59,14 @@ bool BPlusTreeLeafNode::Redistribute() {
 }
 
 TreeStructureChange BPlusTreeLeafNode::Merge() {
-  BPlusTreeLeafNode* smallest = nullptr;
-  BPlusTreeLeafNode* largest = nullptr;
+  std::shared_ptr<BPlusTreeLeafNode> smallest;
+  std::shared_ptr<BPlusTreeLeafNode> largest;
 
   if (this->previous && this->previous->Parent() == this->parent && this->previous->IsMergeableWith(*this)) {
     smallest = this->previous;
-    largest = this;
+    largest = shared_from_this();
   } else if (this->next && this->next->Parent() == this->parent && this->next->IsMergeableWith(*this)) {
-    smallest = this;
+    smallest = shared_from_this();
     largest = this->next;
   } else {
     // todo No mergeable sibling. Called out of order? Can we prove this never happens?
@@ -127,9 +127,14 @@ std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeLargest() {
   return {nullptr};
 }
 
-BPlusTreeLeafNode::BPlusTreeLeafNode(BPlusTreeInternalNode* parent, uint8_t order, std::unique_ptr<BPlusTreeRecord> record)
-: order(order), parent(parent), previous(nullptr), next(nullptr) {
+BPlusTreeLeafNode::BPlusTreeLeafNode(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, std::unique_ptr<BPlusTreeRecord> record)
+: order(order), parent(std::move(parent)), previous(nullptr), next(nullptr) {
   this->records.push_back(std::move(record));
+}
+
+std::shared_ptr<BPlusTreeLeafNode> BPlusTreeLeafNode::Create(
+    std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, std::unique_ptr<BPlusTreeRecord> record) {
+  return std::shared_ptr<BPlusTreeLeafNode>(new BPlusTreeLeafNode(std::move(parent), order, std::move(record)));
 }
 
 bool BPlusTreeLeafNode::IsRoot() {
@@ -153,15 +158,15 @@ bool BPlusTreeLeafNode::Contains(const K &key) {
                       key,GetKeyReference) >= 0;
 }
 
-BPlusTreeInternalNode *BPlusTreeLeafNode::Parent() {
+std::shared_ptr<BPlusTreeInternalNode> BPlusTreeLeafNode::Parent() {
   return this->parent;
 }
 
-BPlusTreeLeafNode* BPlusTreeLeafNode::Previous() {
+std::shared_ptr<BPlusTreeLeafNode> BPlusTreeLeafNode::Previous() {
   return this->previous;
 }
 
-BPlusTreeLeafNode* BPlusTreeLeafNode::Next() {
+std::shared_ptr<BPlusTreeLeafNode> BPlusTreeLeafNode::Next() {
   return this->next;
 }
 
@@ -173,7 +178,7 @@ const K& BPlusTreeLeafNode::LargestKey() {
   return this->records[this->records.size() - 1]->Key();
 }
 
-void BPlusTreeLeafNode::SetParent(BPlusTreeInternalNode *p) {
+void BPlusTreeLeafNode::SetParent(std::shared_ptr<BPlusTreeInternalNode> p) {
   if (p) {
     this->parent = p;
   }
@@ -202,7 +207,7 @@ TreeStructureChange BPlusTreeLeafNode::Split() {
   auto middle_index = this->records.size() / 2;
 
   // Create a new leaf and add the middle key to it.
-  auto split = new BPlusTreeLeafNode(this->parent, this->order, std::move(this->records[middle_index]));
+  auto split = BPlusTreeLeafNode::Create(this->parent, this->order, std::move(this->records[middle_index]));
 
   // Add the largest half of the records to the new node
   for (auto i = middle_index + 1; i < this->records.size(); i++) {
@@ -217,7 +222,7 @@ TreeStructureChange BPlusTreeLeafNode::Split() {
     this->next->previous = split;
   }
 
-  split->previous = this;
+  split->previous = shared_from_this();
   split->next = this->next;
 
   this->next = split;
