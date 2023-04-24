@@ -76,7 +76,7 @@ namespace noid::storage {
      *
      * @return The change to the tree structure that occurred during this merge.
      */
-    TreeStructureChange Merge();
+    Rearrangement Merge();
 
     /**
      * @brief Inserts the given @p key and sorts the keys afterwards to ensure the correct order.
@@ -248,10 +248,9 @@ namespace noid::storage {
     /**
      * @brief Rearranges the records contained in this node, its siblings and their common parent node.
      *
-     * @param removed The key whose removal caused this rearrangement.
      * @return Any significant side effect of this rearrangement.
      */
-    TreeStructureChange Rearrange(const K& removed) override;
+    Rearrangement Rearrange() override;
 
     /**
      * @brief Writes a textual representation of this node to the given stream.

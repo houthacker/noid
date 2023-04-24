@@ -2,8 +2,8 @@
 #define NOID_SRC_STORAGE_SHARED_H_
 
 #include <array>
-#include <vector>
 #include <cstdint>
+#include <vector>
 
 namespace noid::storage {
 

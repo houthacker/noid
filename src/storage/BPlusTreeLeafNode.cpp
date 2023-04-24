@@ -58,7 +58,7 @@ bool BPlusTreeLeafNode::Redistribute() {
   return false;
 }
 
-TreeStructureChange BPlusTreeLeafNode::Merge() {
+Rearrangement BPlusTreeLeafNode::Merge() {
   std::shared_ptr<BPlusTreeLeafNode> smallest;
   std::shared_ptr<BPlusTreeLeafNode> largest;
 
@@ -70,7 +70,7 @@ TreeStructureChange BPlusTreeLeafNode::Merge() {
     largest = this->next;
   } else {
     // todo No mergeable sibling. Called out of order? Can we prove this never happens?
-    return TreeStructureChange::None;
+    return {RearrangementType::Merge, std::nullopt};
   }
 
   // After determining the smallest (smaller) and largest (larger) node, merging can take place. Always merge largest
@@ -86,14 +86,16 @@ TreeStructureChange BPlusTreeLeafNode::Merge() {
 
   // Remove the greatest parent key which does not exceed the largest from the smallest node. This is the key
   // that points to both the smallest and largest node, whose records were just merged.
-  auto left_largest_key = smallest->LargestKey();
-  auto gne = smallest->parent->GreatestNotExceeding(left_largest_key);
-  if (smallest->parent->Remove(gne->Key())) {
+  if (!smallest->parent->IsEmpty()) {
+    auto left_largest_key = smallest->LargestKey();
+    auto gne = smallest->parent->GreatestNotExceeding(left_largest_key);
+    if (smallest->parent->Remove(gne->Key())) {
 
-    // Let the next largest from the parent have its left_child point to smallest.
-    auto next_largest_from_parent = smallest->parent->NextLargest(left_largest_key);
-    if (next_largest_from_parent) {
-      next_largest_from_parent->left_child = std::shared_ptr<BPlusTreeNode>(smallest);
+      // Let the next largest from the parent have its left_child point to smallest.
+      auto next_largest_from_parent = smallest->parent->NextLargest(left_largest_key);
+      if (next_largest_from_parent) {
+        next_largest_from_parent->left_child = std::shared_ptr<BPlusTreeNode>(smallest);
+      }
     }
   }
 
@@ -101,7 +103,7 @@ TreeStructureChange BPlusTreeLeafNode::Merge() {
   smallest->next = largest->next;
   if (smallest->next) { smallest->next->previous = smallest; }
 
-  return smallest->parent->IsRoot() && smallest->parent->IsEmpty() ? TreeStructureChange::EmptyRoot : TreeStructureChange::None;
+  return {RearrangementType::Merge, smallest};
 }
 
 std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeSmallest() {
@@ -251,9 +253,9 @@ std::optional<V> BPlusTreeLeafNode::Remove(const K &key) {
   return std::nullopt;
 }
 
-TreeStructureChange BPlusTreeLeafNode::Rearrange(const K &removed) {
+Rearrangement BPlusTreeLeafNode::Rearrange() {
   if (this->Redistribute()) {
-    return TreeStructureChange::None;
+    return {RearrangementType::Redistribution, std::nullopt};
   }
 
   return this->Merge();

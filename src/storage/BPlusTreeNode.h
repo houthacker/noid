@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "Shared.h"
+#include "Rearrangement.h"
 
 namespace noid::storage {
 
@@ -70,10 +71,9 @@ class BPlusTreeNode {
     /**
      * @brief Rearranges the entries contained in this node, its siblings and their common parent.
      *
-     * @param removed The key whose removal caused this rearrangement.
      * @return Any significant side effect of this rearrangement.
      */
-    virtual TreeStructureChange Rearrange(const K& removed)= 0;
+    virtual Rearrangement Rearrange()= 0;
 
     /**
      * @brief Writes a textual representation of this node and its children to the given stream.

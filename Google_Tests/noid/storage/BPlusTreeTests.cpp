@@ -133,3 +133,36 @@ TEST_F(BPlusTreeFixture, Merger) {
       "[2* 5*] [12* 13*] [15* 16*] [17* 18* 19*] [21* 22*] [23* 24*] [25* 26* 27* 29*]\n";
   EXPECT_STREQ(buf.str().c_str(), expected_after_merge) << "Expect merge to leave tree in valid state";
 }
+
+TEST_F(BPlusTreeFixture, ShrinkTree) {
+  K key_base = {57, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  V value = {1, 3, 3, 7};
+
+  std::vector<byte> key_values = {2, 5, 12, 13, 15};
+  for (auto b : key_values) {
+    K key = key_base;
+    key[BTREE_KEY_SIZE - 1] = b;
+
+    tree->Insert(key, value);
+  }
+
+  std::stringstream buf;
+  tree->Write(buf);
+
+  auto expected_after_setup =
+      "[12]\n"
+      "[2* 5*] [12* 13* 15*]\n";
+  EXPECT_STREQ(buf.str().c_str(), expected_after_setup);
+
+  auto remove_key = key_base;
+  remove_key[BTREE_KEY_SIZE - 1] = 12;
+  auto removed = tree->Remove(remove_key);
+
+  EXPECT_TRUE(removed.has_value()) << "Expect a removed value";
+  EXPECT_THAT(removed.value(), ContainerEq(value));
+
+  buf = std::stringstream();
+  tree->Write(buf);
+  auto expect_after_shrink = "[2* 5* 13* 15*]\n";
+  EXPECT_STREQ(buf.str().c_str(), expect_after_shrink) << "Expect shrunk tree with only a root node";
+}

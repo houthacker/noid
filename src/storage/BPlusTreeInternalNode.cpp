@@ -95,7 +95,7 @@ bool BPlusTreeInternalNode::Redistribute() {
   return false;
 }
 
-TreeStructureChange BPlusTreeInternalNode::Merge() {
+Rearrangement BPlusTreeInternalNode::Merge() {
   auto left_sibling = this->LeftSibling();
   auto right_sibling = this->RightSibling();
   std::shared_ptr<BPlusTreeInternalNode> smallest;
@@ -109,29 +109,40 @@ TreeStructureChange BPlusTreeInternalNode::Merge() {
     largest = right_sibling;
   } else {
     // todo No mergeable sibling. Called out of order? Can we prove this never happens?
-    return TreeStructureChange::None;
+    return {RearrangementType::Merge, std::nullopt};
   }
+
+  auto new_size = smallest->keys.size() + this->keys.size();
 
   // After determining the smallest (smaller) and largest (larger) node, merging can take place. Always merge largest
   // into smallest, because this allows appending instead of prepending. But first pull down the 'middle' key from the
   // parent, which points to both the smaller and larger node.
   auto pulled_down = largest->parent->TakeMiddle(*smallest, *largest);
 
-  // And update its child pointers
-  pulled_down->left_child = smallest->keys[smallest->keys.size() - 1]->right_child;
-  pulled_down->right_child = largest->keys[0]->left_child;
+  // If the parent node is empty, there is no middle key.
+  if (pulled_down) {
+
+    // And update its child pointers
+    pulled_down->left_child = smallest->keys[smallest->keys.size() - 1]->right_child;
+    pulled_down->right_child = largest->keys[0]->left_child;
+
+    new_size++; // Also need to push back pulled_down key.
+  }
 
   // Since we only end up here if redistribution fails, we assume the node we will merge with is not rich,
   // and therefore a merge with this node and the sibling will by definition not lead to a full node, since this
   // node is poor.
-  smallest->keys.reserve(smallest->keys.size() + this->keys.size() + 1);
-  smallest->keys.push_back(std::move(pulled_down));
+  smallest->keys.reserve(new_size);
+
+  if (pulled_down) {
+    smallest->keys.push_back(std::move(pulled_down));
+  }
 
   for (auto& key : largest->keys) {
     smallest->keys.push_back(std::move(key));
   }
 
-  return smallest->parent->IsRoot() && smallest->parent->IsEmpty() ? TreeStructureChange::EmptyRoot : TreeStructureChange::None;
+  return {RearrangementType::Merge, smallest};
 }
 
 void BPlusTreeInternalNode::InsertInternal(std::unique_ptr<BPlusTreeKey> container) {
@@ -385,9 +396,9 @@ bool BPlusTreeInternalNode::Remove(const K &key) {
   return false;
 }
 
-TreeStructureChange BPlusTreeInternalNode::Rearrange(const K &removed) {
+Rearrangement BPlusTreeInternalNode::Rearrange() {
   if (this->Redistribute()) {
-    return TreeStructureChange::None;
+    return {RearrangementType::Redistribution, nullptr};
   }
 
   return this->Merge();
