@@ -2,8 +2,8 @@
 #define NOID_SRC_STORAGE_SHARED_H_
 
 #include <array>
-#include <vector>
 #include <cstdint>
+#include <vector>
 
 namespace noid::storage {
 
@@ -29,20 +29,22 @@ using K = std::array<byte, BTREE_KEY_SIZE>;
  */
 using V = std::vector<byte>;
 
-/**
- * @brief Describes any possible side effect of splitting a node.
- */
-enum class SplitSideEffect {
+enum class TreeStructureChange {
 
     /**
-     * Splitting the node had no side effect.
+     * @brief No change occurred.
      */
     None,
 
     /**
-     * Splitting the node caused the creation of a new root node.
+     * @brief A new root node was created due to splitting the previous root node after a key was inserted.
      */
     NewRoot,
+
+    /**
+     * @brief The root node became empty due to key re-arrangement after the removal of a key.
+     */
+    EmptyRoot,
 };
 
 /**

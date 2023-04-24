@@ -3,10 +3,13 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <utility>
 
 #include "Shared.h"
 #include "BPlusTreeNode.h"
 #include "BPlusTreeLeafNode.h"
+#include "BPlusTreeInternalNode.h"
 
 namespace noid::storage {
 
@@ -29,16 +32,32 @@ class BPlusTree {
     /**
      * The root node is @c nullptr before the first insert.
      */
-    std::unique_ptr<BPlusTreeNode> root;
+    std::shared_ptr<BPlusTreeNode> root;
 
     /**
-     * @brief Recursively finds the leaf in which the given @p key should reside, starting with @p node.
+     * @brief Recursively finds the leaf having a key range containing the given @p key, starting with @p node.
+     * @details The returned leaf is the only leaf that can contain the given @p key if it exists in this tree. However,
+     * since the search is executed using a range match, it must be checked if the leaf actually contains the @p key if
+     * this is a requirement. Use @c BPlusTreeNode::Contains(key) for this.
      *
      * @param node The search entry point.
      * @param key The search key.
      * @return A reference to the leaf node.
      */
-    BPlusTreeLeafNode& FindLeaf(BPlusTreeNode& node, const K& key);
+    std::shared_ptr<BPlusTreeLeafNode> FindLeafRangeMatch(const std::shared_ptr<BPlusTreeNode>& node, const K& key);
+
+    /**
+     * @brief Recursively finds the node(s) containing the given @p key, starting at @p node.
+     * @details Searches the tree for the internal- and leaf node containing the search key. The internal node is
+     * returned if it contains the key, while the leaf node is returned when its range implies that it
+     * should contain the key. However, if an internal node is returned with this search, the leaf node
+     * contains the key as well.
+     *
+     * @param node The search entry point.
+     * @param key The search key.
+     * @return The found nodes.
+     */
+    std::pair<std::shared_ptr<BPlusTreeInternalNode>, std::shared_ptr<BPlusTreeLeafNode>> FindNodes(const std::shared_ptr<BPlusTreeNode>& node, const K& key);
 
  public:
 
@@ -65,6 +84,21 @@ class BPlusTree {
      * @return The type of insert.
      */
     InsertType Insert(const K& key, V& value);
+
+    /**
+     * @brief Removes the given value from the tree and returns its associated value.
+     *
+     * @param key The key to remove.
+     * @return The associated value, or an empty optional if no such record exists.
+     */
+    std::optional<V> Remove(const K& key);
+
+    /**
+     * @brief Writes a textual representation of this tree to the given stream.
+     *
+     * @param out The stream to Write the output to.
+     */
+    void Write(std::stringstream& out);
 };
 
 }
