@@ -4,8 +4,9 @@
 #include <array>
 #include <cstdint>
 #include <functional>
-#include <vector>
 #include <memory>
+#include <type_traits>
+#include <vector>
 
 #include "Shared.h"
 #include "KeyBearer.h"
@@ -27,6 +28,7 @@ namespace noid::storage {
 template<typename T, typename Func>
 int64_t BinarySearch(const std::vector<std::unique_ptr<T>>& haystack, int64_t low,
                      int64_t high, const K& needle, Func get_key_reference) {
+  static_assert(std::is_base_of_v<KeyBearer, T>, "Haystack elements must derive from KeyBearer");
   if (high >= low) {
     auto middle_index = low + (high - low) / 2;
     auto& middle = get_key_reference(*haystack[middle_index]);
@@ -61,6 +63,7 @@ int64_t BinarySearch(const std::vector<std::unique_ptr<T>>& haystack, int64_t lo
 template<typename T, typename Func>
 int64_t GreatestNotExceeding(const std::vector<std::unique_ptr<T>>& haystack, int64_t low,
                              int64_t high, const K& needle, Func get_key_reference) {
+  static_assert(std::is_base_of_v<KeyBearer, T>, "Haystack elements must derive from KeyBearer");
   auto middle_index = low + (high - low) / 2;
   auto& middle = get_key_reference(*haystack[middle_index]);
 
@@ -96,6 +99,7 @@ int64_t GreatestNotExceeding(const std::vector<std::unique_ptr<T>>& haystack, in
 template<typename T, typename Func>
 int64_t NextLargest(const std::vector<std::unique_ptr<T>>& haystack, int64_t low,
                          int64_t high, const K& needle, Func get_key_reference) {
+  static_assert(std::is_base_of_v<KeyBearer, T>, "Haystack elements must derive from KeyBearer");
   auto middle_index = low + (high - low) / 2;
   auto& middle_element = get_key_reference(*haystack[middle_index]);
 
