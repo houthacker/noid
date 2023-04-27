@@ -9,7 +9,6 @@ set(HEADER_FILES
         BPlusTreeRecord.h
         BPlusTreeKey.h
         Shared.h
-        Rearrangement.h
         Algorithm.h)
 
 set(SOURCE_FILES

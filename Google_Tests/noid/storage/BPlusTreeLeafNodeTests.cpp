@@ -101,7 +101,7 @@ TEST_F(BPlusTreeLeafNodeFixture, Split) {
   EXPECT_EQ(node->Parent(), nullptr) << "Expect node to have no parent before split";
 
   // Execute the split.
-  EXPECT_EQ(node->Split(), TreeStructureChange::NewRoot) << "Expect an indication of a new parent after a split";
+  EXPECT_EQ(node->Rearrange().type, RearrangementType::Split) << "Expect node rearrangement splits it";
   auto parent = node->Parent();
   EXPECT_NE(parent, nullptr) << "Expect an actual non-null parent after a split";
   EXPECT_TRUE(parent->IsRoot()) << "Expect the parent node to be the new root";

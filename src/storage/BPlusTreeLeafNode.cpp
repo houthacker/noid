@@ -21,15 +21,44 @@ bool BPlusTreeLeafNode::IsMergeableWith(BPlusTreeLeafNode& sibling) {
   return this->records.size() + sibling.records.size() <= this->order * 2;
 }
 
-bool BPlusTreeLeafNode::CopyUp(const K &key) {
-  auto must_increase_tree_height = this->IsRoot();
-  if (must_increase_tree_height) {
+void BPlusTreeLeafNode::CopyUp(const K &key) {
+  if (this->IsRoot()) {
     this->parent = BPlusTreeInternalNode::Create(nullptr, this->order, key, shared_from_this(), this->next);
   } else {
     this->parent->Insert(key, shared_from_this(), this->next);
   }
+}
 
-  return must_increase_tree_height;
+EntryRearrangement BPlusTreeLeafNode::Split() {
+  if (this->records.size() < BTREE_MIN_ORDER) {
+    return {RearrangementType::None, std::nullopt};
+  }
+
+  auto middle_index = this->records.size() / 2;
+
+  // Create a new leaf and add the middle key to it.
+  auto split = BPlusTreeLeafNode::Create(this->parent, this->order, std::move(this->records[middle_index]));
+
+  // Add the largest half of the records to the new node
+  for (auto i = middle_index + 1; i < this->records.size(); i++) {
+    split->records.push_back(std::move(this->records[i]));
+  }
+
+  // Remove the slots of the records that were moved to the new node.
+  this->records.resize(middle_index);
+
+  // Put the leaf in position
+  if (this->next) {
+    this->next->previous = split;
+  }
+
+  split->previous = shared_from_this();
+  split->next = this->next;
+
+  this->next = split;
+  this->CopyUp(split->SmallestKey());
+
+  return {RearrangementType::Split, split};
 }
 
 bool BPlusTreeLeafNode::Redistribute() {
@@ -58,7 +87,7 @@ bool BPlusTreeLeafNode::Redistribute() {
   return false;
 }
 
-Rearrangement BPlusTreeLeafNode::Merge() {
+EntryRearrangement BPlusTreeLeafNode::Merge() {
   std::shared_ptr<BPlusTreeLeafNode> smallest;
   std::shared_ptr<BPlusTreeLeafNode> largest;
 
@@ -111,7 +140,7 @@ std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeSmallest() {
     auto smallest = std::move(this->records[0]);
     this->records.erase(this->records.begin());
 
-    return std::move(smallest);
+    return smallest;
   }
 
   return {nullptr};
@@ -123,7 +152,7 @@ std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeLargest() {
     auto largest = std::move(this->records[index]);
     this->records.erase(this->records.begin() + static_cast<int64_t>(index));
 
-    return std::move(largest);
+    return largest;
   }
 
   return {nullptr};
@@ -201,41 +230,6 @@ bool BPlusTreeLeafNode::Insert(const K &key, V &value) {
   }
 }
 
-TreeStructureChange BPlusTreeLeafNode::Split() {
-  if (this->records.size() < BTREE_MIN_ORDER) {
-    return TreeStructureChange::None;
-  }
-
-  auto middle_index = this->records.size() / 2;
-
-  // Create a new leaf and add the middle key to it.
-  auto split = BPlusTreeLeafNode::Create(this->parent, this->order, std::move(this->records[middle_index]));
-
-  // Add the largest half of the records to the new node
-  for (auto i = middle_index + 1; i < this->records.size(); i++) {
-    split->records.push_back(std::move(this->records[i]));
-  }
-
-  // Remove the slots of the records that were moved to the new node.
-  this->records.resize(middle_index);
-
-  // Put the leaf in position
-  if (this->next) {
-    this->next->previous = split;
-  }
-
-  split->previous = shared_from_this();
-  split->next = this->next;
-
-  this->next = split;
-
-  if (this->CopyUp(split->SmallestKey())) {
-    return TreeStructureChange::NewRoot;
-  }
-
-  return TreeStructureChange::None;
-}
-
 std::optional<V> BPlusTreeLeafNode::Remove(const K &key) {
   if (this->records.empty()) {
     return std::nullopt;
@@ -253,17 +247,23 @@ std::optional<V> BPlusTreeLeafNode::Remove(const K &key) {
   return std::nullopt;
 }
 
-Rearrangement BPlusTreeLeafNode::Rearrange() {
-  if (this->Redistribute()) {
-    return {RearrangementType::Redistribution, std::nullopt};
+EntryRearrangement BPlusTreeLeafNode::Rearrange() {
+  if (this->IsPoor() || (this->parent && this->parent->IsRoot() && this->parent->IsPoor())) {
+    if (this->Redistribute()) {
+      return {RearrangementType::Redistribute, std::nullopt};
+    }
+
+    return this->Merge();
+  } else if (this->IsFull()) {
+    return this->Split();
   }
 
-  return this->Merge();
+  return {RearrangementType::None, std::nullopt};
 }
 
 void BPlusTreeLeafNode::Write(std::stringstream &out) {
   out << '[';
-  for (auto i = 0; i < this->records.size(); i++) {
+  for (std::size_t i = 0; i < this->records.size(); i++) {
     auto record = this->records[i].get();
 
     if (i > 0) {

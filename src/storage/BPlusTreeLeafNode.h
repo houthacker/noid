@@ -54,9 +54,18 @@ namespace noid::storage {
      * @brief Copies the given key to the parent node, creating a new parent if this is the root.
      *
      * @param key The key to insert into the parent.
-     * @return Whether the tree was grown to facilitate copying up.
      */
-    bool CopyUp(const K& key);
+    void CopyUp(const K& key);
+
+     /**
+      * @brief Redistributes the node keys evenly between this node and a newly created sibling, copying up
+      * the middle key.
+      * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
+      * return @c TreeStructureChange::None.
+      *
+      * @return The side effect this split has on the containing tree.
+      */
+     EntryRearrangement Split();
 
     /**
      * @brief Redistributes the records between itself and its left- or right sibling.
@@ -77,7 +86,7 @@ namespace noid::storage {
      *
      * @return The change to the tree structure that occurred during this merge.
      */
-    Rearrangement Merge();
+    EntryRearrangement Merge();
 
     /**
      * @brief Removes the smallest record from this node and returns it.
@@ -190,16 +199,6 @@ namespace noid::storage {
     bool Insert(const K& key, V& value);
 
     /**
-     * @brief Redistributes the node keys evenly between this node and a newly created sibling, copying up
-     * the middle key.
-     * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
-     * return @c TreeStructureChange::None.
-     *
-     * @return The side effect this split has on the containing tree.
-     */
-    TreeStructureChange Split() override;
-
-    /**
      * @brief Removes the given key and if such record exists in this node, returns its value.
      * @param key The key to remove.
      * @return The record value or an empty optional if no such record exists.
@@ -211,7 +210,7 @@ namespace noid::storage {
      *
      * @return Any significant side effect of this rearrangement.
      */
-    Rearrangement Rearrange() override;
+    EntryRearrangement Rearrange() override;
 
     /**
      * @brief Writes a textual representation of this node and all its siblings at the same level to the given stream.

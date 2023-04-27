@@ -56,9 +56,18 @@ namespace noid::storage {
      * @details If so required, this method creates and attaches a new parent node to contain the given @p key.
      *
      * @param key The key to push up.
-     * @return true if the tree height has been increased, false otherwise.
      */
-    bool PushUp(std::unique_ptr<BPlusTreeKey> key);
+    void PushUp(std::unique_ptr<BPlusTreeKey> key);
+
+     /**
+      * @brief Redistributes the node keys evenly between this node and a newly created sibling, pushing up
+      * the middle key.
+      * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
+      * return @c SplitSideEffect::None.
+      *
+      * @return The side effect this split has on the containing tree.
+      */
+     EntryRearrangement Split();
 
     /**
      * @brief Redistributes the keys between itself, its parent and its left- or right sibling.
@@ -76,7 +85,7 @@ namespace noid::storage {
      *
      * @return The change to the tree structure that occurred during this merge.
      */
-    Rearrangement Merge();
+    EntryRearrangement Merge();
 
     /**
      * @brief Inserts the given @p key and sorts the keys afterwards to ensure the correct order.
@@ -228,16 +237,6 @@ namespace noid::storage {
     bool Insert(const K& key, std::shared_ptr<BPlusTreeNode> left_child, std::shared_ptr<BPlusTreeNode> right_child);
 
     /**
-     * @brief Redistributes the node keys evenly between this node and a newly created sibling, pushing up
-     * the middle key.
-     * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
-     * return @c SplitSideEffect::None.
-     *
-     * @return The side effect this split has on the containing tree.
-     */
-    TreeStructureChange Split() override;
-
-    /**
      * @brief Removes the given key and returns whether the size of this node changed as a result.
      *
      * @param key The key to remove.
@@ -250,7 +249,7 @@ namespace noid::storage {
      *
      * @return Any significant side effect of this rearrangement.
      */
-    Rearrangement Rearrange() override;
+    EntryRearrangement Rearrange() override;
 
     /**
      * @brief Writes a textual representation of this node to the given stream.

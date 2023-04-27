@@ -2,14 +2,57 @@
 #define NOID_SRC_STORAGE_BPLUSTREENODE_H_
 
 #include <memory>
+#include <optional>
 #include <sstream>
 
 #include "Shared.h"
-#include "Rearrangement.h"
 
 namespace noid::storage {
 
+class BPlusTreeNode;
 class BPlusTreeInternalNode;
+
+/**
+ * @brief Describes the available types of entry rearrangement.
+ */
+enum class RearrangementType {
+    /**
+     * No rearrangement was executed.
+     */
+    None,
+
+    /**
+     * Rearrangement was done by merging entries of two nodes and their common parent.
+     */
+    Merge,
+
+    /**
+     * Rearrangement was done by redistributing entries between two existing nodes and their common parent.
+     */
+    Redistribute,
+
+    /**
+     * Rearrangement was done by splitting the subject node and evenly distributing the entries between the nodes
+     * and their common parent.
+     */
+    Split,
+};
+
+/**
+ * @brief Short-lived structure to contain the rearrangement results.
+ */
+struct EntryRearrangement {
+    /**
+     * @brief The type of rearrangement.
+     */
+    const RearrangementType type;
+
+    /**
+     * If @c type is @c RearrangementType::Merge, the subject is the merged-into node. If @c type is
+     * @c RearrangementType::Split, the subject is the new node.
+     */
+    const std::optional<std::shared_ptr<BPlusTreeNode>> subject;
+};
 
 /**
  * @brief Defines shared behaviour between internal- and leaf nodes.
@@ -60,20 +103,11 @@ class BPlusTreeNode {
     virtual void SetParent(std::shared_ptr<BPlusTreeInternalNode> parent)= 0;
 
     /**
-     * @brief Redistributes the keys or records evenly between itself and a new sibling.
-     * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
-     * return @c TreeStructureChange::None.
-     *
-     * @return Any significant side effect of this split.
-     */
-    virtual TreeStructureChange Split()= 0;
-
-    /**
      * @brief Rearranges the entries contained in this node, its siblings and their common parent.
      *
-     * @return Any significant side effect of this rearrangement.
+     * @return The executed type of rearrangement.
      */
-    virtual Rearrangement Rearrange()= 0;
+    [[nodiscard]] virtual EntryRearrangement Rearrange()= 0;
 
     /**
      * @brief Writes a textual representation of this node and its children to the given stream.

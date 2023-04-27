@@ -74,10 +74,10 @@ InsertType BPlusTree::Insert(const K &key, V &value) {
 
   BPlusTreeNode* node = leaf.get();
   while (node && node->IsFull()) {
-    auto side_effect = node->Split();
+    auto rearrangement = node->Rearrange();
 
     auto parent = node->Parent();
-    if (side_effect == TreeStructureChange::NewRoot) {
+    if (rearrangement.type == RearrangementType::Split && parent->IsRoot()) {
       this->root = parent;
     }
 
@@ -96,36 +96,26 @@ std::optional<V> BPlusTree::Remove(const K &key) {
     BPlusTreeNode* node = leaf.get();
     while (node) {
 
-      // Replace the root node if it is empty after rearrangement of entries.
-      if (node->IsPoor()) {
-        auto rearrangement = node->Rearrange();
+      auto internal_is_parent = internal && node->Parent() == internal;
+      if (internal_is_parent) {
 
-        if (this->root->IsPoor() /* a poor root is empty */) {
-          if (rearrangement.type == RearrangementType::Merge && rearrangement.merged_into.has_value()) {
-            node->SetParent(nullptr);
-            this->root = rearrangement.merged_into.value();
-          }
-        }
-      }
-
-      if (internal && node->Parent() == internal) {
         // The key could reside in the (grand)parent of the leaf node, and is not necessarily removed
         // from it at this point. Removing it here ensures the removal happens after a possible rearrangement which
         // might get confused if the key is missing.
         // If the internal node gets poor after this, it will be rearranged in the next iteration.
         internal->Remove(key);
+      }
 
-        if (internal->IsEmpty() && internal->IsRoot()) {
+      auto internal_is_poor_root = internal && internal->IsRoot() && internal->IsPoor();
 
-          // If the root node became empty because of the key removal, try to rearrange
-          // this node, which must result in the merger of this node and its sibling.
-          auto rearrangement = node->Rearrange();
+      // Replace the root node if it is empty after rearrangement of entries.
+      if (node->IsPoor() || (internal_is_parent && internal_is_poor_root)) {
+        auto rearrangement = node->Rearrange();
 
-          if (this->root->IsPoor() /* a poor root is empty */) {
-            if (rearrangement.type == RearrangementType::Merge && rearrangement.merged_into.has_value()) {
-              node->SetParent(nullptr);
-              this->root = rearrangement.merged_into.value();
-            }
+        if (internal_is_poor_root) {
+          if (rearrangement.type == RearrangementType::Merge && rearrangement.subject.has_value()) {
+            node->SetParent(nullptr);
+            this->root = rearrangement.subject.value();
           }
         }
       }
@@ -133,7 +123,7 @@ std::optional<V> BPlusTree::Remove(const K &key) {
       node = node->Parent().get();
     }
 
-    return std::move(removed);
+    return removed;
   }
 
   return std::nullopt;

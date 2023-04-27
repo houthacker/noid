@@ -96,7 +96,7 @@ TEST_F(BPlusTreeInternalNodeFixture, Split) {
   EXPECT_EQ(node->Parent(), nullptr) << "Expect node to be parent before split";
 
   // Execute the split
-  EXPECT_EQ(node->Split(), TreeStructureChange::NewRoot) << "Expect splitting the node creates a new parent";
+  EXPECT_EQ(node->Rearrange().type, RearrangementType::Split) << "Expect rearranging the node splits it";
 
   // Verify
   auto parent = node->Parent();

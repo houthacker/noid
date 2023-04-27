@@ -29,24 +29,6 @@ using K = std::array<byte, BTREE_KEY_SIZE>;
  */
 using V = std::vector<byte>;
 
-enum class TreeStructureChange {
-
-    /**
-     * @brief No change occurred.
-     */
-    None,
-
-    /**
-     * @brief A new root node was created due to splitting the previous root node after a key was inserted.
-     */
-    NewRoot,
-
-    /**
-     * @brief The root node became empty due to key re-arrangement after the removal of a key.
-     */
-    EmptyRoot,
-};
-
 /**
  * @brief Describes the available types of insert.
  */
