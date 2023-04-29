@@ -1,5 +1,5 @@
-#ifndef NOID_SRC_STORAGE_BPLUSTREEINTERNALNODE_H_
-#define NOID_SRC_STORAGE_BPLUSTREEINTERNALNODE_H_
+#ifndef NOID_SRC_ALGORITHM_BPLUSTREEINTERNALNODE_H_
+#define NOID_SRC_ALGORITHM_BPLUSTREEINTERNALNODE_H_
 
 #include <array>
 #include <cstdint>
@@ -12,7 +12,7 @@
 #include "BPlusTreeKey.h"
 #include "Shared.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
  class BPlusTreeInternalNode : public BPlusTreeNode, public std::enable_shared_from_this<BPlusTreeInternalNode> {
  private:
@@ -261,4 +261,4 @@ namespace noid::storage {
 
 }
 
-#endif //NOID_SRC_STORAGE_BPLUSTREEINTERNALNODE_H_
+#endif //NOID_SRC_ALGORITHM_BPLUSTREEINTERNALNODE_H_

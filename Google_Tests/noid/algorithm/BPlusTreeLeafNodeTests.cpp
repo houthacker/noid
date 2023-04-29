@@ -1,11 +1,11 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "storage/BPlusTreeLeafNode.h"
-#include "storage/BPlusTreeInternalNode.h"
+#include "algorithm/BPlusTreeLeafNode.h"
+#include "algorithm/BPlusTreeInternalNode.h"
 
 using ::testing::ContainerEq;
-using namespace noid::storage;
+using namespace noid::algorithm;
 
 class BPlusTreeLeafNodeFixture : public ::testing::Test {};
 

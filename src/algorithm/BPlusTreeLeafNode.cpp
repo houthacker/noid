@@ -7,7 +7,7 @@
 #include "BPlusTreeInternalNode.h"
 #include "KeyBearer.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 static const K& GetKeyReference(BPlusTreeRecord& record) {
   return record.Key();
@@ -216,7 +216,7 @@ void BPlusTreeLeafNode::SetParent(std::shared_ptr<BPlusTreeInternalNode> p) {
 }
 
 bool BPlusTreeLeafNode::Insert(const K &key, V &value) {
-  auto index = noid::storage::BinarySearch(
+  auto index = noid::algorithm::BinarySearch(
       this->records, 0, static_cast<int64_t>(this->records.size() - 1), key,GetKeyReference);
 
   if (index == -1) {

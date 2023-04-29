@@ -7,7 +7,7 @@
 
 #include "BPlusTreeInternalNode.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 static inline bool IsInternalNode(const std::shared_ptr<BPlusTreeNode>& node) {
   if (std::dynamic_pointer_cast<BPlusTreeInternalNode>(node)) {

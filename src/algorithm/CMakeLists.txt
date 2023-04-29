@@ -1,4 +1,4 @@
-project(noid_storage)
+project(noid_algorithm)
 
 set(HEADER_FILES
         KeyBearer.h
@@ -18,4 +18,4 @@ set(SOURCE_FILES
         BPlusTreeKey.cpp
         BPlusTree.cpp)
 
-add_library(noid_storage ${SOURCE_FILES} ${HEADER_FILES})
+add_library(noid_algorithm ${SOURCE_FILES} ${HEADER_FILES})

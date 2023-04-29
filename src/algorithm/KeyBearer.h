@@ -1,9 +1,9 @@
-#ifndef NOID_SRC_STORAGE_KEYBEARER_H_
-#define NOID_SRC_STORAGE_KEYBEARER_H_
+#ifndef NOID_SRC_ALGORITHM_KEYBEARER_H_
+#define NOID_SRC_ALGORITHM_KEYBEARER_H_
 
 #include "Shared.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 /**
  * @brief Interface for classes which expose a key.
@@ -20,4 +20,4 @@ class KeyBearer {
 
 }
 
-#endif //NOID_SRC_STORAGE_KEYBEARER_H_
+#endif //NOID_SRC_ALGORITHM_KEYBEARER_H_

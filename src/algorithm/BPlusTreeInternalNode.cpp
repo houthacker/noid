@@ -6,7 +6,7 @@
 #include "BPlusTreeInternalNode.h"
 #include "Algorithm.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 static const K& GetKeyReference(BPlusTreeKey& key) {
   return key.Key();
@@ -229,7 +229,7 @@ std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeSmallest() {
 
 std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeMiddle(BPlusTreeInternalNode &left,
                                                                 BPlusTreeInternalNode &right) {
-  auto index = noid::storage::GreatestNotExceeding(
+  auto index = noid::algorithm::GreatestNotExceeding(
       this->keys, 0, static_cast<int64_t>(this->keys.size() - 1), right.Smallest()->Key(), GetKeyReference);
   if (index >= 1 /* The element at index zero has no left child */ ) {
     auto candidate = this->keys[index].get();
@@ -331,7 +331,7 @@ BPlusTreeKey* BPlusTreeInternalNode::Smallest() {
 }
 
 BPlusTreeKey* BPlusTreeInternalNode::GreatestNotExceeding(const K &key) {
-  auto index = noid::storage::GreatestNotExceeding(
+  auto index = noid::algorithm::GreatestNotExceeding(
       this->keys, 0, static_cast<int64_t>(this->keys.size() - 1), key, GetKeyReference);
   if (index >= 0) {
     return this->keys[index].get();
@@ -341,7 +341,7 @@ BPlusTreeKey* BPlusTreeInternalNode::GreatestNotExceeding(const K &key) {
 }
 
 BPlusTreeKey* BPlusTreeInternalNode::NextLargest(const K &key) {
-  auto index = noid::storage::NextLargest(this->keys, 0, static_cast<int64_t>(this->keys.size() - 1),
+  auto index = noid::algorithm::NextLargest(this->keys, 0, static_cast<int64_t>(this->keys.size() - 1),
                                           key,GetKeyReference);
 
   if (index >= 0) {

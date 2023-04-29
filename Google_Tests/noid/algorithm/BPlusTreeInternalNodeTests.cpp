@@ -1,9 +1,9 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "storage/BPlusTreeInternalNode.h"
-#include "storage/BPlusTreeLeafNode.h"
+#include "algorithm/BPlusTreeInternalNode.h"
+#include "algorithm/BPlusTreeLeafNode.h"
 
-using namespace noid::storage;
+using namespace noid::algorithm;
 
 class BPlusTreeInternalNodeFixture : public ::testing::Test {
 

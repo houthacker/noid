@@ -1,5 +1,5 @@
-#ifndef NOID_SRC_STORAGE_BPLUSTREENODE_H_
-#define NOID_SRC_STORAGE_BPLUSTREENODE_H_
+#ifndef NOID_SRC_ALGORITHM_BPLUSTREENODE_H_
+#define NOID_SRC_ALGORITHM_BPLUSTREENODE_H_
 
 #include <memory>
 #include <optional>
@@ -7,7 +7,7 @@
 
 #include "Shared.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 class BPlusTreeNode;
 class BPlusTreeInternalNode;
@@ -119,4 +119,4 @@ class BPlusTreeNode {
 
 }
 
-#endif //NOID_SRC_STORAGE_BPLUSTREENODE_H_
+#endif //NOID_SRC_ALGORITHM_BPLUSTREENODE_H_

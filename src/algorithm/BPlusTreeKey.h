@@ -1,5 +1,5 @@
-#ifndef NOID_SRC_STORAGE_BPLUSTREEKEY_H_
-#define NOID_SRC_STORAGE_BPLUSTREEKEY_H_
+#ifndef NOID_SRC_ALGORITHM_BPLUSTREEKEY_H_
+#define NOID_SRC_ALGORITHM_BPLUSTREEKEY_H_
 
 #include <memory>
 
@@ -7,7 +7,7 @@
 #include "KeyBearer.h"
 #include "Shared.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 /**
  * @brief A container for a key and the child nodes it points to.
@@ -76,4 +76,4 @@ bool operator<(const BPlusTreeKey &lhs, const BPlusTreeKey& rhs);
 
 }
 
-#endif //NOID_SRC_STORAGE_BPLUSTREEKEY_H_
+#endif //NOID_SRC_ALGORITHM_BPLUSTREEKEY_H_

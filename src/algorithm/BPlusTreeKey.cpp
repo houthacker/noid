@@ -1,6 +1,6 @@
 #include "BPlusTreeKey.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 BPlusTreeKey::BPlusTreeKey(K key)
   : key(key), left_child(std::shared_ptr<BPlusTreeNode>()), right_child(std::shared_ptr<BPlusTreeNode>()) {}

@@ -9,4 +9,4 @@ add_subdirectory(src)
 add_subdirectory(Google_Tests)
 
 add_executable(noid main.cpp)
-target_link_libraries(noid noid_storage)
+target_link_libraries(noid noid_algorithm)

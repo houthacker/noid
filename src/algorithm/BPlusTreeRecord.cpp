@@ -1,7 +1,7 @@
 #include "BPlusTreeRecord.h"
 
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 bool operator==(BPlusTreeRecord &lhs, BPlusTreeRecord &rhs) {
   return lhs.Key() ==rhs.Key();

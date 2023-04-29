@@ -4,11 +4,11 @@
 #include <sstream>
 #include <iostream>
 
-#include "storage/BPlusTree.h"
-#include "storage/BPlusTreeInternalNode.h"
+#include "algorithm/BPlusTree.h"
+#include "algorithm/BPlusTreeInternalNode.h"
 
 using ::testing::ContainerEq;
-using namespace noid::storage;
+using namespace noid::algorithm;
 
 class BPlusTreeFixture : public ::testing::Test {
  protected:

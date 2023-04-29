@@ -1,5 +1,5 @@
-#ifndef NOID_SRC_STORAGE_ALGORITHM_H_
-#define NOID_SRC_STORAGE_ALGORITHM_H_
+#ifndef NOID_SRC_ALGORITHM_ALGORITHM_H_
+#define NOID_SRC_ALGORITHM_ALGORITHM_H_
 
 #include <array>
 #include <cstdint>
@@ -11,7 +11,7 @@
 #include "Shared.h"
 #include "KeyBearer.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 /**
  * @brief Recursively searches for the given needle and returns its index within the haystack.
@@ -120,4 +120,4 @@ int64_t NextLargest(const std::vector<std::unique_ptr<T>>& haystack, int64_t low
 
 }
 
-#endif //NOID_SRC_STORAGE_ALGORITHM_H_
+#endif //NOID_SRC_ALGORITHM_ALGORITHM_H_

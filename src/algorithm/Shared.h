@@ -1,11 +1,11 @@
-#ifndef NOID_SRC_STORAGE_SHARED_H_
-#define NOID_SRC_STORAGE_SHARED_H_
+#ifndef NOID_SRC_ALGORITHM_SHARED_H_
+#define NOID_SRC_ALGORITHM_SHARED_H_
 
 #include <array>
 #include <cstdint>
 #include <vector>
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 /**
  * The minimal order of a @c BPlusTree. This is required to ensure the properties of a b(plus)tree always hold.
@@ -47,4 +47,4 @@ enum class InsertType {
 
 }
 
-#endif //NOID_SRC_STORAGE_SHARED_H_
+#endif //NOID_SRC_ALGORITHM_SHARED_H_

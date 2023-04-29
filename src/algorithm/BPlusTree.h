@@ -1,5 +1,5 @@
-#ifndef NOID_SRC_STORAGE_BPLUSTREE_H_
-#define NOID_SRC_STORAGE_BPLUSTREE_H_
+#ifndef NOID_SRC_ALGORITHM_BPLUSTREE_H_
+#define NOID_SRC_ALGORITHM_BPLUSTREE_H_
 
 #include <cstdint>
 #include <memory>
@@ -11,7 +11,7 @@
 #include "BPlusTreeLeafNode.h"
 #include "BPlusTreeInternalNode.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 class BPlusTree {
  private:
@@ -103,4 +103,4 @@ class BPlusTree {
 
 }
 
-#endif //NOID_SRC_STORAGE_BPLUSTREE_H_
+#endif //NOID_SRC_ALGORITHM_BPLUSTREE_H_

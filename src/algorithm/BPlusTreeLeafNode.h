@@ -1,5 +1,5 @@
-#ifndef NOID_SRC_STORAGE_BPLUSTREELEAFNODE_H_
-#define NOID_SRC_STORAGE_BPLUSTREELEAFNODE_H_
+#ifndef NOID_SRC_ALGORITHM_BPLUSTREELEAFNODE_H_
+#define NOID_SRC_ALGORITHM_BPLUSTREELEAFNODE_H_
 
 #include <array>
 #include <cstdint>
@@ -11,7 +11,7 @@
 #include "BPlusTreeRecord.h"
 #include "Shared.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
  class BPlusTreeLeafNode : public BPlusTreeNode, public std::enable_shared_from_this<BPlusTreeLeafNode> {
  private:
@@ -222,4 +222,4 @@ namespace noid::storage {
 
 }
 
-#endif //NOID_SRC_STORAGE_BPLUSTREELEAFNODE_H_
+#endif //NOID_SRC_ALGORITHM_BPLUSTREELEAFNODE_H_

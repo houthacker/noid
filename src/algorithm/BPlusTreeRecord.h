@@ -1,10 +1,10 @@
-#ifndef NOID_SRC_STORAGE_BPLUSTREERECORD_H_
-#define NOID_SRC_STORAGE_BPLUSTREERECORD_H_
+#ifndef NOID_SRC_ALGORITHM_BPLUSTREERECORD_H_
+#define NOID_SRC_ALGORITHM_BPLUSTREERECORD_H_
 
 #include "Shared.h"
 #include "KeyBearer.h"
 
-namespace noid::storage {
+namespace noid::algorithm {
 
 /**
  * @brief A container for a search key and the related data.
@@ -77,4 +77,4 @@ class BPlusTreeRecord : public KeyBearer {
 
 }
 
-#endif //NOID_SRC_STORAGE_BPLUSTREERECORD_H_
+#endif //NOID_SRC_ALGORITHM_BPLUSTREERECORD_H_
