@@ -7,6 +7,10 @@ add_executable(Google_Tests_run
         noid/algorithm/BPlusTreeLeafNodeTests.cpp
         noid/algorithm/BPlusTreeTests.cpp
         noid/algorithm/BPlusTreeInternalNodeTests.cpp
-        noid/algorithm/AlgorithmTests.cpp)
+        noid/algorithm/AlgorithmTests.cpp
+        noid/backend/MD5Tests.cpp
+        noid/backend/PagerTests.cpp
+        noid/backend/BitsTests.cpp
+        noid/backend/page/DatabaseHeaderTests.cpp)
 
-target_link_libraries(Google_Tests_run gtest gtest_main gmock gmock_main noid_algorithm)
+target_link_libraries(Google_Tests_run gtest gtest_main gmock gmock_main noid_algorithm noid_backend)
