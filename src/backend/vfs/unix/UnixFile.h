@@ -85,6 +85,13 @@ class UnixFile : public NoidFile<UnixFileLock<IntentAwareMutex>, UnixSharedFileL
      */
     static std::shared_ptr<UnixFile> CreateTempFile();
 
+#ifdef NOID_TEST_BUILD
+    /**
+     * @return The associated file descriptor.
+     */
+    int GetFileDescriptor();
+#endif
+
     /**
      * @brief Atomically writes the @p length bytes from @p source to this file, starting at @p start_position.
      *

@@ -15,7 +15,6 @@
 
 #include "Inode.h"
 #include "core/api/Error.h"
-#include "backend/NoidConfig.h"
 
 namespace noid::backend::vfs {
 

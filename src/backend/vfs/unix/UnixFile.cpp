@@ -79,6 +79,12 @@ std::shared_ptr<UnixFile> UnixFile::CreateTempFile() {
   return std::shared_ptr<UnixFile>(new UnixFile(GetValidFile(std::tmpfile())));
 }
 
+#ifdef NOID_TEST_BUILD
+int UnixFile::GetFileDescriptor() {
+  return this->fd;
+}
+#endif
+
 std::size_t UnixFile::Write(const byte *source, Position start_position, std::size_t size) {
   if (fseeko64(this->file, start_position, SEEK_SET)==C_API_ERROR) {
     throw std::ios_base::failure(core::api::GetErrorText(errno),
