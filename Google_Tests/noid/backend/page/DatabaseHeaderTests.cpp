@@ -56,7 +56,7 @@ TEST_F(DatabaseHeaderFixture, CreateWithDefaultValues) {
 
 TEST_F(DatabaseHeaderFixture, UpdateFreelistPage) {
   auto original = page::DatabaseHeader::NewBuilder()->Build();
-  auto updated = page::DatabaseHeader::NewBuilder(original)->WithFirstFreeListPage(1337).Build();
+  auto updated = page::DatabaseHeader::NewBuilder(*original)->WithFirstFreeListPage(1337).Build();
 
   EXPECT_EQ(original->GetFirstFreelistPage(), 0);
   EXPECT_EQ(updated->GetFirstFreelistPage(), 1337);

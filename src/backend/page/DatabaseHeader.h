@@ -68,7 +68,7 @@ class DatabaseHeader {
      * @param base The data to use as a basis for the new @c DatabaseHeader instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> base);
+    static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> &base);
 
     /**
      * @brief Creates a new builder for @c DatabaseHeader instances, using @p base as a starting point.
@@ -76,7 +76,7 @@ class DatabaseHeader {
      * @param base The @c DatabaseHeader to use as a basis for the new instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(const std::shared_ptr<const DatabaseHeader>& base);
+    static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(const DatabaseHeader& base);
 
     /**
      * @return An unmodifiable reference to the raw bytes of this header.
@@ -167,14 +167,14 @@ class DatabaseHeaderBuilder {
      * @param base The header to use as a basis for the new header instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<DatabaseHeaderBuilder> Create(const std::shared_ptr<const DatabaseHeader>& base);
+    static std::unique_ptr<DatabaseHeaderBuilder> Create(const DatabaseHeader& base);
 
     /**
      * @brief Creates a new @c DatabaseHeader instance based on the provided data.
      *
      * @return The new @c DatabaseHeader instance.
      */
-    [[nodiscard]] std::shared_ptr<DatabaseHeader> Build() const;
+    [[nodiscard]] std::unique_ptr<const DatabaseHeader> Build() const;
 
     /**
      * @brief Sets or overwrites the currently configured page size.

@@ -5,30 +5,20 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "backend/Pager.h"
-
-#include <cstdio>
-#include <filesystem>
-#include <system_error>
-
-namespace fs = std::filesystem;
+#include "backend/vfs/VFSFactory.h"
+#include "backend/NoidConfig.h"
 
 using namespace noid::backend;
 
 class PagerFixture : public ::testing::Test {
  protected:
-    fs::path temp_file;
+    std::shared_ptr<vfs::NoidFile> temp_file;
 
     void SetUp() override {
-      temp_file = fs::path(std::tmpnam(nullptr));
-    }
+      auto& cfg = NoidConfig::Get();
+      cfg.vfs_type = VFSType::Memory;
 
-    void TearDown() override {
-      if (fs::exists(temp_file)) {
-        std::error_code ec;
-        if (!fs::remove(temp_file, ec)) {
-          std::cout << "***** Could not remove test file " << temp_file.string() << " *****" << std::endl;
-        }
-      }
+      temp_file = vfs::VFSFactory::Create(cfg)->CreateTempFile();
     }
 };
 

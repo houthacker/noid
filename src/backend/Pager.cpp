@@ -1,22 +1,49 @@
+#include <array>
 #include <filesystem>
 
 #include "Pager.h"
-#include "exceptions/CannotOpenFile.h"
 
 namespace noid::backend {
 
-Pager::Pager(std::fstream file) : file(std::move(file)) {}
+template<Lockable Lockable, SharedLockable SharedLockable>
+Pager<Lockable, SharedLockable>::Pager(std::shared_ptr<vfs::NoidFile<Lockable, SharedLockable>> file) : file(std::move(file)), max_io_retries(5) {}
 
-std::shared_ptr<Pager> Pager::Open(const fs::path& path) {
-  try {
-    auto stream = std::fstream(path, std::ios_base::binary | std::ios_base::in | std::ios_base::out);
-
-    // Throw exceptions on read- and write errors, including failing to open the file.
-    stream.exceptions(std::fstream::badbit);
-    return std::shared_ptr<Pager>(new Pager(std::move(stream)));
-  } catch (const std::fstream::failure& error) {
-    throw CannotOpenFile(error.what());
-  }
+template<Lockable Lockable, SharedLockable SharedLockable>
+std::unique_ptr<Pager<Lockable, SharedLockable>> Pager<Lockable, SharedLockable>::Open(std::shared_ptr<vfs::NoidFile<Lockable, SharedLockable>> file) {
+  return std::unique_ptr<Pager>(new Pager(std::move(file)));
 }
+
+template<Lockable Lockable, SharedLockable SharedLockable>
+std::shared_ptr<const page::DatabaseHeader> Pager<Lockable, SharedLockable>::ReadFileHeader() {
+  std::array<byte, page::DatabaseHeader::BYTE_SIZE> bytes = {0};
+
+  // TODO check WAL, page cache
+  NoidLock lock = this->file->SharedLock();
+  for (auto i = this->max_io_retries; i > 0; i--) {
+    if (this->file->Read(bytes, 0) == page::DatabaseHeader::BYTE_SIZE) {
+      return page::DatabaseHeader::NewBuilder(bytes)->Build();
+    }
+  }
+
+  throw fs::filesystem_error(std::string("Cannot read header; retries exhausted."),
+                             std::make_error_code(std::errc::protocol_error));
+}
+
+template<Lockable Lockable, SharedLockable SharedLockable>
+void Pager<Lockable, SharedLockable>::WriteFileHeader(const page::DatabaseHeader &header) {
+
+  // TODO write to WAL (, page cache?)
+  NoidLock lock = this->file->UniqueLock();
+  for (auto i = this->max_io_retries; i > 0; i--) {
+    if (this->file->Write(header.GetBytes(), 0) == page::DatabaseHeader::BYTE_SIZE) {
+      return;
+    }
+  }
+
+  throw fs::filesystem_error(std::string("Cannot write header; retries exhausted."),
+                             std::make_error_code(std::errc::protocol_error));
+}
+
+
 
 }

@@ -6,15 +6,19 @@ set(HEADER_FILES
         MD5.h
         UUID.h
         Pager.h
-        WAL.h)
+        WAL.h
+        BPlusTree.h
+        NoidConfig.h)
 
 set(SOURCE_FILES
         MD5.cpp
         UUID.cpp
         Pager.cpp
-        WAL.cpp)
+        WAL.cpp
+        BPlusTree.cpp)
 
 add_library(noid_backend ${SOURCE_FILES} ${HEADER_FILES})
 
+add_subdirectory(concurrent)
 add_subdirectory(page)
-target_include_directories(noid_backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/page)
+add_subdirectory(vfs)

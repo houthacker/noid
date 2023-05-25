@@ -1,6 +1,4 @@
-#include <iostream>
-
-int main() {
-  std::cout << "Hello, World!" << std::endl;
+int main(int argc, char** argv) {
+  // TODO start noid
   return 0;
 }

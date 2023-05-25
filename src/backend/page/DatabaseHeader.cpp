@@ -2,11 +2,8 @@
  * Copyright 2023, noid authors. See LICENSE.md for licensing terms.
  */
 
-#include <bit>
 #include <cmath>
-#include <limits>
 #include <stdexcept>
-#include <utility>
 
 #include "DatabaseHeader.h"
 #include "backend/Bits.h"
@@ -38,11 +35,11 @@ std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder() {
   return DatabaseHeaderBuilder::Create();
 }
 
-std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> base) {
+std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> &base) {
   return DatabaseHeaderBuilder::Create(base);
 }
 
-std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder(const std::shared_ptr<const DatabaseHeader>& base) {
+std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder(const DatabaseHeader& base) {
   return DatabaseHeaderBuilder::Create(base);
 }
 
@@ -102,11 +99,11 @@ std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeaderBuilder::Create(std::array<
   return std::unique_ptr<DatabaseHeaderBuilder>(new DatabaseHeaderBuilder(validate(base)));
 }
 
-std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeaderBuilder::Create(const std::shared_ptr<const DatabaseHeader>& base) {
-  return std::unique_ptr<DatabaseHeaderBuilder>(new DatabaseHeaderBuilder(base->data));
+std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeaderBuilder::Create(const DatabaseHeader& base) {
+  return std::unique_ptr<DatabaseHeaderBuilder>(new DatabaseHeaderBuilder(base.data));
 }
 
-std::shared_ptr<DatabaseHeader> DatabaseHeaderBuilder::Build() const {
+std::unique_ptr<const DatabaseHeader> DatabaseHeaderBuilder::Build() const {
   std::array<byte, DatabaseHeader::BYTE_SIZE> data = NOID_DATABASE_HEADER_MAGIC;
   write_le_uint16(data, PAGE_SIZE_OFFSET, this->page_size);
   write_uint8(data, KEY_SIZE_OFFSET, this->key_size);
@@ -114,7 +111,7 @@ std::shared_ptr<DatabaseHeader> DatabaseHeaderBuilder::Build() const {
   write_le_uint32(data, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET, this->first_tree_header_page);
   write_le_uint32(data, FIRST_FREELIST_PAGE_NUMBER_OFFSET, this->first_freelist_page);
 
-  return std::shared_ptr<DatabaseHeader>(new DatabaseHeader(data));
+  return std::unique_ptr<DatabaseHeader>(new DatabaseHeader(data));
 }
 
 DatabaseHeaderBuilder &DatabaseHeaderBuilder::WithPageSize(uint16_t size) {

@@ -1,2 +1,3 @@
 add_subdirectory(algorithm)
 add_subdirectory(backend)
+add_subdirectory(core)
