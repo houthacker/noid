@@ -14,18 +14,6 @@ using namespace std::chrono_literals;
 
 using noid::backend::vfs::UnixFile;
 
-static void acquire_shared_locks(std::shared_ptr<UnixFile> file, std::atomic_bool &have_unique_lock) {
-  while (!have_unique_lock) {
-    NoidSharedLock auto lock = file->SharedLock();
-    std::this_thread::sleep_for(1s);
-  }
-}
-
-static void acquire_unique_lock(std::shared_ptr<UnixFile> file, std::atomic_bool &have_unique_lock) {
-  NoidLock auto lock = file->UniqueLock();
-  have_unique_lock = true;
-}
-
 TEST_CASE("Can read and write a temporary UnixFile") {
   std::vector<byte> data = {1, 3, 3, 7};
 
@@ -122,7 +110,12 @@ TEST_CASE("UniqueLock-request drains SharedLocks") {
   auto file = UnixFile::CreateTempFile();
 
   // Start acquiring shared locks until the unique lock has been acquired.
-  std::thread shared_locks(acquire_shared_locks, file, std::ref(have_unique_lock));
+  std::thread shared_locks([file, &have_unique_lock] {
+    while (!have_unique_lock) {
+      NoidSharedLock auto lock = file->SharedLock();
+      std::this_thread::sleep_for(1s);
+    }
+  });
 
   // Let shared locks be acquired for some 0.5 seconds more.
   std::this_thread::sleep_for(0.5s);
@@ -130,7 +123,10 @@ TEST_CASE("UniqueLock-request drains SharedLocks") {
   // Acquire the unique lock. This only succeeds if there are no shared locks.
   // To achieve this, the current shared locks must be drained, in accordance with the IntentAwareMutex.
   // TODO Implement and use TryUniqueLock(timeout)?
-  std::thread unique_lock(acquire_unique_lock, file, std::ref(have_unique_lock));
+  std::thread unique_lock([file, &have_unique_lock] {
+    NoidLock auto lock = file->UniqueLock();
+    have_unique_lock = true;
+  });
 
   // Wait on the threads to finish.
   shared_locks.join();
