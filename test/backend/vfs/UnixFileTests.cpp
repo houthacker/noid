@@ -1,11 +1,13 @@
 /**
  * Copyright 2023, noid authors. See LICENSE.md for licensing terms.
  */
+
+#include <catch2/catch.hpp>
+
 #include <atomic>
 #include <thread>
 #include "backend/vfs/unix/UnixFile.h"
 #include "backend/concurrent/Concepts.h"
-#include <catch2/catch.hpp>
 
 using namespace noid::backend;
 using namespace std::chrono_literals;

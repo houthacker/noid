@@ -14,6 +14,16 @@
 
 namespace noid::backend::page {
 
+/**
+ * @brief The default page size in bytes.
+ */
+uint16_t const DEFAULT_PAGE_SIZE = 4096;
+
+/**
+ * @brief The default key size in bytes.
+ */
+uint8_t const DEFAULT_KEY_SIZE = 16;
+
 class DatabaseHeaderBuilder;
 
 /**
@@ -30,16 +40,6 @@ class DatabaseHeader {
      * @brief The size in bytes of a noid database header on disk.
      */
     static uint8_t const BYTE_SIZE = 100;
-
-    /**
-     * @brief The default page size in bytes.
-     */
-    static uint16_t const DEFAULT_PAGE_SIZE = 4096;
-
-    /**
-     * @brief The default key size in bytes.
-     */
-    static uint8_t const DEFAULT_KEY_SIZE = 16;
 
  private:
 
@@ -94,14 +94,6 @@ class DatabaseHeader {
     [[nodiscard]] uint8_t GetKeySize() const;
 
     /**
-     * @brief Returns the FNV-1a hash of the header data up until the hash itself.
-     *
-     * @details The header signature is used to verify the header has not been corrupted.
-     * @return The header signature.
-     */
-    [[nodiscard]] uint32_t GetSignature() const;
-
-    /**
      * @brief Returns the page number of the first tree header page in the database file.
      *
      * @return The page number of the first tree header page.
@@ -115,6 +107,14 @@ class DatabaseHeader {
      * @return The page number of the first freelist page.
      */
     [[nodiscard]] PageNumber GetFirstFreelistPage() const;
+
+    /**
+     * @brief Returns the FNV-1a hash of the header data up until the hash itself.
+     *
+     * @details The header signature is used to verify the header has not been corrupted.
+     * @return The header signature.
+     */
+    [[nodiscard]] uint32_t GetSignature() const;
 
     /**
      * @details Two instances of @c DatabaseHeader are considered equal if their serialized form contains the same
@@ -184,7 +184,7 @@ class DatabaseHeaderBuilder {
      * @param size The new page size.
      * @return A reference to this builder to support a fluent interface.
      */
-    DatabaseHeaderBuilder& WithPageSize(uint16_t size = DatabaseHeader::DEFAULT_PAGE_SIZE);
+    DatabaseHeaderBuilder& WithPageSize(uint16_t size = DEFAULT_PAGE_SIZE);
 
     /**
      * @brief Sets or overwrites the currently configured key size.
@@ -194,7 +194,7 @@ class DatabaseHeaderBuilder {
      * @param size The new key size.
      * @return A reference to this builder to support a fluent interface.
      */
-    DatabaseHeaderBuilder& WithKeySize(uint8_t size = DatabaseHeader::DEFAULT_KEY_SIZE);
+    DatabaseHeaderBuilder& WithKeySize(uint8_t size = DEFAULT_KEY_SIZE);
 
     /**
      * @brief Sets or overwrites the page number of the first tree header.

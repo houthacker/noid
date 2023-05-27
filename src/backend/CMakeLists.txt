@@ -17,7 +17,7 @@ set(SOURCE_FILES
         WAL.cpp
         BPlusTree.cpp)
 
-add_library(noid_backend ${SOURCE_FILES} ${HEADER_FILES})
+add_library(noid_backend SHARED ${SOURCE_FILES} ${HEADER_FILES})
 
 add_subdirectory(concurrent)
 add_subdirectory(page)

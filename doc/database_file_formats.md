@@ -24,9 +24,9 @@ This allows for reconstruction of the database without requiring the noid main d
 | 0      | 8             | Header string `"noid v1\0"`                              |
 | 8      | 2             | LE `uint16_t` page size in bytes (min 512, default 4096) |
 | 10     | 1             | `uint8_t` key size in bytes (multiple of 8, default 16)  |
-| 11     | 4             | LE `uint32_t` signature (fnv-1a of all preceding bytes)  |
-| 15     | 4             | LE `uint32_t` first tree header page number              |
-| 19     | 4             | LE `uint32_t` first freelist page number                 |
+| 11     | 4             | LE `uint32_t` first tree header page number              |
+| 15     | 4             | LE `uint32_t` first freelist page number                 |
+| 19     | 4             | LE `uint32_t` signature (fnv-1a of all preceding bytes)  |
 | 23     | 77            | Reserved for later use (zeroed)                          |
 
 ## Freelist Page

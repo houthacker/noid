@@ -12,9 +12,9 @@
 
 static uint8_t PAGE_SIZE_OFFSET = 8;
 static uint8_t KEY_SIZE_OFFSET = 10;
-static uint8_t CHECKSUM_OFFSET = 11;
-static uint8_t FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET = 15;
-static uint8_t FIRST_FREELIST_PAGE_NUMBER_OFFSET = 19;
+static uint8_t FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET = 11;
+static uint8_t FIRST_FREELIST_PAGE_NUMBER_OFFSET = 15;
+static uint8_t CHECKSUM_OFFSET = 19;
 
 namespace noid::backend::page {
 
@@ -82,7 +82,7 @@ bool operator!=(const DatabaseHeader& lhs, const DatabaseHeader& rhs) {
 /*** DatabaseHeaderBuilder ***/
 
 DatabaseHeaderBuilder::DatabaseHeaderBuilder() :
-  page_size(DatabaseHeader::DEFAULT_PAGE_SIZE), key_size(DatabaseHeader::DEFAULT_KEY_SIZE), first_tree_header_page(0), first_freelist_page(0) {}
+  page_size(DEFAULT_PAGE_SIZE), key_size(DEFAULT_KEY_SIZE), first_tree_header_page(0), first_freelist_page(0) {}
 
 DatabaseHeaderBuilder::DatabaseHeaderBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> const & base) {
   this->page_size = read_le_uint16(base, PAGE_SIZE_OFFSET);
@@ -107,9 +107,9 @@ std::unique_ptr<const DatabaseHeader> DatabaseHeaderBuilder::Build() const {
   std::array<byte, DatabaseHeader::BYTE_SIZE> data = NOID_DATABASE_HEADER_MAGIC;
   write_le_uint16(data, PAGE_SIZE_OFFSET, this->page_size);
   write_uint8(data, KEY_SIZE_OFFSET, this->key_size);
-  write_le_uint32(data, CHECKSUM_OFFSET, fnv1a<DatabaseHeader::BYTE_SIZE>(data, 0, CHECKSUM_OFFSET));
   write_le_uint32(data, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET, this->first_tree_header_page);
   write_le_uint32(data, FIRST_FREELIST_PAGE_NUMBER_OFFSET, this->first_freelist_page);
+  write_le_uint32(data, CHECKSUM_OFFSET, fnv1a<DatabaseHeader::BYTE_SIZE>(data, 0, CHECKSUM_OFFSET));
 
   return std::unique_ptr<DatabaseHeader>(new DatabaseHeader(data));
 }

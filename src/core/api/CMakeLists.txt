@@ -6,4 +6,4 @@ set(HEADER_FILES
 set(SOURCE_FILES
         Noid.cpp)
 
-add_library(noid_api ${SOURCE_FILES} ${HEADER_FILES})
+add_library(noid_api SHARED ${SOURCE_FILES} ${HEADER_FILES})

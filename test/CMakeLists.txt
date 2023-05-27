@@ -1,13 +1,19 @@
+project(noid_tests)
+
+find_package(Catch2 REQUIRED)
+
 add_executable(noid_tests noid_tests.cpp)
-target_compile_definitions(noid_tests PUBLIC NOID_TEST_BUILD)
+target_compile_definitions(noid_tests
+        PRIVATE NOID_TEST_BUILD)
+
+target_compile_features(noid_tests
+        PUBLIC cxx_std_20)
+
 target_link_libraries(noid_tests
-        PUBLIC noid_backend
-        PUBLIC Catch2::Catch2)
+        PRIVATE noid_backend
+        PRIVATE Catch2::Catch2)
 
-set(SOURCE_FILES
-        backend/vfs/UnixFileTests.cpp)
-
-target_sources(noid_tests PUBLIC ${SOURCE_FILES})
+add_subdirectory(backend)
 
 include(CTest)
 include(Catch)
