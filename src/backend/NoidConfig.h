@@ -5,6 +5,8 @@
 #ifndef NOID_SRC_BACKEND_NOIDCONFIG_H_
 #define NOID_SRC_BACKEND_NOIDCONFIG_H_
 
+#include <cstdint>
+
 namespace noid::backend {
 
 enum class VFSType {
@@ -17,7 +19,7 @@ enum class VFSType {
 
 class NoidConfig {
  private:
-    NoidConfig() : io_flush_kernel_buffers(false) {
+    NoidConfig() {
 #if !defined(LINUX) && !defined(__linux__)
 #error "Unsupported OS. Only linux is supported at this time."
 #else
@@ -47,9 +49,17 @@ class NoidConfig {
     VFSType vfs_type;
 
     /**
-     * Whether to flush kernel buffers whe closing a file.
+     * @brief Whether to flush kernel buffers to disk when closing a file.
+     * @details If set, this option degrades performance by many orders of magnitude. But, it ensures that data
+     * will survive a reboot or power failure. If this risk is acceptable (which is is in many cases), this option
+     * should be set to @c false.
      */
-    bool io_flush_kernel_buffers;
+    bool io_flush_kernel_buffers = false;
+
+    /**
+     * @brief The storage page size.
+     */
+    uint16_t vfs_page_size = 4096;
 };
 
 }

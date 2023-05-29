@@ -32,14 +32,16 @@ This allows for reconstruction of the database without requiring the noid main d
 ## Freelist Page
 Freelist pages are pages which list pages previously in use by the database, but are now free for reuse.
 Freelist pages are implemented as a doubly linked list, and are cleaned up when the database is compacted.
+If the page is full, the next free page slot number is one past the maximum list size. With a page size
+of 4096 bytes, this value must be 1022.
 
-| offset | size (bytes)  | description                                  |
-|--------|---------------|----------------------------------------------|
-| 0      | 2             | page type `'FL'` (free list)                 |
-| 2      | 4             | LE `uint32_t` previous free list page number |
-| 6      | 4             | LE `uint32_t` next free list page number     |
-| 10     | 2             | Padding (zeroed)                             |
-| 12     | 1021*4        | LE `uint32_t` list of free page numbers      |
+| offset | size (bytes) | description                                      |
+|--------|--------------|--------------------------------------------------|
+| 0      | 2            | page type `'FL'` (free list)                     |
+| 2      | 4            | LE `uint32_t` previous freelist page number      |
+| 6      | 4            | LE `uint32_t` next freelist page number          |
+| 10     | 2            | LE `uint16_t` next free page 'slot' in this page |
+| 12     | 1021*4       | LE `uint32_t` list of free page numbers          |
 
 ## Tree Header Page
 The tree header page is the entry point for a single B+tree containing a table or an index. Table trees contain
@@ -87,7 +89,7 @@ The leaf node pages contain the records that contain the actual data.
 
 ## Leaf Node Record
 A leaf node record contains at least the first 3 bytes of the data payload. If the total data size is
-at most 8 bytes, the inline indicator is set to the payload size.
+at most 7 bytes, the inline indicator is set to the payload size.
 Otherwise, the inline indicator is set to zero and the last 4 bytes of the record contain the first overflow
 page number.
 

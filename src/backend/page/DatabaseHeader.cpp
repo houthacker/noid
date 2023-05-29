@@ -19,8 +19,8 @@ static uint8_t CHECKSUM_OFFSET = 19;
 namespace noid::backend::page {
 
 static std::array<byte, DatabaseHeader::BYTE_SIZE> const & validate(std::array<byte, DatabaseHeader::BYTE_SIZE> const & data) {
-  auto expected_checksum = fnv1a<DatabaseHeader::BYTE_SIZE>(data, 0, CHECKSUM_OFFSET);
-  auto actual_checksum = read_le_uint32(data, CHECKSUM_OFFSET);
+  auto expected_checksum = fnv1a<byte>(data, 0, CHECKSUM_OFFSET);
+  auto actual_checksum = read_le_uint32<byte>(data, CHECKSUM_OFFSET);
 
   if (actual_checksum != expected_checksum) {
     throw std::invalid_argument("invalid checksum");
@@ -48,23 +48,23 @@ const std::array<byte, DatabaseHeader::BYTE_SIZE> &DatabaseHeader::GetBytes() co
 }
 
 uint16_t DatabaseHeader::GetPageSize() const {
-  return read_le_uint16(this->data, PAGE_SIZE_OFFSET);
+  return read_le_uint16<byte>(this->data, PAGE_SIZE_OFFSET);
 }
 
 uint8_t DatabaseHeader::GetKeySize() const {
-  return read_uint8(this->data, KEY_SIZE_OFFSET);
+  return read_uint8<byte>(this->data, KEY_SIZE_OFFSET);
 }
 
 PageNumber DatabaseHeader::GetFirstTreeHeaderPage() const {
-  return read_le_uint32(this->data, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET);
+  return read_le_uint32<byte>(this->data, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET);
 }
 
 PageNumber DatabaseHeader::GetFirstFreelistPage() const {
-  return read_le_uint32(this->data, FIRST_FREELIST_PAGE_NUMBER_OFFSET);
+  return read_le_uint32<byte>(this->data, FIRST_FREELIST_PAGE_NUMBER_OFFSET);
 }
 
 uint32_t DatabaseHeader::GetSignature() const {
-  return read_le_uint32(this->data, CHECKSUM_OFFSET);
+  return read_le_uint32<byte>(this->data, CHECKSUM_OFFSET);
 }
 
 bool DatabaseHeader::Equals(const DatabaseHeader &other) const {
@@ -85,10 +85,10 @@ DatabaseHeaderBuilder::DatabaseHeaderBuilder() :
   page_size(DEFAULT_PAGE_SIZE), key_size(DEFAULT_KEY_SIZE), first_tree_header_page(0), first_freelist_page(0) {}
 
 DatabaseHeaderBuilder::DatabaseHeaderBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> const & base) {
-  this->page_size = read_le_uint16(base, PAGE_SIZE_OFFSET);
-  this->key_size = read_uint8(base, KEY_SIZE_OFFSET);
-  this->first_tree_header_page = read_le_uint32(base, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET);
-  this->first_freelist_page = read_le_uint32(base, FIRST_FREELIST_PAGE_NUMBER_OFFSET);
+  this->page_size = read_le_uint16<byte>(base, PAGE_SIZE_OFFSET);
+  this->key_size = read_uint8<byte>(base, KEY_SIZE_OFFSET);
+  this->first_tree_header_page = read_le_uint32<byte>(base, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET);
+  this->first_freelist_page = read_le_uint32<byte>(base, FIRST_FREELIST_PAGE_NUMBER_OFFSET);
 }
 
 std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeaderBuilder::Create() {
@@ -105,11 +105,11 @@ std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeaderBuilder::Create(const Datab
 
 std::unique_ptr<const DatabaseHeader> DatabaseHeaderBuilder::Build() const {
   std::array<byte, DatabaseHeader::BYTE_SIZE> data = NOID_DATABASE_HEADER_MAGIC;
-  write_le_uint16(data, PAGE_SIZE_OFFSET, this->page_size);
-  write_uint8(data, KEY_SIZE_OFFSET, this->key_size);
-  write_le_uint32(data, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET, this->first_tree_header_page);
-  write_le_uint32(data, FIRST_FREELIST_PAGE_NUMBER_OFFSET, this->first_freelist_page);
-  write_le_uint32(data, CHECKSUM_OFFSET, fnv1a<DatabaseHeader::BYTE_SIZE>(data, 0, CHECKSUM_OFFSET));
+  write_le_uint16<byte>(data, PAGE_SIZE_OFFSET, this->page_size);
+  write_uint8<byte>(data, KEY_SIZE_OFFSET, this->key_size);
+  write_le_uint32<byte>(data, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET, this->first_tree_header_page);
+  write_le_uint32<byte>(data, FIRST_FREELIST_PAGE_NUMBER_OFFSET, this->first_freelist_page);
+  write_le_uint32<byte>(data, CHECKSUM_OFFSET, fnv1a<byte>(data, 0, CHECKSUM_OFFSET));
 
   return std::unique_ptr<DatabaseHeader>(new DatabaseHeader(data));
 }

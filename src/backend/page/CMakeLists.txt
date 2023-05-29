@@ -1,4 +1,5 @@
 set(SOURCE_FILES
-        DatabaseHeader.cpp)
+        DatabaseHeader.cpp
+        Freelist.cpp)
 
 target_sources(noid_backend PUBLIC ${SOURCE_FILES})

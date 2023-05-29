@@ -12,8 +12,10 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <vector>
 
 #include "Types.h"
+#include "Concepts.h"
 
 namespace noid::backend {
 
@@ -82,14 +84,15 @@ inline uint8_t safe_next_multiple_of_8(uint8_t value) {
 /**
  * @brief Reads a @c uint8_t from @p haystack.
  *
- * @tparam N The array size in bytes.
- * @param haystack The array to read from.
+ * @tparam T The container element type.
+ * @tparam Container The container type.
+ * @param haystack The container to read from.
  * @param read_idx The index to read the value from.
  * @return The @c uint8_t.
  * @throws std::out_of_range If reading from the given index causes a read outside of the array bounds.
  */
-template<std::size_t N>
-inline uint8_t read_uint8(std::array<byte, N> const &haystack, typename std::array<byte, N>::size_type read_idx) {
+template<typename T, Container<T> Container>
+inline uint8_t read_uint8(Container const &haystack, typename Container::size_type read_idx) {
   if (read_idx >= haystack.size()) {
     throw std::out_of_range("read_idx too large");
   }
@@ -100,14 +103,16 @@ inline uint8_t read_uint8(std::array<byte, N> const &haystack, typename std::arr
 /**
  * @brief Writes a @c uint8_t to @p haystack.
  *
- * @tparam N The array size in bytes.
- * @param haystack The array to write to.
+ * @tparam T The container element type.
+ * @tparam Container The container type.
+ * @param haystack The container to write to.
  * @param write_idx The index to start writing at.
  * @param value The value to write.
- * @return A reference @p haystack.
+ * @return A reference to @p haystack.
+ * @throws std::out_of_range If writing to the given index causes a write outside of the array bounds.
  */
-template<std::size_t N>
-inline std::array<byte, N>& write_uint8(std::array<byte, N> &haystack, typename std::array<byte, N>::size_type write_idx, uint8_t value) {
+template<typename T, Container<T> Container>
+inline Container& write_uint8(Container &haystack, typename Container::size_type write_idx, uint8_t value) {
   if (write_idx >= haystack.size()) {
     throw std::out_of_range("write_idx too large");
   }
@@ -118,16 +123,39 @@ inline std::array<byte, N>& write_uint8(std::array<byte, N> &haystack, typename 
 }
 
 /**
+ * @brief Writes a @c uint8_t to @p haystack.
+ * @note The container is asked to allocate more space if the given value cannot be written otherwise.
+ *
+ * @tparam T The container element type.
+ * @tparam DynamicallySizedContainer The container type.
+ * @param haystack The container to write to.
+ * @param write_idx The index to start writing at.
+ * @param value The value to write.
+ * @return A reference to @p haystack.
+ */
+template<typename T, DynamicallySizedContainer<T> Container>
+inline Container& write_uint8(Container &haystack, typename Container::size_type write_idx, uint8_t value) {
+  if (write_idx + sizeof(uint8_t) > haystack.size()) {
+    haystack.resize(write_idx = sizeof(uint8_t));
+  }
+
+  haystack[write_idx] = (byte)value;
+
+  return haystack;
+}
+
+/**
  * @brief Reads a @c uint16_t from @p haystack.
  *
- * @tparam N The array size in bytes.
+ * @tparam T The container element type.
+ * @tparam Container The container type.
  * @param haystack The array to read from.
  * @param read_idx The index to start reading at.
  * @return The @c uint16_t
  * @throws std::out_of_range If reading the @c uint16_t would cause a read outside of the array bounds.
  */
-template<std::size_t N>
-uint16_t read_le_uint16(std::array<byte, N> const &haystack, typename std::array<byte, N>::size_type read_idx) {
+template<typename T, Container<T> Container>
+uint16_t read_le_uint16(Container const &haystack, typename Container::size_type read_idx) {
   if (read_idx > haystack.size() - sizeof(uint16_t)) {
     throw std::out_of_range("read_idx too large");
   }
@@ -147,15 +175,16 @@ uint16_t read_le_uint16(std::array<byte, N> const &haystack, typename std::array
 /**
  * @brief Writes a @c uint16_t to @p haystack.
  *
- * @tparam N The array size in bytes.
+ * @tparam T The container element type.
+ * @tparam Container The container type.
  * @param haystack The array to write to.
  * @param write_idx The index to start writing at.
  * @param value The value to write.
  * @return A reference to @p haystack.
- * @throws std::out_of_range If writing @p value to @p haystack would cause a write outside of the array bounds.
+ * @throws std::out_of_range If writing @p value to @p haystack would cause a write outside of the container bounds.
  */
-template<std::size_t N>
-std::array<byte, N>& write_le_uint16(std::array<byte, N> &haystack, typename std::array<byte, N>::size_type write_idx, uint16_t value) {
+template<typename T, Container<T> Container>
+Container& write_le_uint16(Container &haystack, typename Container::size_type write_idx, uint16_t value) {
   if (write_idx > haystack.size() - sizeof(uint16_t)) {
     throw std::out_of_range("write_idx too large");
   }
@@ -176,16 +205,49 @@ std::array<byte, N>& write_le_uint16(std::array<byte, N> &haystack, typename std
 }
 
 /**
+ * @brief Writes a @c uint16_t to @p haystack.
+ * @note The container is asked to allocate more space if the given value cannot be written otherwise.
+ *
+ * @tparam T The container element type.
+ * @tparam Container The container type.
+ * @param haystack The array to write to.
+ * @param write_idx The index to start writing at.
+ * @param value The value to write.
+ * @return A reference to @p haystack.
+ */
+template<typename T, DynamicallySizedContainer<T> Container>
+Container& write_le_uint16(Container &haystack, typename Container::size_type write_idx, uint16_t value) {
+  if (write_idx + sizeof(uint16_t) > haystack.size()) {
+    haystack.resize(write_idx + sizeof(uint16_t));
+  }
+
+  union {
+      uint16_t i;
+      byte b[sizeof(uint16_t)];
+  } u = {value};
+
+  if (native_endianness() == Endianness::BigEndian) {
+    std::reverse(std::begin(u.b), std::end(u.b));
+  }
+
+  haystack[write_idx] = u.b[0];
+  haystack[write_idx + 1] = u.b[1];
+
+  return haystack;
+}
+
+/**
  * @brief Reads a @c uint32_t from @p haystack.
  *
- * @tparam N The array size in bytes.
- * @param haystack The array to read from.
+ * @tparam T The container element type.
+ * @tparam Container The container type.
+ * @param haystack The container to read from.
  * @param read_idx The index to start reading at.
  * @return The @c uint32_t
- * @throws std::out_of_range If reading the @c uint32_t would cause a read outside of the array bounds.
+ * @throws std::out_of_range If reading the @c uint32_t would cause a read outside of the container bounds.
  */
-template<std::size_t N>
-uint32_t read_le_uint32(std::array<byte, N> const &haystack, typename std::array<byte, N>::size_type read_idx) {
+template<typename T, Container<T> Container>
+inline uint32_t read_le_uint32(Container const &haystack, typename Container::size_type read_idx) {
   if (read_idx > haystack.size() - sizeof(uint32_t)) {
     throw std::out_of_range("read_idx too large");
   }
@@ -205,15 +267,16 @@ uint32_t read_le_uint32(std::array<byte, N> const &haystack, typename std::array
 /**
  * @brief Writes a @c uint32_t to @p haystack.
  *
- * @tparam N The array size in bytes.
+ * @tparam T The container element type.
+ * @tparam Container The container type.
  * @param haystack The array to write to.
  * @param write_idx The index to start writing at.
  * @param value The value to write.
  * @return A reference to @p haystack.
  * @throws std::out_of_range If writing @p value to @p haystack would cause a write outside of the array bounds.
  */
-template<std::size_t N>
-std::array<byte, N>& write_le_uint32(std::array<byte, N> &haystack, typename std::array<byte, N>::size_type write_idx, uint32_t value) {
+template<typename T, Container<T> Container>
+Container& write_le_uint32(Container &haystack, typename Container::size_type write_idx, uint32_t value) {
   if (write_idx > haystack.size() - sizeof(uint32_t)) {
     throw std::out_of_range("write_idx too large");
   }
@@ -236,16 +299,51 @@ std::array<byte, N>& write_le_uint32(std::array<byte, N> &haystack, typename std
 }
 
 /**
- * @brief Reads a @c uint64_t from @p haystack..
+ * @brief Writes a @c uint32_t to @p haystack.
+ * @note The container is asked to allocate more space if the given value cannot be written otherwise.
  *
- * @tparam N The array size in bytes.
+ * @tparam T The container element type.
+ * @tparam Container The container type.
+ * @param haystack The array to write to.
+ * @param write_idx The index to start writing at.
+ * @param value The value to write.
+ * @return A reference to @p haystack.
+ */
+template<typename T, DynamicallySizedContainer<T> Container>
+Container& write_le_uint32(Container &haystack, typename Container::size_type write_idx, uint32_t value) {
+  if (write_idx + sizeof(uint32_t) > haystack.size()) {
+    haystack.resize(write_idx + sizeof(uint32_t));
+  }
+
+  union {
+      uint32_t i;
+      byte b[sizeof(uint32_t)];
+  } u = {value};
+
+  if (native_endianness() == Endianness::BigEndian) {
+    std::reverse(std::begin(u.b), std::end(u.b));
+  }
+
+  haystack[write_idx] = u.b[0];
+  haystack[write_idx + 1] = u.b[1];
+  haystack[write_idx + 2] = u.b[2];
+  haystack[write_idx + 3] = u.b[3];
+
+  return haystack;
+}
+
+/**
+ * @brief Reads a @c uint64_t from @p haystack.
+ *
+ * @tparam T The container element type.
+ * @tparam Container The container type.
  * @param haystack The array to read from.
  * @param read_idx The index to start reading at.
  * @return The @c uint64_t
  * @throws std::out_of_range If reading the @c uint64_t would cause a read outside of the array bounds.
  */
-template<std::size_t N>
-uint64_t read_le_uint64(std::array<byte, N> const &haystack, typename std::array<byte, N>::size_type read_idx) {
+template<typename T, Container<T> Container>
+uint64_t read_le_uint64(Container const &haystack, typename Container::size_type read_idx) {
   if (read_idx > haystack.size() - sizeof(uint64_t)) {
     throw std::out_of_range("read_idx too large");
   }
@@ -266,15 +364,16 @@ uint64_t read_le_uint64(std::array<byte, N> const &haystack, typename std::array
 /**
  * @brief Writes a @c uint64_t @p haystack.
  *
- * @tparam N The array size in bytes.
+ * @tparam T The container element type.
+ * @tparam Container The container type.
  * @param haystack The array to write to.
  * @param write_idx The index to start writing at.
  * @param value The value to write.
  * @return A reference to @p haystack.
  * @throws std::out_of_range If writing the value to @p haystack would cause a write outside of the array bounds.
  */
-template<std::size_t N>
-std::array<byte, N>& write_le_uint64(std::array<byte, N> &haystack, typename std::array<byte, N>::size_type write_idx, uint64_t value) {
+template<typename T, Container<T> Container>
+Container& write_le_uint64(Container &haystack, typename Container::size_type write_idx, uint64_t value) {
   if (write_idx > haystack.size() - sizeof(uint64_t)) {
     throw std::out_of_range("write_idx too large");
   }
@@ -301,17 +400,56 @@ std::array<byte, N>& write_le_uint64(std::array<byte, N> &haystack, typename std
 }
 
 /**
+ * @brief Writes a @c uint64_t @p haystack.
+ * @note The container is asked to allocate more space if the given value cannot be written otherwise.
+ *
+ * @tparam T The container element type.
+ * @tparam Container The container type.
+ * @param haystack The array to write to.
+ * @param write_idx The index to start writing at.
+ * @param value The value to write.
+ * @return A reference to @p haystack.
+ */
+template<typename T, DynamicallySizedContainer<T> Container>
+Container& write_le_uint64(Container &haystack, typename Container::size_type write_idx, uint64_t value) {
+  if (write_idx + sizeof(uint64_t) > haystack.size()) {
+    haystack.resize(write_idx + sizeof(uint64_t));
+  }
+
+  union {
+      uint64_t i;
+      byte b[sizeof(uint64_t)];
+  } u = {value};
+
+  if (native_endianness() == Endianness::BigEndian) {
+    std::reverse(std::begin(u.b), std::end(u.b));
+  }
+
+  haystack[write_idx] = u.b[0];
+  haystack[write_idx + 1] = u.b[1];
+  haystack[write_idx + 2] = u.b[2];
+  haystack[write_idx + 3] = u.b[3];
+  haystack[write_idx + 4] = u.b[4];
+  haystack[write_idx + 5] = u.b[5];
+  haystack[write_idx + 6] = u.b[6];
+  haystack[write_idx + 7] = u.b[7];
+
+  return haystack;
+}
+
+/**
  * @brief Calculates the FNV-1a hash of @p length message bytes starting at @p start_idx.
  *
- * @tparam N The message size in bytes.
+ * @tparam T The container element type.
+ * @tparam Container The container type.
  * @param message The message.
  * @param start_idx The index to start hashing from.
  * @param length The amount of bytes to be hashed.
  * @return The FNV-1a hash.
  */
-template<std::size_t N>
-uint32_t fnv1a(std::array<byte, N> const &message, typename std::array<byte, N>::size_type start_idx, typename std::array<byte, N>::size_type length) {
-  if (length > N - start_idx) {
+template<typename T, Container<T> Container>
+uint32_t fnv1a(Container const &message, typename Container::size_type start_idx, typename Container::size_type length) {
+  if (length > message.size() - start_idx) {
     throw std::out_of_range("length too large");
   }
 
