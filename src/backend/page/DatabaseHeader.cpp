@@ -2,21 +2,23 @@
  * Copyright 2023, noid authors. See LICENSE.md for licensing terms.
  */
 
+#include <bit>
 #include <cmath>
 #include <stdexcept>
 
 #include "DatabaseHeader.h"
 #include "backend/Bits.h"
 
-#define NOID_DATABASE_HEADER_MAGIC {'n', 'o', 'i', 'd', ' ', 'v', '1', '\0'}
+namespace noid::backend::page {
 
+static uint64_t NOID_DATABASE_HEADER_MAGIC = std::endian::native == std::endian::little ?
+    0x0031762064696f6e : 0x6e6f696420763100;
+static uint8_t MAGIC_OFFSET = 0;
 static uint8_t PAGE_SIZE_OFFSET = 8;
 static uint8_t KEY_SIZE_OFFSET = 10;
 static uint8_t FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET = 11;
 static uint8_t FIRST_FREELIST_PAGE_NUMBER_OFFSET = 15;
 static uint8_t CHECKSUM_OFFSET = 19;
-
-namespace noid::backend::page {
 
 static std::array<byte, DatabaseHeader::BYTE_SIZE> const & validate(std::array<byte, DatabaseHeader::BYTE_SIZE> const & data) {
   auto expected_checksum = fnv1a<byte>(data, 0, CHECKSUM_OFFSET);
@@ -104,7 +106,8 @@ std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeaderBuilder::Create(const Datab
 }
 
 std::unique_ptr<const DatabaseHeader> DatabaseHeaderBuilder::Build() const {
-  std::array<byte, DatabaseHeader::BYTE_SIZE> data = NOID_DATABASE_HEADER_MAGIC;
+  std::array<byte, DatabaseHeader::BYTE_SIZE> data{0};
+  write_le_uint64<byte>(data, MAGIC_OFFSET, NOID_DATABASE_HEADER_MAGIC);
   write_le_uint16<byte>(data, PAGE_SIZE_OFFSET, this->page_size);
   write_uint8<byte>(data, KEY_SIZE_OFFSET, this->key_size);
   write_le_uint32<byte>(data, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET, this->first_tree_header_page);

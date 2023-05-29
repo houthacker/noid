@@ -6,6 +6,7 @@
 #include "backend/Bits.h"
 #include "backend/NoidConfig.h"
 
+static uint16_t FREELIST_MAGIC = 0x4c46; // FL for Freelist
 static uint8_t PREVIOUS_PAGE_OFFSET = 2;
 static uint8_t NEXT_PAGE_OFFSET = 6;
 static uint8_t NEXT_FREE_SLOT_OFFSET = 10;
@@ -14,7 +15,7 @@ static uint8_t FREELIST_OFFSET = 12;
 namespace noid::backend::page {
 
 static std::vector<byte>& Validate(std::vector<byte>& data) {
-  if (data.size() == NoidConfig::Get().vfs_page_size && data[0] == 'F' && data[1] == 'L') {
+  if (data.size() == NoidConfig::Get().vfs_page_size && read_le_uint16<byte>(data, 0) == FREELIST_MAGIC) {
     return data;
   }
 
@@ -28,15 +29,15 @@ static inline std::size_t PositionToIndex(uint16_t position) {
 Freelist::Freelist(std::vector<byte> data) : data(std::move(data)) {}
 
 std::unique_ptr<FreelistBuilder> Freelist::NewBuilder() {
-  return FreelistBuilder::Create();
+  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder());
 }
 
 std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(const Freelist &base) {
-  return FreelistBuilder::Create(base);
+  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(base));
 }
 
 std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(std::vector<byte> && base) {
-  return FreelistBuilder::Create(std::move(base));
+  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(std::move(Validate(base))));
 }
 
 PageNumber Freelist::Previous() const {
@@ -64,8 +65,7 @@ FreelistBuilder::FreelistBuilder() :
     max_page_position(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1),
     next_free_page_position(0),
     data(this->page_size) {
-  data[0] = 'F';
-  data[1] = 'L';
+  write_le_uint16<byte>(this->data, 0, FREELIST_MAGIC);
 }
 
 FreelistBuilder::FreelistBuilder(const Freelist &base) :
@@ -79,18 +79,6 @@ FreelistBuilder::FreelistBuilder(std::vector<byte> && base) {
   this->page_size = this->data.size();
   this->max_page_position = ((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1;
   this->next_free_page_position = read_le_uint16<byte>(this->data, NEXT_FREE_SLOT_OFFSET);
-}
-
-std::unique_ptr<FreelistBuilder> FreelistBuilder::Create() {
-  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder());
-}
-
-std::unique_ptr<FreelistBuilder> FreelistBuilder::Create(const Freelist &base) {
-  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(base));
-}
-
-std::unique_ptr<FreelistBuilder> FreelistBuilder::Create(std::vector<byte> && base) {
-  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(std::move(Validate(base))));
 }
 
 std::unique_ptr<const Freelist> FreelistBuilder::Build() const {

@@ -25,11 +25,8 @@ class FreelistBuilder;
  * @author houthacker
  */
 class Freelist {
- public:
-
-    friend class FreelistBuilder;
-
  private:
+    friend class FreelistBuilder;
 
     /**
      * @brief The raw data in serialized format.
@@ -60,6 +57,7 @@ class Freelist {
      *
      * @param base The raw data to use as a basis for the new instance.
      * @return The new builder instance.
+     * @throws std::invalid_argument if the given raw data is not a valid serialized @c Freelist.
      */
     static std::unique_ptr<FreelistBuilder> NewBuilder(std::vector<byte> && base);
 
@@ -100,7 +98,7 @@ class FreelistBuilder {
     friend class Freelist;
 
     /**
-     * @brief The configured page size in bytes. Defaults to 4096.
+     * @brief The configured page size in bytes. Defaults to @c NoidConfig::vfs_page_size.
      */
     uint16_t page_size;
 
@@ -123,29 +121,6 @@ class FreelistBuilder {
     explicit FreelistBuilder(const Freelist & base);
     explicit FreelistBuilder(std::vector<byte> && base);
 
-    /**
-     * @brief Creates a new @c FreelistBuilder with default values.
-     *
-     * @return A new @c FreelistBuilder instance.
-     */
-    static std::unique_ptr<FreelistBuilder> Create();
-
-    /**
-     * @brief Creates a new @c FreelistBuilder using values from @p base.
-     *
-     * @param base The @c Freelist instance to use for initial values.
-     * @return A new @c FreelistBuilder instance.
-     */
-    static std::unique_ptr<FreelistBuilder> Create(const Freelist& base);
-
-    /**
-     * @brief Creates a new @c FreelistBuilder using the given vector as its base.
-     *
-     * @param base The raw bytes to use as initial value.
-     * @return A new @c FreelistBuilder instance.
-     * @throws std::invalid_argument if base is not a valid serialized @c Freelist.
-     */
-    static std::unique_ptr<FreelistBuilder> Create(std::vector<byte> && base);
  public:
 
     /**

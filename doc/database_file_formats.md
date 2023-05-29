@@ -45,16 +45,16 @@ of 4096 bytes, this value must be 1022.
 
 ## Tree Header Page
 The tree header page is the entry point for a single B+tree containing a table or an index. Table trees contain
-the actual data, whereas index tables contain no data in their leaf nodes. The last 4089 bytes of this page are
+the actual data, whereas index tables contain no data in their leaf nodes. The last 4088 bytes of this page are
 sacrificed so that all pages in a database file have a consistent size, allowing for fast sequential reading.
 
-| offset | size (bytes) | description                                                 |
-|--------|--------------|-------------------------------------------------------------|
-| 0      | 2            | The tree type: `'TT'` (table) or `'TI'` (index)             |
-| 2      | 1            | `uint8_t` max entries in internal (page size-24)/entry size |
-| 3      | 1            | `uint8_t` max entries in leaf (page size-24)/record size    |
-| 3      | 4            | LE `uint32_t` root node page number                         |
-| 7      | 4089         | Reserved for later use (zeroed)                             |
+| offset | size (bytes) | description                                                              |
+|--------|--------------|--------------------------------------------------------------------------|
+| 0      | 2            | The tree type: `'TT'` (table) or `'TI'` (index)                          |
+| 2      | 1            | `uint8_t` max entries in an internal node page (page size-24)/entry size |
+| 3      | 1            | `uint8_t` max records in a leaf node page (page size-24)/record size     |
+| 4      | 4            | LE `uint32_t` root node page number                                      |
+| 8      | 4088         | Reserved for later use (zeroed)                                          |
 
 ## Internal Node Page
 The internal node pages contain no data but only keys and references to child nodes.

@@ -19,26 +19,9 @@
 
 namespace noid::backend {
 
-enum class Endianness {
-    BigEndian,
-    LittleEndian,
-};
-
 static constexpr uint8_t uint8_max = std::numeric_limits<uint8_t>::max();
 
 static constexpr uint16_t uint16_max_p2 = 32768; // 2^15
-
-/**
- * @return The endianness of the current system.
- */
-inline Endianness native_endianness() {
-  union {
-    uint32_t i;
-    char c [4];
-  } u = {0x01020304};
-
-  return u.c[0] == 1 ? Endianness::BigEndian : Endianness::LittleEndian;
-}
 
 /**
  * Rounds @p value to the next power of two with an upper bound of 2^15.
@@ -165,7 +148,7 @@ uint16_t read_le_uint16(Container const &haystack, typename Container::size_type
       uint16_t i;
   } u = {{haystack[read_idx], haystack[read_idx + 1]}};
 
-  if (native_endianness() == Endianness::BigEndian) {
+  if constexpr (std::endian::native == std::endian::big) {
     std::reverse(std::begin(u.b), std::end(u.b));
   }
 
@@ -194,7 +177,7 @@ Container& write_le_uint16(Container &haystack, typename Container::size_type wr
       byte b[sizeof(uint16_t)];
   } u = {value};
 
-  if (native_endianness() == Endianness::BigEndian) {
+  if constexpr (std::endian::native == std::endian::big) {
     std::reverse(std::begin(u.b), std::end(u.b));
   }
 
@@ -226,7 +209,7 @@ Container& write_le_uint16(Container &haystack, typename Container::size_type wr
       byte b[sizeof(uint16_t)];
   } u = {value};
 
-  if (native_endianness() == Endianness::BigEndian) {
+  if constexpr (std::endian::native == std::endian::big) {
     std::reverse(std::begin(u.b), std::end(u.b));
   }
 
@@ -257,7 +240,7 @@ inline uint32_t read_le_uint32(Container const &haystack, typename Container::si
       uint32_t i;
   } u = {{haystack[read_idx], haystack[read_idx + 1], haystack[read_idx + 2], haystack[read_idx + 3]}};
 
-  if (native_endianness() == Endianness::BigEndian) {
+  if constexpr (std::endian::native == std::endian::big) {
     std::reverse(std::begin(u.b), std::end(u.b));
   }
 
@@ -286,7 +269,7 @@ Container& write_le_uint32(Container &haystack, typename Container::size_type wr
       byte b[sizeof(uint32_t)];
   } u = {value};
 
-  if (native_endianness() == Endianness::BigEndian) {
+  if constexpr (std::endian::native == std::endian::big) {
     std::reverse(std::begin(u.b), std::end(u.b));
   }
 
@@ -320,7 +303,7 @@ Container& write_le_uint32(Container &haystack, typename Container::size_type wr
       byte b[sizeof(uint32_t)];
   } u = {value};
 
-  if (native_endianness() == Endianness::BigEndian) {
+  if constexpr (std::endian::native == std::endian::big) {
     std::reverse(std::begin(u.b), std::end(u.b));
   }
 
@@ -354,7 +337,7 @@ uint64_t read_le_uint64(Container const &haystack, typename Container::size_type
   } u = {{haystack[read_idx], haystack[read_idx + 1], haystack[read_idx + 2], haystack[read_idx + 3],
           haystack[read_idx + 4], haystack[read_idx + 5], haystack[read_idx + 6], haystack[read_idx + 7]}};
 
-  if (native_endianness() == Endianness::BigEndian) {
+  if constexpr (std::endian::native == std::endian::big) {
     std::reverse(std::begin(u.b), std::end(u.b));
   }
 
@@ -383,7 +366,7 @@ Container& write_le_uint64(Container &haystack, typename Container::size_type wr
       byte b[sizeof(uint64_t)];
   } u = {value};
 
-  if (native_endianness() == Endianness::BigEndian) {
+  if constexpr (std::endian::native == std::endian::big) {
     std::reverse(std::begin(u.b), std::end(u.b));
   }
 
@@ -421,7 +404,7 @@ Container& write_le_uint64(Container &haystack, typename Container::size_type wr
       byte b[sizeof(uint64_t)];
   } u = {value};
 
-  if (native_endianness() == Endianness::BigEndian) {
+  if constexpr (std::endian::native == std::endian::big) {
     std::reverse(std::begin(u.b), std::end(u.b));
   }
 

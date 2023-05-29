@@ -33,15 +33,13 @@ class DatabaseHeaderBuilder;
  */
 class DatabaseHeader {
  public:
-
-    friend class DatabaseHeaderBuilder;
-
     /**
      * @brief The size in bytes of a noid database header on disk.
      */
     static uint8_t const BYTE_SIZE = 100;
 
  private:
+    friend class DatabaseHeaderBuilder;
 
     std::array<byte, DatabaseHeader::BYTE_SIZE> const data;
 
