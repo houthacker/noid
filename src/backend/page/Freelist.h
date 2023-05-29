@@ -96,6 +96,9 @@ class Freelist {
 
 class FreelistBuilder {
  private:
+
+    friend class Freelist;
+
     /**
      * @brief The configured page size in bytes. Defaults to 4096.
      */
@@ -120,8 +123,6 @@ class FreelistBuilder {
     explicit FreelistBuilder(const Freelist & base);
     explicit FreelistBuilder(std::vector<byte> && base);
 
- public:
-
     /**
      * @brief Creates a new @c FreelistBuilder with default values.
      *
@@ -145,6 +146,7 @@ class FreelistBuilder {
      * @throws std::invalid_argument if base is not a valid serialized @c Freelist.
      */
     static std::unique_ptr<FreelistBuilder> Create(std::vector<byte> && base);
+ public:
 
     /**
      * @brief Creates a new @c Freelist based on the provided data.

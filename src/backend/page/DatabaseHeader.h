@@ -136,6 +136,8 @@ bool operator!=(const DatabaseHeader& lhs, const DatabaseHeader& rhs);
  */
 class DatabaseHeaderBuilder {
  private:
+    friend class DatabaseHeader;
+
     uint16_t page_size;
     uint8_t key_size;
     PageNumber first_tree_header_page;
@@ -143,7 +145,6 @@ class DatabaseHeaderBuilder {
 
     explicit DatabaseHeaderBuilder();
     explicit DatabaseHeaderBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> const & base);
- public:
 
     /**
      * @brief Creates a new builder with default values.
@@ -168,6 +169,7 @@ class DatabaseHeaderBuilder {
      * @return The new builder instance.
      */
     static std::unique_ptr<DatabaseHeaderBuilder> Create(const DatabaseHeader& base);
+ public:
 
     /**
      * @brief Creates a new @c DatabaseHeader instance based on the provided data.
