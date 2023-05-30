@@ -80,14 +80,14 @@ class Freelist {
      *
      * @return The amount of free page numbers in this @c Freelist.
      */
-    [[nodiscard]] uint16_t Size() const;
+    [[nodiscard]] uint16_t FreePageCount() const;
 
     /**
      * @brief Returns the page number of the free (reusable) page at position @c pos.
      *
      * @param pos The position within this @c Freelist.
      * @return The page number of the free page.
-     * @throws std::out_of_range if @p pos >= @c this->Size().
+     * @throws std::out_of_range if @p pos >= @c this->FreePageCount().
      */
     [[nodiscard]] PageNumber FreePageAt(uint16_t pos) const;
 };

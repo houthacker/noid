@@ -48,12 +48,12 @@ PageNumber Freelist::Next() const {
   return read_le_uint32<byte>(this->data, NEXT_PAGE_OFFSET);
 }
 
-uint16_t Freelist::Size() const {
+uint16_t Freelist::FreePageCount() const {
   return read_le_uint16<byte>(this->data, NEXT_FREE_SLOT_OFFSET);
 }
 
 PageNumber Freelist::FreePageAt(uint16_t pos) const {
-  if (pos >= this->Size()) {
+  if (pos >= this->FreePageCount()) {
     throw std::out_of_range("No such page");
   }
 
