@@ -96,7 +96,6 @@ class TreeHeader {
     [[nodiscard]] uint8_t GetMaxLeafRecords() const;
 
     /**
-     *
      * @return The page number of the root node in the database file.
      */
     [[nodiscard]] PageNumber GetRootNodePageNumber() const;
@@ -110,16 +109,6 @@ class TreeHeaderBuilder {
      * @brief The configured page size in bytes. Defaults to @c NoidConfig::vfs_page_size.
      */
     uint16_t page_size;
-
-    /**
-     * @brief The maximum amount of entries in an internal node.
-     */
-    uint8_t max_entries;
-
-    /**
-     * @brief The maximum amount of records in a leaf node.
-     */
-    uint8_t max_records;
 
     /**
      * @brief The raw data in serialized format.
