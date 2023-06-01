@@ -14,16 +14,6 @@
 
 namespace noid::backend::page {
 
-/**
- * @brief The default page size in bytes.
- */
-uint16_t const DEFAULT_PAGE_SIZE = 4096;
-
-/**
- * @brief The default key size in bytes.
- */
-uint8_t const DEFAULT_KEY_SIZE = 16;
-
 class DatabaseHeaderBuilder;
 
 /**
@@ -194,7 +184,7 @@ class DatabaseHeaderBuilder {
      * @param size The new key size.
      * @return A reference to this builder to support a fluent interface.
      */
-    DatabaseHeaderBuilder& WithKeySize(uint8_t size = DEFAULT_KEY_SIZE);
+    DatabaseHeaderBuilder& WithKeySize(uint8_t size = FIXED_KEY_SIZE);
 
     /**
      * @brief Sets or overwrites the page number of the first tree header.

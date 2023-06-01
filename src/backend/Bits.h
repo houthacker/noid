@@ -421,6 +421,52 @@ Container& write_le_uint64(Container &haystack, typename Container::size_type wr
 }
 
 /**
+ * @brief Creates a new container and copies data from @p source into it.
+ *
+ * @tparam T The container element type.
+ * @tparam Destination The destination container type.
+ * @tparam Source The source container type.
+ * @param source The source container.
+ * @param read_idx The index at which to start reading.
+ * @param amount The amount of element to read.
+ * @return The container instance (which resides on that stack).
+ * @throws std::out_of_range if the given parameters would cause a read outside of the source bounds.
+ */
+template<typename T, Container<T> Destination, Container<T> Source>
+Destination read_container(const Source &source, typename Source::size_type read_idx, typename Source::size_type amount) {
+  Destination destination;
+  if (read_idx + amount >= source.size()) {
+    throw std::out_of_range("reading amount elements starting at read_idx causes a read outside of the source bounds.");
+  }
+
+  std::copy(std::begin(source) + read_idx, std::begin(source) + read_idx + amount, std::begin(destination));
+  return destination;
+}
+
+/**
+ * @brief Writes all data from @p source into @p destination, starting at @p write_idx.
+ *
+ * @tparam T The container element type.
+ * @tparam Destination The destination container type.
+ * @tparam Source The source container type.
+ * @param destination The destination container.
+ * @param write_idx The index to start writing at.
+ * @param source The source container.
+ * @return A reference to the destination container.
+ * @throws std::out_of_range if source doesn't fit into destination using the given @p write_idx.
+ */
+template<typename T, Container<T> Destination, Container<T> Source>
+Destination& write_container(Destination &destination, typename Destination::size_type write_idx, const Source &source) {
+  if (source.size() > write_idx + destination.size()) {
+    throw std::out_of_range("Cannot fit source into destination");
+  }
+
+  std::copy(std::begin(source), std::end(source), std::begin(destination) + write_idx);
+
+  return destination;
+}
+
+/**
  * @brief Calculates the FNV-1a hash of @p length message bytes starting at @p start_idx.
  *
  * @tparam T The container element type.

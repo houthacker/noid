@@ -62,7 +62,7 @@ The internal node pages contain no data but only keys and references to child no
 | offset | size (bytes)            | description                              |
 |--------|-------------------------|------------------------------------------|
 | 0      | 2                       | `'IP'` (internal page)                   |
-| 2      | 1                       | `uint8_t` key count                      |
+| 2      | 1                       | `uint8_t` entry / key count              |
 | 3      | 4                       | LE `uint32_t` leftmost child page number |
 | 7      | 17                      | Padding (zeroed)                         |
 | 24     | key count * entry size  | The node entries                         |

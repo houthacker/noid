@@ -15,7 +15,7 @@ set(SOURCE_FILES
         UUID.cpp
         Pager.cpp
         WAL.cpp
-        BPlusTree.cpp)
+        BPlusTree.cpp page/Limits.h)
 
 add_library(noid_backend SHARED ${SOURCE_FILES} ${HEADER_FILES})
 

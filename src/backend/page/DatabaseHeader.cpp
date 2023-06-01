@@ -84,7 +84,7 @@ bool operator!=(const DatabaseHeader& lhs, const DatabaseHeader& rhs) {
 /*** DatabaseHeaderBuilder ***/
 
 DatabaseHeaderBuilder::DatabaseHeaderBuilder() :
-  page_size(DEFAULT_PAGE_SIZE), key_size(DEFAULT_KEY_SIZE), first_tree_header_page(0), first_freelist_page(0) {}
+    page_size(DEFAULT_PAGE_SIZE), key_size(FIXED_KEY_SIZE), first_tree_header_page(0), first_freelist_page(0) {}
 
 DatabaseHeaderBuilder::DatabaseHeaderBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> const & base) {
   this->page_size = read_le_uint16<byte>(base, PAGE_SIZE_OFFSET);

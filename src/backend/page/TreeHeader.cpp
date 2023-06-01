@@ -3,6 +3,7 @@
  */
 
 #include "TreeHeader.h"
+#include "Limits.h"
 #include "backend/Bits.h"
 #include "backend/NoidConfig.h"
 
@@ -12,18 +13,6 @@ static uint8_t MAX_RECORDS_OFFSET = 3;
 static uint8_t ROOT_NODE_PAGE_OFFSET = 4;
 
 namespace noid::backend::page {
-
-static inline uint8_t CalculateMaxEntries(uint16_t page_size) {
-  // TODO replace 24 by InternalNode::HEADER_SIZE_BYTES
-  // TODO replace 20 by InternalNodeEntry::SIZE_BYTES
-  return (uint8_t)((page_size - 24) / 20);
-}
-
-static inline uint8_t CalculateMaxRecords(uint16_t page_size) {
-  // TODO replace 24 by LeafNode::HEADER_SIZE_BYTES
-  // TODO replace 24 by LeafNodeRecord::SIZE_BYTES
-  return (uint8_t)((page_size - 24) / 24);
-}
 
 static std::vector<byte>& Validate(std::vector<byte>& data) {
   auto magic = read_le_uint16<byte>(data, TREE_HEADER_MAGIC_OFFSET);

@@ -6,6 +6,7 @@
 
 #include "backend/page/DatabaseHeader.h"
 
+using namespace noid::backend;
 using namespace noid::backend::page;
 
 TEST_CASE("Build a DatabaseHeader") {
@@ -27,7 +28,7 @@ TEST_CASE("Create a DatabaseHeader with default values") {
   auto header = DatabaseHeader::NewBuilder()->Build();
 
   REQUIRE(header->GetPageSize() == DEFAULT_PAGE_SIZE);
-  REQUIRE(header->GetKeySize() == DEFAULT_KEY_SIZE);
+  REQUIRE(header->GetKeySize() == FIXED_KEY_SIZE);
   REQUIRE(header->GetFirstTreeHeaderPage() == 0);
   REQUIRE(header->GetFirstFreelistPage() == 0);
   REQUIRE(header->GetSignature() == 0xa60a2358);
