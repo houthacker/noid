@@ -19,15 +19,15 @@ All pages have a size of 4096 bytes, except for the header page which is 100 byt
 The first tree header page number exists here to enable storage of the database structure within the database file.
 This allows for reconstruction of the database without requiring the noid main database.
 
-| offset | size (bytes)  | description                                              |
-|--------|---------------|----------------------------------------------------------|
-| 0      | 8             | Header string `"noid v1\0"`                              |
-| 8      | 2             | LE `uint16_t` page size in bytes (min 512, default 4096) |
-| 10     | 1             | `uint8_t` key size in bytes (multiple of 8, default 16)  |
-| 11     | 4             | LE `uint32_t` first tree header page number              |
-| 15     | 4             | LE `uint32_t` first freelist page number                 |
-| 19     | 4             | LE `uint32_t` signature (fnv-1a of all preceding bytes)  |
-| 23     | 77            | Reserved for later use (zeroed)                          |
+| offset | size (bytes) | description                                              |
+|--------|--------------|----------------------------------------------------------|
+| 0      | 8            | Header string `"noid v1\0"`                              |
+| 8      | 2            | LE `uint16_t` page size in bytes (min 512, default 4096) |
+| 10     | 1            | `uint8_t` key size in bytes (multiple of 8, default 16)  |
+| 11     | 4            | LE `uint32_t` first tree header page number              |
+| 15     | 4            | LE `uint32_t` first freelist page number                 |
+| 19     | 4            | LE `uint32_t` checksum (fnv-1a of all preceding bytes)   |
+| 23     | 77           | Reserved for later use (zeroed)                          |
 
 ## Freelist Page
 Freelist pages are pages which list pages previously in use by the database, but are now free for reuse.

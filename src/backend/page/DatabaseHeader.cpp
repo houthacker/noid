@@ -20,7 +20,7 @@ static uint8_t FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET = 11;
 static uint8_t FIRST_FREELIST_PAGE_NUMBER_OFFSET = 15;
 static uint8_t CHECKSUM_OFFSET = 19;
 
-static std::array<byte, DatabaseHeader::BYTE_SIZE> const & validate(std::array<byte, DatabaseHeader::BYTE_SIZE> const & data) {
+static std::array<byte, DatabaseHeader::BYTE_SIZE> const & Validate(std::array<byte, DatabaseHeader::BYTE_SIZE> const & data) {
   auto expected_checksum = fnv1a<byte>(data, 0, CHECKSUM_OFFSET);
   auto actual_checksum = read_le_uint32<byte>(data, CHECKSUM_OFFSET);
 
@@ -31,7 +31,8 @@ static std::array<byte, DatabaseHeader::BYTE_SIZE> const & validate(std::array<b
   return data;
 }
 
-DatabaseHeader::DatabaseHeader(std::array<byte, DatabaseHeader::BYTE_SIZE> const data) : data(data) {}
+DatabaseHeader::DatabaseHeader(uint16_t page_size, uint8_t key_size, PageNumber first_free_header_page, PageNumber first_freelist_page, uint32_t checksum) :
+    page_size(page_size), key_size(key_size), first_tree_header_page(first_free_header_page), first_freelist_page(first_freelist_page), checksum(checksum) {}
 
 std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder() {
   return DatabaseHeaderBuilder::Create();
@@ -45,32 +46,41 @@ std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder(const Database
   return DatabaseHeaderBuilder::Create(base);
 }
 
-const std::array<byte, DatabaseHeader::BYTE_SIZE> &DatabaseHeader::GetBytes() const {
-  return this->data;
+std::array<byte, DatabaseHeader::BYTE_SIZE> DatabaseHeader::ToBytes() const {
+  std::array<byte, DatabaseHeader::BYTE_SIZE> bytes = {0};
+  write_le_uint64<byte>(bytes, MAGIC_OFFSET, NOID_DATABASE_HEADER_MAGIC);
+  write_le_uint16<byte>(bytes, PAGE_SIZE_OFFSET, this->page_size);
+  write_uint8<byte>(bytes, KEY_SIZE_OFFSET, this->key_size);
+  write_le_uint32<byte>(bytes, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET, this->first_tree_header_page);
+  write_le_uint32<byte>(bytes, FIRST_FREELIST_PAGE_NUMBER_OFFSET, this->first_freelist_page);
+  write_le_uint32<byte>(bytes, CHECKSUM_OFFSET, this->checksum);
+
+  return bytes;
 }
 
 uint16_t DatabaseHeader::GetPageSize() const {
-  return read_le_uint16<byte>(this->data, PAGE_SIZE_OFFSET);
+  return this->page_size;
 }
 
 uint8_t DatabaseHeader::GetKeySize() const {
-  return read_uint8<byte>(this->data, KEY_SIZE_OFFSET);
+  return this->key_size;
 }
 
 PageNumber DatabaseHeader::GetFirstTreeHeaderPage() const {
-  return read_le_uint32<byte>(this->data, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET);
+  return this->first_tree_header_page;
 }
 
 PageNumber DatabaseHeader::GetFirstFreelistPage() const {
-  return read_le_uint32<byte>(this->data, FIRST_FREELIST_PAGE_NUMBER_OFFSET);
+  return this->first_freelist_page;
 }
 
-uint32_t DatabaseHeader::GetSignature() const {
-  return read_le_uint32<byte>(this->data, CHECKSUM_OFFSET);
+uint32_t DatabaseHeader::GetChecksum() const {
+  return this->checksum;
 }
 
 bool DatabaseHeader::Equals(const DatabaseHeader &other) const {
-  return this->data == other.data;
+  return this->checksum == other.checksum && this->page_size == other.page_size && this->key_size == other.key_size
+    && this->first_tree_header_page == other.first_tree_header_page && this->first_freelist_page == other.first_freelist_page;
 }
 
 bool operator==(const DatabaseHeader& lhs, const DatabaseHeader& rhs) {
@@ -98,23 +108,24 @@ std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeaderBuilder::Create() {
 }
 
 std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeaderBuilder::Create(std::array<byte, DatabaseHeader::BYTE_SIZE> const & base) {
-  return std::unique_ptr<DatabaseHeaderBuilder>(new DatabaseHeaderBuilder(validate(base)));
+  return std::unique_ptr<DatabaseHeaderBuilder>(new DatabaseHeaderBuilder(Validate(base)));
 }
 
 std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeaderBuilder::Create(const DatabaseHeader& base) {
-  return std::unique_ptr<DatabaseHeaderBuilder>(new DatabaseHeaderBuilder(base.data));
+  return std::unique_ptr<DatabaseHeaderBuilder>(new DatabaseHeaderBuilder(base.ToBytes()));
 }
 
 std::unique_ptr<const DatabaseHeader> DatabaseHeaderBuilder::Build() const {
-  std::array<byte, DatabaseHeader::BYTE_SIZE> data{0};
-  write_le_uint64<byte>(data, MAGIC_OFFSET, NOID_DATABASE_HEADER_MAGIC);
-  write_le_uint16<byte>(data, PAGE_SIZE_OFFSET, this->page_size);
-  write_uint8<byte>(data, KEY_SIZE_OFFSET, this->key_size);
-  write_le_uint32<byte>(data, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET, this->first_tree_header_page);
-  write_le_uint32<byte>(data, FIRST_FREELIST_PAGE_NUMBER_OFFSET, this->first_freelist_page);
-  write_le_uint32<byte>(data, CHECKSUM_OFFSET, fnv1a<byte>(data, 0, CHECKSUM_OFFSET));
+  auto checksum = FNV1a::Init()
+      ->Iterate(NOID_DATABASE_HEADER_MAGIC)
+      ->Iterate(this->page_size)
+      ->Iterate(this->key_size)
+      ->Iterate(this->first_tree_header_page)
+      ->Iterate(this->first_freelist_page)
+      ->GetState();
 
-  return std::unique_ptr<DatabaseHeader>(new DatabaseHeader(data));
+  return std::unique_ptr<DatabaseHeader>(new DatabaseHeader(
+      this->page_size, this->key_size, this->first_tree_header_page, this->first_freelist_page, checksum));
 }
 
 DatabaseHeaderBuilder &DatabaseHeaderBuilder::WithPageSize(uint16_t size) {

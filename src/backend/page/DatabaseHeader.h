@@ -31,14 +31,35 @@ class DatabaseHeader {
  private:
     friend class DatabaseHeaderBuilder;
 
-    std::array<byte, DatabaseHeader::BYTE_SIZE> const data;
+    /**
+     * The size in bytes of all database pages, except for the database header itself.
+     */
+    const uint16_t page_size;
 
     /**
-     * @brief Creates a new @c DatabaseHeader.
-     *
-     * @param data The raw backing data.
+     * The key size in bytes of all keys in the database.
      */
-    explicit DatabaseHeader(std::array<byte, DatabaseHeader::BYTE_SIZE> data);
+    const uint8_t key_size;
+
+    /**
+     * The number of the first tree header page.
+     */
+    const PageNumber first_tree_header_page;
+
+    /**
+     * The number of the first freelist entry.
+     */
+    const PageNumber first_freelist_page;
+
+    /**
+     * The database header checksum.
+     */
+    const uint32_t checksum;
+
+    /*
+     * Creates a new @c DatabaseHeader
+     */
+    DatabaseHeader(uint16_t page_size, uint8_t key_size, PageNumber first_free_header_page, PageNumber first_freelist_page, uint32_t checksum);
 
  public:
 
@@ -67,9 +88,11 @@ class DatabaseHeader {
     static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(const DatabaseHeader& base);
 
     /**
-     * @return An unmodifiable reference to the raw bytes of this header.
+     * @brief Creates a new array containing the serialized representation of this database header.
+     *
+     * @return The serialized database header.
      */
-    [[nodiscard]] const std::array<byte, DatabaseHeader::BYTE_SIZE>& GetBytes() const;
+    [[nodiscard]] std::array<byte, DatabaseHeader::BYTE_SIZE> ToBytes() const;
 
     /**
      * @return The size of the database pages in bytes.
@@ -99,10 +122,10 @@ class DatabaseHeader {
     /**
      * @brief Returns the FNV-1a hash of the header data up until the hash itself.
      *
-     * @details The header signature is used to verify the header has not been corrupted.
-     * @return The header signature.
+     * @details The header checksum is used to verify the header has not been corrupted.
+     * @return The header checksum.
      */
-    [[nodiscard]] uint32_t GetSignature() const;
+    [[nodiscard]] uint32_t GetChecksum() const;
 
     /**
      * @details Two instances of @c DatabaseHeader are considered equal if their serialized form contains the same

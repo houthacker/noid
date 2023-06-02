@@ -21,7 +21,7 @@ TEST_CASE("Build a DatabaseHeader") {
   REQUIRE(header->GetKeySize() == 24);
   REQUIRE(header->GetFirstTreeHeaderPage() == 1);
   REQUIRE(header->GetFirstFreelistPage() == 2);
-  REQUIRE(header->GetSignature() == 0x98a4eae7);
+  REQUIRE(header->GetChecksum() == 0x98a4eae7);
 }
 
 TEST_CASE("Create a DatabaseHeader with default values") {
@@ -31,7 +31,7 @@ TEST_CASE("Create a DatabaseHeader with default values") {
   REQUIRE(header->GetKeySize() == FIXED_KEY_SIZE);
   REQUIRE(header->GetFirstTreeHeaderPage() == 0);
   REQUIRE(header->GetFirstFreelistPage() == 0);
-  REQUIRE(header->GetSignature() == 0xa60a2358);
+  REQUIRE(header->GetChecksum() == 0xa60a2358);
 }
 
 TEST_CASE("Create a DatabaseHeader based on another instance") {
@@ -42,7 +42,7 @@ TEST_CASE("Create a DatabaseHeader based on another instance") {
   REQUIRE(header->GetKeySize() == base->GetKeySize());
   REQUIRE(header->GetFirstTreeHeaderPage() == base->GetFirstTreeHeaderPage());
   REQUIRE(header->GetFirstFreelistPage() == base->GetFirstTreeHeaderPage());
-  REQUIRE(header->GetSignature() == base->GetSignature());
+  REQUIRE(header->GetChecksum() ==base->GetChecksum());
 }
 
 TEST_CASE("Compare DatabaseHeaders by using DatabaseHeader::Equals()") {
@@ -53,5 +53,5 @@ TEST_CASE("Compare DatabaseHeaders by using DatabaseHeader::Equals()") {
   REQUIRE(base->Equals(*expect_equal));
   REQUIRE_FALSE(base->Equals(*expect_not_equal));
   REQUIRE_FALSE(expect_equal->Equals(*expect_not_equal));
-  REQUIRE_FALSE(base->GetSignature() == expect_not_equal->GetSignature());
+  REQUIRE_FALSE(base->GetChecksum() ==expect_not_equal->GetChecksum());
 }

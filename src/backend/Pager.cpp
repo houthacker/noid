@@ -35,7 +35,7 @@ void Pager<Lockable, SharedLockable>::WriteFileHeader(const page::DatabaseHeader
   // TODO write to WAL (, page cache?)
   NoidLock lock = this->file->UniqueLock();
   for (auto i = this->max_io_retries; i > 0; i--) {
-    if (this->file->Write(header.GetBytes(), 0) == page::DatabaseHeader::BYTE_SIZE) {
+    if (this->file->Write(header.ToBytes(), 0) == page::DatabaseHeader::BYTE_SIZE) {
       return;
     }
   }

@@ -477,7 +477,7 @@ Destination& write_container(Destination &destination, typename Destination::siz
  * @return The FNV-1a hash.
  */
 template<typename T, Container<T> Container>
-uint32_t fnv1a(Container const &message, typename Container::size_type start_idx, typename Container::size_type length) {
+constexpr uint32_t fnv1a(Container const &message, typename Container::size_type start_idx, typename Container::size_type length) {
   if (length > message.size() - start_idx) {
     throw std::out_of_range("length too large");
   }
@@ -491,6 +491,62 @@ uint32_t fnv1a(Container const &message, typename Container::size_type start_idx
 
   return hash;
 }
+
+class FNV1a {
+   private:
+      static const uint32_t FNV_OFFSET_BASIS = 2166136261;
+      static const uint32_t FNV_PRIME = 16777619;
+      uint32_t state;
+
+    FNV1a() : state(FNV1a::FNV_OFFSET_BASIS) {}
+   public:
+      static std::unique_ptr<FNV1a> Init() {
+        return std::unique_ptr<FNV1a>(new FNV1a());
+      }
+
+      template<typename T>
+      FNV1a* Iterate(T integral) {
+        union {
+            T i;
+            byte b[sizeof(T)];
+        } u = {integral};
+
+        for (std::size_t i = 0; i < sizeof(T); i++) {
+          this->state ^= u.b[i];
+          this->state *= FNV1a::FNV_PRIME;
+        }
+
+        return this;
+      }
+
+      /**
+       * @brief Adds @p message to the current hash state, using @p length message bytes starting at @p start_idx.
+       *
+       * @tparam T The container element type.
+       * @tparam Container The container type.
+       * @param message The message.
+       * @param start_idx The index to start hashing from.
+       * @param length The amount of bytes to be hashed.
+       * @return The FNV-1a hash.
+       */
+      template<typename T, Container<T> Container>
+      FNV1a* Iterate(Container const &message, typename Container::size_type start_idx, typename Container::size_type length) {
+        if (length > message.size() - start_idx) {
+          throw std::out_of_range("length too large");
+        }
+
+        for (auto i = start_idx; i < start_idx + length; i++) {
+          this->state ^= message[i];
+          this->state *= FNV1a::FNV_PRIME;
+        }
+
+        return this;
+      }
+
+      [[nodiscard]] uint32_t GetState() const {
+        return this->state;
+      }
+};
 
 }
 #endif //NOID_SRC_BACKEND_BITS_H_
