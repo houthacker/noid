@@ -9,102 +9,147 @@
 #include "backend/Bits.h"
 #include "backend/NoidConfig.h"
 
-static uint16_t INTERNAL_NODE_MAGIC = 0x5049;
+static uint16_t INTERNAL_NODE_MAGIC = 0x5049; // 'IN' for Internal Node
 static uint8_t MAGIC_OFFSET = 0;
 static uint8_t ENTRY_COUNT_OFFSET = 2;
-static uint8_t LEFTMOST_CHILD_PAGE_OFFSET = 3;
+static uint8_t LEFTMOST_CHILD_PAGE_OFFSET = 8;
 static uint8_t ENTRY_LIST_OFFSET = 24;
 
 namespace noid::backend::page {
 
-static std::vector<byte>& Validate(std::vector<byte>& raw_data) {
+static std::vector<byte>& Validate(std::vector<byte>& raw_data)
+{
   auto page_size = NoidConfig::Get().vfs_page_size;
   if (raw_data.size() == page_size
       && read_le_uint16<byte>(raw_data, MAGIC_OFFSET) == INTERNAL_NODE_MAGIC
-      && read_uint8<byte>(raw_data, ENTRY_COUNT_OFFSET) <= CalculateMaxEntries(page_size)) {
+      && read_le_uint16<byte>(raw_data, ENTRY_COUNT_OFFSET) <= CalculateMaxEntries(page_size)) {
     return raw_data;
   }
 
   throw std::invalid_argument("Given raw data is not a valid serialized InternalNode instance.");
 }
 
-InternalNode::InternalNode(std::vector<byte> &&data) : data(std::move(data)) {}
+static inline std::size_t SlotToIndex(uint16_t slot)
+{
+  return ENTRY_LIST_OFFSET + slot * sizeof(PageNumber);
+}
 
-std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder() {
+bool NodeEntry::operator==(const NodeEntry& other) const
+{
+  return this->right_child == other.right_child && this->key == other.key;
+}
+
+InternalNode::InternalNode(PageNumber leftmost_child, std::vector<NodeEntry>&& entries)
+    :
+    leftmost_child(leftmost_child), entries(std::move(entries)) { }
+
+std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder()
+{
   return std::unique_ptr<InternalNodeBuilder>(new InternalNodeBuilder());
 }
 
-std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(const InternalNode &base) {
+std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(const InternalNode& base)
+{
   return std::unique_ptr<InternalNodeBuilder>(new InternalNodeBuilder(base));
 }
 
-std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(std::vector<byte> &&base) {
+std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(std::vector<byte>&& base)
+{
   return std::unique_ptr<InternalNodeBuilder>(new InternalNodeBuilder(std::move(Validate(base))));
 }
 
-uint8_t InternalNode::GetEntryCount() const {
-  return read_uint8<byte>(this->data, ENTRY_COUNT_OFFSET);
+uint16_t InternalNode::Size() const
+{
+  return static_cast<uint16_t>(this->entries.size());
 }
 
-PageNumber InternalNode::GetLeftmostChild() const {
-  return read_le_uint32<byte>(this->data, LEFTMOST_CHILD_PAGE_OFFSET);
+PageNumber InternalNode::GetLeftmostChild() const
+{
+  return this->leftmost_child;
 }
 
-NodeEntry InternalNode::EntryAt(uint8_t pos) const {
-  uint32_t offset = ENTRY_LIST_OFFSET + (pos * INTERNAL_NODE_ENTRY_SIZE_BYTES);
-  if (offset >= this->GetEntryCount()) {
-    throw std::out_of_range("No such entry");
-  }
-
-  return NodeEntry{
-    read_container<byte, std::array<byte, FIXED_KEY_SIZE>>(this->data, offset, FIXED_KEY_SIZE),
-read_le_uint32<byte>(this->data, offset + FIXED_KEY_SIZE)
-  };
+const NodeEntry& InternalNode::EntryAt(uint16_t slot) const
+{
+  return const_cast<NodeEntry&>(this->entries.at(slot));
 }
 
 /*** InternalNodeBuilder ***/
 
 
-InternalNodeBuilder::InternalNodeBuilder() :
-    page_size(NoidConfig::Get().vfs_page_size), data(page_size) {
-  write_le_uint16<byte>(this->data, MAGIC_OFFSET, INTERNAL_NODE_MAGIC);
+InternalNodeBuilder::InternalNodeBuilder()
+    :
+    page_size(NoidConfig::Get().vfs_page_size),
+    max_slot(CalculateMaxEntries(page_size) - 1),
+    leftmost_child(0)
+{
+  this->entries.reserve(max_slot + 1);
 }
 
-InternalNodeBuilder::InternalNodeBuilder(const InternalNode &base) :
-   page_size(NoidConfig::Get().vfs_page_size), data(base.data) {}
+InternalNodeBuilder::InternalNodeBuilder(const InternalNode& base)
+    :
+    page_size(NoidConfig::Get().vfs_page_size),
+    max_slot(CalculateMaxEntries(page_size) - 1),
+    leftmost_child(base.leftmost_child),
+    entries(base.entries) { }
 
-InternalNodeBuilder::InternalNodeBuilder(std::vector<byte> &&base) :
-    page_size(NoidConfig::Get().vfs_page_size), data(std::move(base)){}
+InternalNodeBuilder::InternalNodeBuilder(std::vector<byte>&& base)
+    :
+    page_size(NoidConfig::Get().vfs_page_size),
+    max_slot(CalculateMaxEntries(page_size) - 1),
+    leftmost_child(read_le_uint32<byte>(base, LEFTMOST_CHILD_PAGE_OFFSET))
+{
 
-std::unique_ptr<const InternalNode> InternalNodeBuilder::Build() {
-  return std::unique_ptr<const InternalNode>(new InternalNode(std::move(this->data)));
+  auto next_free_slot = read_le_uint16<byte>(base, ENTRY_COUNT_OFFSET);
+  this->entries.reserve(next_free_slot);
+
+  for (int slot = 0; slot < next_free_slot; slot++) {
+    auto container_offset = SlotToIndex(slot);
+    this->entries.push_back({
+        read_container<byte, std::array<byte, FIXED_KEY_SIZE>>(base, container_offset, next_free_slot),
+        read_le_uint32<byte>(base, container_offset + FIXED_KEY_SIZE)
+    });
+  }
 }
 
-bool InternalNodeBuilder::IsFull() {
-  return read_uint8<byte>(this->data, ENTRY_COUNT_OFFSET) == CalculateMaxEntries(this->page_size);
+std::unique_ptr<const InternalNode> InternalNodeBuilder::Build()
+{
+  return std::unique_ptr<const InternalNode>(new InternalNode(this->leftmost_child, std::move(this->entries)));
 }
 
-InternalNodeBuilder &InternalNodeBuilder::WithLeftmostChildPage(PageNumber page_number) {
-  write_le_uint32<byte>(this->data, LEFTMOST_CHILD_PAGE_OFFSET, page_number);
+bool InternalNodeBuilder::IsFull()
+{
+  return this->entries.size() - 1 == this->max_slot;
+}
+
+InternalNodeBuilder& InternalNodeBuilder::WithLeftmostChild(PageNumber page_number)
+{
+  this->leftmost_child = page_number;
 
   return *this;
 }
 
-InternalNodeBuilder &InternalNodeBuilder::WithEntry(std::array<byte, FIXED_KEY_SIZE> key, PageNumber right_child_page) {
-  auto current_entry_count = read_uint8<byte>(this->data, ENTRY_COUNT_OFFSET);
+InternalNodeBuilder& InternalNodeBuilder::WithEntry(std::array<byte, FIXED_KEY_SIZE> key, PageNumber right_child_page)
+{
   if (this->IsFull()) {
     throw std::overflow_error("Cannot add entry: node is full");
   }
 
-  // Write the entry into the data
-  auto entry_write_offset = ENTRY_LIST_OFFSET + (current_entry_count * INTERNAL_NODE_ENTRY_SIZE_BYTES);
-  write_container<byte>(this->data, entry_write_offset, key);
-  write_le_uint32<byte>(this->data, entry_write_offset + FIXED_KEY_SIZE, right_child_page);
-
-  // Increment the entry count
-  write_uint8<byte>(this->data, ENTRY_COUNT_OFFSET, current_entry_count + 1);
+  this->entries.push_back({key, right_child_page});
 
   return *this;
+}
+
+InternalNodeBuilder& InternalNodeBuilder::WithEntry(std::array<byte, FIXED_KEY_SIZE> key, PageNumber right_child_page,
+    uint16_t slot_hint)
+{
+  if (this->entries.size() > slot_hint) {
+    // slot_hint refers to an occupied slot, so replace it.
+    this->entries[slot_hint] = { key, right_child_page};
+    return *this;
+  }
+
+  // otherwise, append the entry to the end of the list.
+  return this->WithEntry(key, right_child_page);
 }
 
 }

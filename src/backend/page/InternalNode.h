@@ -15,8 +15,25 @@ namespace noid::backend::page {
 class InternalNodeBuilder;
 
 struct NodeEntry {
-  std::array<byte, FIXED_KEY_SIZE> key;
-  PageNumber right_child;
+
+    /**
+     * @brief The entry key.
+     */
+    std::array<byte, FIXED_KEY_SIZE> key;
+
+    /**
+     * @brief The number of the right child page.
+     */
+    PageNumber right_child;
+
+    /**
+     * @brief Compares two @c NodeEntry instances for equality.
+     * @details Two @c NodeEntry instances are considered equal if all fields have an equal value.
+     *
+     * @param other The @c NodeEntry to compare to.
+     * @return Whether @p other is considered equal to this @c NodeEntry.
+     */
+    bool operator==(const NodeEntry& other) const;
 };
 
 class InternalNode {
@@ -24,11 +41,21 @@ class InternalNode {
     friend class InternalNodeBuilder;
 
     /**
-     * @brief The raw data in serialized format.
+     * @brief The page number of the leftmost child page.
+     * @details A @c NodeEntry stores only the child page to its right. This leaves the child page at index 0
+     * unreachable, and therefore the leftmost child node is referred to separately using this field. </br>
+     * The penalty of storing child pages like this is that this page is stored outside the vector and therefore is
+     * not stored contiguously in memory. But since a @c PageNumber is itself a reference to a page this does not
+     * matter because child pages are not stored contiguously anyway.
      */
-    std::vector<byte> const data;
+    const PageNumber leftmost_child;
 
-    explicit InternalNode(std::vector<byte> && data);
+    /**
+     * @brief The list of @c NodeEntry instances.
+     */
+    const std::vector<NodeEntry> entries;
+
+    explicit InternalNode(PageNumber leftmost_child, std::vector<NodeEntry>&& entries);
 
  public:
 
@@ -45,21 +72,21 @@ class InternalNode {
      * @param base The @c InternalNode to use as a basis for the new instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<InternalNodeBuilder> NewBuilder(const InternalNode &base);
+    static std::unique_ptr<InternalNodeBuilder> NewBuilder(const InternalNode& base);
 
     /**
      * @brief Creates a new builder for @c InternalNode instances, using @c base as a starting point.
      *
-     * @param base The raw data to use as a basis for the new instance.
+     * @param base The raw entries to use as a basis for the new instance.
      * @return The new builder instance.
-     * @throws std::invalid_argument if the given raw data is not a valid @c InternalNode.
+     * @throws std::invalid_argument if the given raw entries is not a valid @c InternalNode.
      */
-    static std::unique_ptr<InternalNodeBuilder> NewBuilder(std::vector<byte> &&base);
+    static std::unique_ptr<InternalNodeBuilder> NewBuilder(std::vector<byte>&& base);
 
     /**
      * @return The amount of entries contained in this @c InternalNode
      */
-    [[nodiscard]] uint8_t GetEntryCount() const;
+    [[nodiscard]] uint16_t Size() const;
 
     /**
      * @return The page number of the leftmost child node. A @c PageNumber of 0 indicates there is no such child.
@@ -67,11 +94,11 @@ class InternalNode {
     [[nodiscard]] PageNumber GetLeftmostChild() const;
 
     /**
-     * @param pos The position at which the entry resides.
-     * @return The @c NodeEntry at the given position.
-     * @throws std::out_of_range if @c pos is outside of the entry range.
+     * @param slot The position at which the entry resides.
+     * @return A reference to the @c NodeEntry at the given position.
+     * @throws std::out_of_range if @c slot is outside of the entry range.
      */
-    [[nodiscard]] NodeEntry EntryAt(uint8_t pos) const;
+    [[nodiscard]] const NodeEntry& EntryAt(uint16_t slot) const;
 };
 
 class InternalNodeBuilder {
@@ -84,17 +111,25 @@ class InternalNodeBuilder {
     uint16_t page_size;
 
     /**
-     * @brief The raw data in serialized format.
+     * @brief The maximum @c NodeEntry slot, based on the page size.
      */
-    std::vector<byte> data;
+    uint16_t max_slot;
+
+    /**
+     * The number of the leftmost child page.
+     */
+    PageNumber leftmost_child;
+
+    /**
+     * @brief The raw entries in serialized format.
+     */
+    std::vector<NodeEntry> entries;
 
     explicit InternalNodeBuilder();
-    explicit InternalNodeBuilder(const InternalNode &base);
-    explicit InternalNodeBuilder(std::vector<byte> &&base);
+    explicit InternalNodeBuilder(const InternalNode& base);
+    explicit InternalNodeBuilder(std::vector<byte>&& base);
 
  public:
-
-    explicit InternalNodeBuilder(InternalNode &&) =delete;
 
     /**
      * @brief Creates a new @c InternalNode based on the provided data.
@@ -114,15 +149,32 @@ class InternalNodeBuilder {
      * @param page_number The page number of the child page.
      * @return A reference to this builder to support a fluent interface.
      */
-    InternalNodeBuilder& WithLeftmostChildPage(PageNumber page_number);
+    InternalNodeBuilder& WithLeftmostChild(PageNumber page_number);
 
     /**
      * @brief Adds a new entry for the @c InternalNode
+     *
      * @param key The entry key.
      * @param right_child_page The child page containing keys larger than or equal to this key.
-     * @return std::overflow_error if the node is full (i.e. contains the maximum amount of entries).
+     * @return A reference to this builder to support a fluent interface.
+     * @throws std::overflow_error if the node is full (i.e. contains the maximum amount of entries).
      */
     InternalNodeBuilder& WithEntry(std::array<byte, FIXED_KEY_SIZE> key, PageNumber right_child_page);
+
+    /**
+     * @brief Adds a new entry for the @c InternalNode, possibly overwriting a previously existing entry in
+     * that @p slot_hint.
+     * @details if @p slot_hint points to a slot not yet occupied, the hint is ignored and the entry is stored
+     * in the next free slot.
+     *
+     * @param key The entry key.
+     * @param right_child_page The child page containing keys larger than or equal to this key.
+     * @param slot_hint The desired slot at which to insert the entry.
+     * @return A reference to this builder to support a fluent interface.
+     * @throws std::overflow_error if the node is full (i.e. contains the maximum amount of entries).
+     */
+    InternalNodeBuilder& WithEntry(std::array<byte, FIXED_KEY_SIZE> key, PageNumber right_child_page,
+        uint16_t slot_hint);
 };
 
 }

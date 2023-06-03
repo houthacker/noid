@@ -9,11 +9,25 @@
 
 namespace noid::backend::page {
 
-const uint8_t INTERNAL_NODE_HEADER_SIZE_BYTES = 24;
-const uint8_t INTERNAL_NODE_ENTRY_SIZE_BYTES = 20;
+/**
+ * @brief The size in bytes of the @c InternalNode header.
+ */
+const uint8_t INTERNAL_NODE_HEADER_SIZE = 24;
 
-const uint8_t LEAF_NODE_HEADER_SIZE_BYTES = 24;
-const uint8_t LEAF_NODE_RECORD_SIZE_BYTES = 24;
+/**
+ * @brief The size in bytes of a @c NodeEntry within an @c InternalNode
+ */
+const uint8_t INTERNAL_NODE_ENTRY_SIZE = 20;
+
+/**
+ * @brief The size in bytes of the @c LeafNode header.
+ */
+const uint8_t LEAF_NODE_HEADER_SIZE = 24;
+
+/**
+ * @brief The size in bytes of a @c NodeRecord within a @c LeafNode.
+ */
+const uint8_t LEAF_NODE_RECORD_SIZE = 24;
 
 /**
  * @brief Calculates the maximum amount of entries an internal node is allowed to contain, as
@@ -22,8 +36,9 @@ const uint8_t LEAF_NODE_RECORD_SIZE_BYTES = 24;
  * @param page_size The page size in bytes.
  * @return The maximum amount of entries for the given page size.
  */
-inline constexpr uint8_t CalculateMaxEntries(uint16_t page_size) {
-  return (uint8_t)((page_size - INTERNAL_NODE_HEADER_SIZE_BYTES) / INTERNAL_NODE_ENTRY_SIZE_BYTES);
+inline constexpr uint16_t CalculateMaxEntries(uint16_t page_size)
+{
+  return (uint16_t) ((page_size - INTERNAL_NODE_HEADER_SIZE) / INTERNAL_NODE_ENTRY_SIZE);
 }
 
 /**
@@ -33,8 +48,9 @@ inline constexpr uint8_t CalculateMaxEntries(uint16_t page_size) {
  * @param page_size The page size in bytes.
  * @return The maximum amount of records for the given page size.
  */
-inline constexpr uint8_t CalculateMaxRecords(uint16_t page_size) {
-  return (uint8_t)((page_size - LEAF_NODE_HEADER_SIZE_BYTES) / LEAF_NODE_RECORD_SIZE_BYTES);
+inline constexpr uint16_t CalculateMaxRecords(uint16_t page_size)
+{
+  return (uint16_t) ((page_size - LEAF_NODE_HEADER_SIZE) / LEAF_NODE_RECORD_SIZE);
 }
 
 }

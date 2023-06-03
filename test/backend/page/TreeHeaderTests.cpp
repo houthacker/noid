@@ -65,9 +65,9 @@ TEST_CASE("Build a TreeHeader based on a std::vector<byte>") {
   auto const root_page = 1337;
   auto base = std::vector<byte>(page_size);
   write_le_uint16<byte>(base, 0, (uint16_t)tree_type);
-  write_uint8<byte>(base, sizeof(uint16_t), max_entries);
-  write_uint8<byte>(base, sizeof(uint16_t) + sizeof(uint8_t), max_records);
-  write_le_uint16<byte>(base, sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t), root_page);
+  write_le_uint16<byte>(base, sizeof(uint16_t), max_entries);
+  write_le_uint16<byte>(base, sizeof(uint16_t) + sizeof(uint16_t), max_records);
+  write_le_uint16<byte>(base, sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t), root_page);
 
   auto tree_header = TreeHeader::NewBuilder(std::move(base))->Build();
   REQUIRE(tree_header->GetTreeType() == tree_type);

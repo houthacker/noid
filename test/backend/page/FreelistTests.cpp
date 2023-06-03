@@ -9,7 +9,8 @@
 
 using namespace noid::backend::page;
 
-TEST_CASE("Build a Freelist") {
+TEST_CASE("Build a Freelist")
+{
   auto freelist = Freelist::NewBuilder()->WithPrevious(0)
       .WithNext(0)
       .WithFreePage(1337)
@@ -23,7 +24,8 @@ TEST_CASE("Build a Freelist") {
   REQUIRE(freelist->Size() == 2);
 }
 
-TEST_CASE("Build a Freelist with default values") {
+TEST_CASE("Build a Freelist with default values")
+{
   auto freelist = Freelist::NewBuilder()->Build();
 
   REQUIRE(freelist->Previous() == 0);
@@ -33,7 +35,8 @@ TEST_CASE("Build a Freelist with default values") {
   CHECK_THROWS_AS(freelist->FreePageAt(freelist->Size()), std::out_of_range);
 }
 
-TEST_CASE("Build a Freelist based on another Freelist") {
+TEST_CASE("Build a Freelist based on another Freelist")
+{
   auto base = Freelist::NewBuilder()->WithPrevious(0)
       .WithNext(0)
       .WithFreePage(1337)
@@ -47,35 +50,38 @@ TEST_CASE("Build a Freelist based on another Freelist") {
   REQUIRE(freelist->Size() == 2);
 }
 
-TEST_CASE("Build a Freelist from an invalid raw byte vector") {
+TEST_CASE("Build a Freelist from an invalid raw byte vector")
+{
   // Try to create a Freelist based on a vector which has the correct size, but is otherwise empty.
   CHECK_THROWS_AS(Freelist::NewBuilder(std::vector<noid::backend::byte>(4096)), std::invalid_argument);
 }
 
-TEST_CASE("Build a Freelist that contains exactly the maximum amount of pages") {
+TEST_CASE("Build a Freelist that contains exactly the maximum amount of pages")
+{
   auto default_max_pages = 1021;
   auto builder = Freelist::NewBuilder();
 
   for (auto i = 0; i < default_max_pages; i++) {
-    CHECK_NOTHROW(builder->WithFreePage(i+1));
+    CHECK_NOTHROW(builder->WithFreePage(i + 1));
   }
 
   CHECK_NOTHROW(std::ignore = builder->Build());
 }
 
-TEST_CASE("Build a Freelist that contains too many pages") {
+TEST_CASE("Try building a Freelist that contains too many pages")
+{
   auto default_max_pages = 1021;
   auto builder = Freelist::NewBuilder();
 
-
   for (auto i = 0; i < default_max_pages; i++) {
-    builder->WithFreePage(i+1);
+    builder->WithFreePage(i + 1);
   }
 
-  CHECK_THROWS_AS(builder->WithFreePage(1022), std::overflow_error);
+  CHECK_THROWS_AS(builder->WithFreePage(default_max_pages + 1), std::overflow_error);
 }
 
-TEST_CASE("Build a Freelist based on another and overwrite some free page numbers") {
+TEST_CASE("Build a Freelist based on another and overwrite some free page numbers")
+{
   auto base = Freelist::NewBuilder()->WithPrevious(0)
       .WithNext(0)
       .WithFreePage(1337)

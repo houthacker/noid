@@ -81,19 +81,19 @@ class TreeHeader {
 
     /**
      * @details This value is calculated as <code>(page size - internal node page header size) / entry size</code>.
-     * When using default values, this boils down to <code>(uint8_t)(4096 - 24) / 20 => 203</code>.
+     * When using default values, this boils down to <code>(uint16_t)(4096 - 24) / 20 => 203</code>.
      *
      * @return The maximum amount of entries in internal nodes.
      */
-    [[nodiscard]] uint8_t GetMaxInternalEntries() const;
+    [[nodiscard]] uint16_t GetMaxInternalEntries() const;
 
     /**
      * @details This value is calculated as <code>(page size - leaf node header size) / record size</code>.
-     * When using default values, this boils down to <code>(uint8_t>(4096 - 24) / 24 => 169</code>.
+     * When using default values, this boils down to <code>(uint16_t)(4096 - 24) / 24 => 169</code>.
      *
      * @return The maximum amount of records in leaf nodes.
      */
-    [[nodiscard]] uint8_t GetMaxLeafRecords() const;
+    [[nodiscard]] uint16_t GetMaxLeafRecords() const;
 
     /**
      * @return The page number of the root node in the database file.

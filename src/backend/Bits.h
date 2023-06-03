@@ -29,12 +29,15 @@ static constexpr uint16_t uint16_max_p2 = 32768; // 2^15
  * @param value The value to round up.
  * @return The next power of two, or 2^15 if @p value exceeds 2^15.
  */
-inline uint16_t safe_round_to_next_power_of_2(uint16_t value) {
+inline uint16_t safe_round_to_next_power_of_2(uint16_t value)
+{
   if (value <= 2) {
     return 2;
-  } else if (value > uint16_max_p2) {
+  }
+  else if (value > uint16_max_p2) {
     return uint16_max_p2;
-  } else if (std::has_single_bit(value)) {
+  }
+  else if (std::has_single_bit(value)) {
     return value;
   }
 
@@ -48,7 +51,8 @@ inline uint16_t safe_round_to_next_power_of_2(uint16_t value) {
  * @param value The value to round up.
  * @return The next multiple of 8, or @p value if it itself is a multiple of 8.
  */
-inline uint8_t safe_next_multiple_of_8(uint8_t value) {
+inline uint8_t safe_next_multiple_of_8(uint8_t value)
+{
   if (value < 8) {
     return 8;
   }
@@ -75,12 +79,13 @@ inline uint8_t safe_next_multiple_of_8(uint8_t value) {
  * @throws std::out_of_range If reading from the given index causes a read outside of the array bounds.
  */
 template<typename T, Container<T> Container>
-inline uint8_t read_uint8(Container const &haystack, typename Container::size_type read_idx) {
+inline uint8_t read_uint8(Container const& haystack, typename Container::size_type read_idx)
+{
   if (read_idx >= haystack.size()) {
     throw std::out_of_range("read_idx too large");
   }
 
-  return (uint8_t)haystack[read_idx];
+  return (uint8_t) haystack[read_idx];
 }
 
 /**
@@ -95,14 +100,21 @@ inline uint8_t read_uint8(Container const &haystack, typename Container::size_ty
  * @throws std::out_of_range If writing to the given index causes a write outside of the array bounds.
  */
 template<typename T, Container<T> Container>
-inline Container& write_uint8(Container &haystack, typename Container::size_type write_idx, uint8_t value) {
-  if (write_idx >= haystack.size()) {
-    throw std::out_of_range("write_idx too large");
-  }
+inline Container& write_uint8(Container & haystack, typename Container::size_type
+write_idx,
+uint8_t value
+) {
+if (write_idx >= haystack.
+size()
+) {
+throw std::out_of_range("write_idx too large");
+}
 
-  haystack[write_idx] = (byte)value;
+haystack[write_idx] = (byte)
+value;
 
-  return haystack;
+return
+haystack;
 }
 
 /**
@@ -117,12 +129,13 @@ inline Container& write_uint8(Container &haystack, typename Container::size_type
  * @return A reference to @p haystack.
  */
 template<typename T, DynamicallySizedContainer<T> Container>
-inline Container& write_uint8(Container &haystack, typename Container::size_type write_idx, uint8_t value) {
+inline Container& write_uint8(Container& haystack, typename Container::size_type write_idx, uint8_t value)
+{
   if (write_idx + sizeof(uint8_t) > haystack.size()) {
     haystack.resize(write_idx = sizeof(uint8_t));
   }
 
-  haystack[write_idx] = (byte)value;
+  haystack[write_idx] = (byte) value;
 
   return haystack;
 }
@@ -138,7 +151,8 @@ inline Container& write_uint8(Container &haystack, typename Container::size_type
  * @throws std::out_of_range If reading the @c uint16_t would cause a read outside of the array bounds.
  */
 template<typename T, Container<T> Container>
-uint16_t read_le_uint16(Container const &haystack, typename Container::size_type read_idx) {
+uint16_t read_le_uint16(Container const& haystack, typename Container::size_type read_idx)
+{
   if (read_idx > haystack.size() - sizeof(uint16_t)) {
     throw std::out_of_range("read_idx too large");
   }
@@ -167,7 +181,8 @@ uint16_t read_le_uint16(Container const &haystack, typename Container::size_type
  * @throws std::out_of_range If writing @p value to @p haystack would cause a write outside of the container bounds.
  */
 template<typename T, Container<T> Container>
-Container& write_le_uint16(Container &haystack, typename Container::size_type write_idx, uint16_t value) {
+Container& write_le_uint16(Container& haystack, typename Container::size_type write_idx, uint16_t value)
+{
   if (write_idx > haystack.size() - sizeof(uint16_t)) {
     throw std::out_of_range("write_idx too large");
   }
@@ -199,7 +214,8 @@ Container& write_le_uint16(Container &haystack, typename Container::size_type wr
  * @return A reference to @p haystack.
  */
 template<typename T, DynamicallySizedContainer<T> Container>
-Container& write_le_uint16(Container &haystack, typename Container::size_type write_idx, uint16_t value) {
+Container& write_le_uint16(Container& haystack, typename Container::size_type write_idx, uint16_t value)
+{
   if (write_idx + sizeof(uint16_t) > haystack.size()) {
     haystack.resize(write_idx + sizeof(uint16_t));
   }
@@ -230,7 +246,8 @@ Container& write_le_uint16(Container &haystack, typename Container::size_type wr
  * @throws std::out_of_range If reading the @c uint32_t would cause a read outside of the container bounds.
  */
 template<typename T, Container<T> Container>
-inline uint32_t read_le_uint32(Container const &haystack, typename Container::size_type read_idx) {
+inline uint32_t read_le_uint32(Container const& haystack, typename Container::size_type read_idx)
+{
   if (read_idx > haystack.size() - sizeof(uint32_t)) {
     throw std::out_of_range("read_idx too large");
   }
@@ -259,7 +276,8 @@ inline uint32_t read_le_uint32(Container const &haystack, typename Container::si
  * @throws std::out_of_range If writing @p value to @p haystack would cause a write outside of the array bounds.
  */
 template<typename T, Container<T> Container>
-Container& write_le_uint32(Container &haystack, typename Container::size_type write_idx, uint32_t value) {
+Container& write_le_uint32(Container& haystack, typename Container::size_type write_idx, uint32_t value)
+{
   if (write_idx > haystack.size() - sizeof(uint32_t)) {
     throw std::out_of_range("write_idx too large");
   }
@@ -293,7 +311,8 @@ Container& write_le_uint32(Container &haystack, typename Container::size_type wr
  * @return A reference to @p haystack.
  */
 template<typename T, DynamicallySizedContainer<T> Container>
-Container& write_le_uint32(Container &haystack, typename Container::size_type write_idx, uint32_t value) {
+Container& write_le_uint32(Container& haystack, typename Container::size_type write_idx, uint32_t value)
+{
   if (write_idx + sizeof(uint32_t) > haystack.size()) {
     haystack.resize(write_idx + sizeof(uint32_t));
   }
@@ -326,7 +345,8 @@ Container& write_le_uint32(Container &haystack, typename Container::size_type wr
  * @throws std::out_of_range If reading the @c uint64_t would cause a read outside of the array bounds.
  */
 template<typename T, Container<T> Container>
-uint64_t read_le_uint64(Container const &haystack, typename Container::size_type read_idx) {
+uint64_t read_le_uint64(Container const& haystack, typename Container::size_type read_idx)
+{
   if (read_idx > haystack.size() - sizeof(uint64_t)) {
     throw std::out_of_range("read_idx too large");
   }
@@ -356,7 +376,8 @@ uint64_t read_le_uint64(Container const &haystack, typename Container::size_type
  * @throws std::out_of_range If writing the value to @p haystack would cause a write outside of the array bounds.
  */
 template<typename T, Container<T> Container>
-Container& write_le_uint64(Container &haystack, typename Container::size_type write_idx, uint64_t value) {
+Container& write_le_uint64(Container& haystack, typename Container::size_type write_idx, uint64_t value)
+{
   if (write_idx > haystack.size() - sizeof(uint64_t)) {
     throw std::out_of_range("write_idx too large");
   }
@@ -394,7 +415,8 @@ Container& write_le_uint64(Container &haystack, typename Container::size_type wr
  * @return A reference to @p haystack.
  */
 template<typename T, DynamicallySizedContainer<T> Container>
-Container& write_le_uint64(Container &haystack, typename Container::size_type write_idx, uint64_t value) {
+Container& write_le_uint64(Container& haystack, typename Container::size_type write_idx, uint64_t value)
+{
   if (write_idx + sizeof(uint64_t) > haystack.size()) {
     haystack.resize(write_idx + sizeof(uint64_t));
   }
@@ -421,30 +443,32 @@ Container& write_le_uint64(Container &haystack, typename Container::size_type wr
 }
 
 /**
- * @brief Creates a new container and copies data from @p source into it.
+ * @brief Creates a new @c Destination and copies entries from @p source into it.
  *
  * @tparam T The container element type.
  * @tparam Destination The destination container type.
  * @tparam Source The source container type.
  * @param source The source container.
  * @param read_idx The index at which to start reading.
- * @param amount The amount of element to read.
+ * @param count The amount of @c T instances to read.
  * @return The container instance (which resides on that stack).
  * @throws std::out_of_range if the given parameters would cause a read outside of the source bounds.
  */
 template<typename T, Container<T> Destination, Container<T> Source>
-Destination read_container(const Source &source, typename Source::size_type read_idx, typename Source::size_type amount) {
+Destination read_container(const Source& source, typename Source::size_type read_idx, typename Source::size_type count)
+{
   Destination destination;
-  if (read_idx + amount >= source.size()) {
-    throw std::out_of_range("reading amount elements starting at read_idx causes a read outside of the source bounds.");
+  if (read_idx + (count * sizeof(T)) >= source.size()) {
+    throw std::out_of_range("reading count elements starting at read_idx causes a read outside of the source bounds.");
   }
 
-  std::copy(std::begin(source) + read_idx, std::begin(source) + read_idx + amount, std::begin(destination));
+  std::copy(std::begin(source) + read_idx, std::begin(source) + read_idx + (count * sizeof(T)),
+      std::begin(destination));
   return destination;
 }
 
 /**
- * @brief Writes all data from @p source into @p destination, starting at @p write_idx.
+ * @brief Writes all entries from @p source into @p destination, starting at @p write_idx.
  *
  * @tparam T The container element type.
  * @tparam Destination The destination container type.
@@ -456,7 +480,8 @@ Destination read_container(const Source &source, typename Source::size_type read
  * @throws std::out_of_range if source doesn't fit into destination using the given @p write_idx.
  */
 template<typename T, Container<T> Destination, Container<T> Source>
-Destination& write_container(Destination &destination, typename Destination::size_type write_idx, const Source &source) {
+Destination& write_container(Destination& destination, typename Destination::size_type write_idx, const Source& source)
+{
   if (source.size() > write_idx + destination.size()) {
     throw std::out_of_range("Cannot fit source into destination");
   }
@@ -477,7 +502,9 @@ Destination& write_container(Destination &destination, typename Destination::siz
  * @return The FNV-1a hash.
  */
 template<typename T, Container<T> Container>
-constexpr uint32_t fnv1a(Container const &message, typename Container::size_type start_idx, typename Container::size_type length) {
+constexpr uint32_t fnv1a(Container const& message, typename Container::size_type start_idx,
+    typename Container::size_type length)
+{
   if (length > message.size() - start_idx) {
     throw std::out_of_range("length too large");
   }
@@ -493,59 +520,83 @@ constexpr uint32_t fnv1a(Container const &message, typename Container::size_type
 }
 
 class FNV1a {
-   private:
-      static const uint32_t FNV_OFFSET_BASIS = 2166136261;
-      static const uint32_t FNV_PRIME = 16777619;
-      uint32_t state;
+ private:
+    static const uint32_t FNV_OFFSET_BASIS = 2166136261;
+    static const uint32_t FNV_PRIME = 16777619;
 
-    FNV1a() : state(FNV1a::FNV_OFFSET_BASIS) {}
-   public:
-      static std::unique_ptr<FNV1a> Init() {
-        return std::unique_ptr<FNV1a>(new FNV1a());
+    uint32_t state;
+
+    FNV1a()
+        :state(FNV1a::FNV_OFFSET_BASIS) { }
+ public:
+
+    FNV1a(const FNV1a&) = delete;
+    FNV1a(FNV1a&&) = delete;
+
+    FNV1a& operator=(const FNV1a&) = delete;
+    FNV1a& operator=(FNV1a&&) = delete;
+
+    static FNV1a Init()
+    {
+      return {};
+    }
+
+    /**
+     * @brief Adds @p integral to the current hash state.
+     * @details This method is meant to be used for primitive integrals of type T, but not restricted to it.
+     * If an arbitrary other type is passed, its in-memory bytes are used for hashing. This includes any padding
+     * between struct- or class member fields.
+     *
+     * @tparam T The integral type.
+     * @param integral The integral value.
+     * @return A reference to this instance.
+     */
+    template<typename T>
+    FNV1a& Iterate(T integral)
+    {
+      union {
+          T i;
+          byte b[sizeof(T)];
+      } u = {integral};
+
+      for (std::size_t i = 0; i < sizeof(T); i++) {
+        this->state ^= u.b[i];
+        this->state *= FNV1a::FNV_PRIME;
       }
 
-      template<typename T>
-      FNV1a* Iterate(T integral) {
-        union {
-            T i;
-            byte b[sizeof(T)];
-        } u = {integral};
+      return *this;
+    }
 
-        for (std::size_t i = 0; i < sizeof(T); i++) {
-          this->state ^= u.b[i];
-          this->state *= FNV1a::FNV_PRIME;
-        }
-
-        return this;
+    /**
+     * @brief Adds @p message to the current hash state, using @p length message bytes starting at @p start_idx.
+     *
+     * @tparam T The container element type.
+     * @tparam Container The container type.
+     * @param message The message.
+     * @param start_idx The index to start hashing from.
+     * @param length The amount of bytes to be hashed.
+     * @return A reference to this instance.
+     */
+    template<typename T, Container<T> Container>
+    FNV1a& Iterate(Container const& message, typename Container::size_type start_idx,
+        typename Container::size_type length)
+    {
+      if (length > message.size() - start_idx) {
+        throw std::out_of_range("length too large");
       }
 
-      /**
-       * @brief Adds @p message to the current hash state, using @p length message bytes starting at @p start_idx.
-       *
-       * @tparam T The container element type.
-       * @tparam Container The container type.
-       * @param message The message.
-       * @param start_idx The index to start hashing from.
-       * @param length The amount of bytes to be hashed.
-       * @return The FNV-1a hash.
-       */
-      template<typename T, Container<T> Container>
-      FNV1a* Iterate(Container const &message, typename Container::size_type start_idx, typename Container::size_type length) {
-        if (length > message.size() - start_idx) {
-          throw std::out_of_range("length too large");
-        }
-
-        for (auto i = start_idx; i < start_idx + length; i++) {
-          this->state ^= message[i];
-          this->state *= FNV1a::FNV_PRIME;
-        }
-
-        return this;
+      for (auto i = start_idx; i < start_idx + length; i++) {
+        this->state ^= message[i];
+        this->state *= FNV1a::FNV_PRIME;
       }
 
-      [[nodiscard]] uint32_t GetState() const {
-        return this->state;
-      }
+      return *this;
+    }
+
+    [[nodiscard]] uint32_t GetState() const
+    {
+      return this->state;
+    }
 };
 
 }

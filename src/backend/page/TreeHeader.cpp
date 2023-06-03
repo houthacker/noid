@@ -9,8 +9,8 @@
 
 static uint8_t TREE_HEADER_MAGIC_OFFSET = 0;
 static uint8_t MAX_ENTRIES_OFFSET = 2;
-static uint8_t MAX_RECORDS_OFFSET = 3;
-static uint8_t ROOT_NODE_PAGE_OFFSET = 4;
+static uint8_t MAX_RECORDS_OFFSET = 4;
+static uint8_t ROOT_NODE_PAGE_OFFSET = 6;
 
 namespace noid::backend::page {
 
@@ -22,12 +22,12 @@ static std::vector<byte>& Validate(std::vector<byte>& data) {
 
   auto page_size = NoidConfig::Get().vfs_page_size;
   auto max_entries_configured = CalculateMaxEntries(page_size);
-  if (read_uint8<byte>(data, MAX_ENTRIES_OFFSET) != max_entries_configured) {
+  if (read_le_uint16<byte>(data, MAX_ENTRIES_OFFSET) != max_entries_configured) {
     throw std::invalid_argument("Unsupported max internal node entries");
   }
 
   auto max_records_configured = CalculateMaxRecords(page_size);
-  if (read_uint8<byte>(data, MAX_RECORDS_OFFSET) != max_records_configured) {
+  if (read_le_uint16<byte>(data, MAX_RECORDS_OFFSET) != max_records_configured) {
     throw std::invalid_argument("Unsupported max leaf node records");
   }
 
@@ -52,12 +52,12 @@ TreeType TreeHeader::GetTreeType() const {
   return static_cast<TreeType>(read_le_uint16<byte>(this->data, TREE_HEADER_MAGIC_OFFSET));
 }
 
-uint8_t TreeHeader::GetMaxInternalEntries() const {
-  return read_uint8<byte>(this->data, MAX_ENTRIES_OFFSET);
+uint16_t TreeHeader::GetMaxInternalEntries() const {
+  return read_le_uint16<byte>(this->data, MAX_ENTRIES_OFFSET);
 }
 
-uint8_t TreeHeader::GetMaxLeafRecords() const {
-  return read_uint8<byte>(this->data, MAX_RECORDS_OFFSET);
+uint16_t TreeHeader::GetMaxLeafRecords() const {
+  return read_le_uint16<byte>(this->data, MAX_RECORDS_OFFSET);
 }
 
 PageNumber TreeHeader::GetRootNodePageNumber() const {
@@ -68,14 +68,14 @@ PageNumber TreeHeader::GetRootNodePageNumber() const {
 
 TreeHeaderBuilder::TreeHeaderBuilder() :
     page_size(NoidConfig::Get().vfs_page_size), data(this->page_size) {
-  write_uint8<byte>(this->data, MAX_ENTRIES_OFFSET, CalculateMaxEntries(this->page_size));
-  write_uint8<byte>(this->data, MAX_RECORDS_OFFSET, CalculateMaxRecords(this->page_size));
+  write_le_uint16<byte>(this->data, MAX_ENTRIES_OFFSET, CalculateMaxEntries(this->page_size));
+  write_le_uint16<byte>(this->data, MAX_RECORDS_OFFSET, CalculateMaxRecords(this->page_size));
 }
 
 TreeHeaderBuilder::TreeHeaderBuilder(const TreeHeader &base) :
     page_size(NoidConfig::Get().vfs_page_size), data(base.data) {
-  write_uint8<byte>(this->data, MAX_ENTRIES_OFFSET, base.GetMaxInternalEntries());
-  write_uint8<byte>(this->data, MAX_RECORDS_OFFSET, base.GetMaxLeafRecords());
+  write_le_uint16<byte>(this->data, MAX_ENTRIES_OFFSET, base.GetMaxInternalEntries());
+  write_le_uint16<byte>(this->data, MAX_RECORDS_OFFSET, base.GetMaxLeafRecords());
 }
 
 TreeHeaderBuilder::TreeHeaderBuilder(std::vector<byte> &&base) :

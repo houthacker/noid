@@ -48,24 +48,26 @@ The tree header page is the entry point for a single B+tree containing a table o
 the actual data, whereas index tables contain no data in their leaf nodes. The last 4088 bytes of this page are
 sacrificed so that all pages in a database file have a consistent size, allowing for fast sequential reading.
 
-| offset | size (bytes) | description                                                              |
-|--------|--------------|--------------------------------------------------------------------------|
-| 0      | 2            | The tree type: `'TT'` (table) or `'TI'` (index)                          |
-| 2      | 1            | `uint8_t` max entries in an internal node page (page size-24)/entry size |
-| 3      | 1            | `uint8_t` max records in a leaf node page (page size-24)/record size     |
-| 4      | 4            | LE `uint32_t` root node page number                                      |
-| 8      | 4088         | Reserved for later use (zeroed)                                          |
+| offset | size (bytes) | description                                                               |
+|--------|--------------|---------------------------------------------------------------------------|
+| 0      | 2            | The tree type: `'TT'` (table) or `'TI'` (index)                           |
+| 2      | 2            | `uint16_t` max entries in an internal node page (page size-24)/entry size |
+| 4      | 2            | `uint16_t` max records in a leaf node page (page size-24)/record size     |
+| 6      | 4            | LE `uint32_t` root node page number                                       |
+| 10     | 4086         | Reserved for later use (zeroed)                                           |
 
 ## Internal Node Page
 The internal node pages contain no data but only keys and references to child nodes.
+If the page is full, the value of the next free page slot number is one past the maximum list size.
+With a page size of 4096 bytes, this value is 204.
 
-| offset | size (bytes)            | description                              |
-|--------|-------------------------|------------------------------------------|
-| 0      | 2                       | `'IP'` (internal page)                   |
-| 2      | 1                       | `uint8_t` entry / key count              |
-| 3      | 4                       | LE `uint32_t` leftmost child page number |
-| 7      | 17                      | Padding (zeroed)                         |
-| 24     | key count * entry size  | The node entries                         |
+| offset | size (bytes)           | description                              |
+|--------|------------------------|------------------------------------------|
+| 0      | 2                      | `'IP'` (internal page)                   |
+| 2      | 2                      | LE `uint16_t` next free entry slot       |
+| 8      | 4                      | LE `uint32_t` leftmost child page number |
+| 12     | 12                     | Padding (zeroed)                         |
+| 24     | key count * entry size | The node entries                         |
 
 ## Internal Node Entry
 This is the format of the entries in an internal node.
@@ -78,14 +80,14 @@ This is the format of the entries in an internal node.
 ## Leaf Node Page
 The leaf node pages contain the records that contain the actual data.
 
-| offset | size (bytes)                | description                             |
-|--------|-----------------------------|-----------------------------------------|
-| 0      | 1                           | `'LP'` (leaf page)                      |
-| 2      | 1                           | `uint8_t` record count                  |
-| 3      | 4                           | LE `uint32_t` left sibling page number  |
-| 7      | 4                           | LE `uint32_t` right sibling page number |
-| 11     | 13                          | Padding (zeroed)                        |
-| 24     | record count * record size  | The node records                        |
+| offset | size (bytes)               | description                             |
+|--------|----------------------------|-----------------------------------------|
+| 0      | 1                          | `'LP'` (leaf page)                      |
+| 2      | 2                          | `uint16_t` record count                 |
+| 5      | 4                          | LE `uint32_t` left sibling page number  |
+| 9      | 4                          | LE `uint32_t` right sibling page number |
+| 13     | 11                         | Padding (zeroed)                        |
+| 24     | record count * record size | The node records                        |
 
 ## Leaf Node Record
 A leaf node record contains at least the first 3 bytes of the data payload. If the total data size is

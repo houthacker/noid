@@ -77,6 +77,8 @@ FreelistBuilder::FreelistBuilder(std::vector<byte> && base) :
     max_slot(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1) {
 
   auto next_free_slot = read_le_uint16<byte>(base, NEXT_FREE_SLOT_OFFSET);
+  this->free_pages.reserve(next_free_slot);
+
   for (int slot = 0; slot < next_free_slot; slot++) {
     this->free_pages.push_back(read_le_uint32<byte>(base, SlotToIndex(slot)));
   }
