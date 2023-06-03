@@ -6,7 +6,7 @@
 #include "backend/Bits.h"
 #include "backend/NoidConfig.h"
 
-static uint16_t FREELIST_MAGIC = 0x4c46; // FL for Freelist
+static uint16_t FREELIST_MAGIC = 0x4c46; // 'FL' for Freelist
 static uint8_t PREVIOUS_PAGE_OFFSET = 2;
 static uint8_t NEXT_PAGE_OFFSET = 6;
 static uint8_t NEXT_FREE_SLOT_OFFSET = 10;
@@ -22,11 +22,12 @@ static std::vector<byte>& Validate(std::vector<byte>& data) {
   throw std::invalid_argument("Given raw data is not a valid serialized Freelist instance.");
 }
 
-static inline std::size_t PositionToIndex(uint16_t position) {
-  return FREELIST_OFFSET + position * sizeof(PageNumber);
+static inline std::size_t SlotToIndex(uint16_t slot) {
+  return FREELIST_OFFSET + slot * sizeof(PageNumber);
 }
 
-Freelist::Freelist(std::vector<byte> data) : data(std::move(data)) {}
+Freelist::Freelist(PageNumber previous, PageNumber next, std::vector<PageNumber> free_pages) :
+  previous(previous), next(next), free_pages(std::move(free_pages)) {}
 
 std::unique_ptr<FreelistBuilder> Freelist::NewBuilder() {
   return std::unique_ptr<FreelistBuilder>(new FreelistBuilder());
@@ -41,78 +42,77 @@ std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(std::vector<byte> && base)
 }
 
 PageNumber Freelist::Previous() const {
-  return read_le_uint32<byte>(this->data, PREVIOUS_PAGE_OFFSET);
+  return this->previous;
 }
 
 PageNumber Freelist::Next() const {
-  return read_le_uint32<byte>(this->data, NEXT_PAGE_OFFSET);
+  return this->next;
 }
 
-uint16_t Freelist::FreePageCount() const {
-  return read_le_uint16<byte>(this->data, NEXT_FREE_SLOT_OFFSET);
+uint16_t Freelist::Size() const {
+  return this->free_pages.size();
 }
 
 PageNumber Freelist::FreePageAt(uint16_t pos) const {
-  if (pos >= this->FreePageCount()) {
-    throw std::out_of_range("No such page");
-  }
-
-  return read_le_uint32<byte>(this->data, PositionToIndex(pos));
+  return this->free_pages.at(pos);
 }
 
 FreelistBuilder::FreelistBuilder() :
+    previous_freelist_entry(0),
+    next_freelist_entry(0),
     page_size(NoidConfig::Get().vfs_page_size),
-    max_page_position(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1),
-    next_free_page_position(0),
-    data(this->page_size) {
-  write_le_uint16<byte>(this->data, 0, FREELIST_MAGIC);
-}
+    max_slot(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1) {}
 
 FreelistBuilder::FreelistBuilder(const Freelist &base) :
-    page_size(base.data.size()),
-    max_page_position(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1),
-    next_free_page_position(read_le_uint16<byte>(base.data, NEXT_FREE_SLOT_OFFSET)),
-    data(base.data) {}
+    previous_freelist_entry(base.previous),
+    next_freelist_entry(base.next),
+    page_size(NoidConfig::Get().vfs_page_size),
+    max_slot(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1),
+    free_pages(base.free_pages) {}
 
-FreelistBuilder::FreelistBuilder(std::vector<byte> && base) {
-  this->data = std::move(base);
-  this->page_size = this->data.size();
-  this->max_page_position = ((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1;
-  this->next_free_page_position = read_le_uint16<byte>(this->data, NEXT_FREE_SLOT_OFFSET);
+FreelistBuilder::FreelistBuilder(std::vector<byte> && base) :
+    previous_freelist_entry(read_le_uint32<byte>(base, PREVIOUS_PAGE_OFFSET)),
+    next_freelist_entry(read_le_uint32<byte>(base, NEXT_PAGE_OFFSET)),
+    page_size(NoidConfig::Get().vfs_page_size),
+    max_slot(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1) {
+
+  auto next_free_slot = read_le_uint16<byte>(base, NEXT_FREE_SLOT_OFFSET);
+  for (int slot = 0; slot < next_free_slot; slot++) {
+    this->free_pages.push_back(read_le_uint32<byte>(base, SlotToIndex(slot)));
+  }
 }
 
 std::unique_ptr<const Freelist> FreelistBuilder::Build() const {
-  return std::unique_ptr<const Freelist>(new Freelist(this->data));
+  return std::unique_ptr<const Freelist>(new Freelist(
+      this->previous_freelist_entry,
+      this->next_freelist_entry,
+      this->free_pages));
 }
 
 FreelistBuilder &FreelistBuilder::WithPrevious(PageNumber previous) {
-  write_le_uint32<byte>(this->data, PREVIOUS_PAGE_OFFSET, previous);
+  this->previous_freelist_entry = previous;
 
   return *this;
 }
 
 FreelistBuilder &FreelistBuilder::WithNext(PageNumber next) {
-  write_le_uint32<byte>(this->data, NEXT_PAGE_OFFSET, next);
+  this->next_freelist_entry = next;
 
   return *this;
 }
 
 FreelistBuilder &FreelistBuilder::WithFreePage(PageNumber free_page) {
-  if (this->next_free_page_position > this->max_page_position) {
+  if (this->free_pages.size() - 1 == this->max_slot) {
     throw std::overflow_error("Freelist overflow.");
   }
 
-  write_le_uint32<byte>(this->data, PositionToIndex(this->next_free_page_position), free_page);
-
-  this->next_free_page_position++;
-  write_le_uint16<byte>(this->data, NEXT_FREE_SLOT_OFFSET, this->next_free_page_position);
-
+  this->free_pages.push_back(free_page);
   return *this;
 }
 
-FreelistBuilder &FreelistBuilder::WithFreePage(PageNumber free_page, std::size_t position_hint) {
-  if (position_hint < this->next_free_page_position) {
-    write_le_uint32<byte>(this->data, PositionToIndex(position_hint), free_page);
+FreelistBuilder &FreelistBuilder::WithFreePage(PageNumber free_page, std::size_t slot_hint) {
+  if (slot_hint < this->free_pages.size()) {
+    this->free_pages[slot_hint] = free_page;
     return *this;
   }
 

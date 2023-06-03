@@ -32,8 +32,8 @@ This allows for reconstruction of the database without requiring the noid main d
 ## Freelist Page
 Freelist pages are pages which list pages previously in use by the database, but are now free for reuse.
 Freelist pages are implemented as a doubly linked list, and are cleaned up when the database is compacted.
-If the page is full, the next free page slot number is one past the maximum list size. With a page size
-of 4096 bytes, this value must be 1022.
+If the page is full, the value of the next free page slot number is one past the maximum list size. 
+With a page size of 4096 bytes, this value is 1022.
 
 | offset | size (bytes) | description                                      |
 |--------|--------------|--------------------------------------------------|

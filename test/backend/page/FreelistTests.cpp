@@ -20,7 +20,7 @@ TEST_CASE("Build a Freelist") {
   REQUIRE(freelist->Next() == 0);
   REQUIRE(freelist->FreePageAt(0) == 1337);
   REQUIRE(freelist->FreePageAt(1) == 1338);
-  REQUIRE(freelist->FreePageCount() == 2);
+  REQUIRE(freelist->Size() == 2);
 }
 
 TEST_CASE("Build a Freelist with default values") {
@@ -28,9 +28,9 @@ TEST_CASE("Build a Freelist with default values") {
 
   REQUIRE(freelist->Previous() == 0);
   REQUIRE(freelist->Next() == 0);
-  REQUIRE(freelist->FreePageCount() == 0);
+  REQUIRE(freelist->Size() == 0);
 
-  CHECK_THROWS_AS(freelist->FreePageAt(0), std::out_of_range);
+  CHECK_THROWS_AS(freelist->FreePageAt(freelist->Size()), std::out_of_range);
 }
 
 TEST_CASE("Build a Freelist based on another Freelist") {
@@ -44,7 +44,7 @@ TEST_CASE("Build a Freelist based on another Freelist") {
   REQUIRE(freelist->Next() == 0);
   REQUIRE(freelist->FreePageAt(0) == 1337);
   REQUIRE(freelist->FreePageAt(1) == 1338);
-  REQUIRE(freelist->FreePageCount() == 2);
+  REQUIRE(freelist->Size() == 2);
 }
 
 TEST_CASE("Build a Freelist from an invalid raw byte vector") {
@@ -55,7 +55,6 @@ TEST_CASE("Build a Freelist from an invalid raw byte vector") {
 TEST_CASE("Build a Freelist that contains exactly the maximum amount of pages") {
   auto default_max_pages = 1021;
   auto builder = Freelist::NewBuilder();
-
 
   for (auto i = 0; i < default_max_pages; i++) {
     CHECK_NOTHROW(builder->WithFreePage(i+1));
@@ -88,5 +87,5 @@ TEST_CASE("Build a Freelist based on another and overwrite some free page number
   REQUIRE(freelist->Next() == 0);
   REQUIRE(freelist->FreePageAt(0) == 1339);
   REQUIRE(freelist->FreePageAt(1) == 1338);
-  REQUIRE(freelist->FreePageCount() == 2);
+  REQUIRE(freelist->Size() == 2);
 }
