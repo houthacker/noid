@@ -24,13 +24,13 @@ class BPlusTreeRecord : public KeyBearer {
      * @param value The related data.
      */
     BPlusTreeRecord(K key, V value);
-    BPlusTreeRecord()= delete;
-    BPlusTreeRecord(BPlusTreeRecord const&)= delete;
-    BPlusTreeRecord(BPlusTreeRecord &&)= default;
-    ~BPlusTreeRecord() override= default;
+    BPlusTreeRecord() = delete;
+    BPlusTreeRecord(BPlusTreeRecord const&) = delete;
+    BPlusTreeRecord(BPlusTreeRecord&&) = default;
+    ~BPlusTreeRecord() override = default;
 
-    BPlusTreeRecord& operator=(BPlusTreeRecord const&)= delete;
-    BPlusTreeRecord& operator=(BPlusTreeRecord &&)= default;
+    BPlusTreeRecord& operator=(BPlusTreeRecord const&) = delete;
+    BPlusTreeRecord& operator=(BPlusTreeRecord&&) = default;
 
     /**
      * @return A reference to the record key.
@@ -45,7 +45,7 @@ class BPlusTreeRecord : public KeyBearer {
     /**
      * @return Moves the value out of this record and returns it.
      */
-    V Value() &&;
+    V Value()&&;
 
     /**
      * @brief Replaces the current value with the given one.
@@ -57,23 +57,23 @@ class BPlusTreeRecord : public KeyBearer {
     void Replace(V& replacement);
 };
 
-  /**
-   * @brief Tests the given @c BPlusTreeRecord instances on equality.
-   *
-   * @param lhs The left hand side.
-   * @param rhs The right hand side.
-   * @return Whether the given records are considered equal.
-   */
-  bool operator==(BPlusTreeRecord &lhs, BPlusTreeRecord &rhs);
+/**
+ * @brief Tests the given @c BPlusTreeRecord instances on equality.
+ *
+ * @param lhs The left hand side.
+ * @param rhs The right hand side.
+ * @return Whether the given records are considered equal.
+ */
+bool operator==(BPlusTreeRecord& lhs, BPlusTreeRecord& rhs);
 
-  /**
-   * @brief Tests whether @p lhs is considered less than @p rhs.
-   *
-   * @param lhs The left hand side.
-   * @param rhs The right hand side.
-   * @return Whether @p lhs is considered less than @p rhs.
-   */
-  bool operator<(BPlusTreeRecord &lhs, BPlusTreeRecord &rhs);
+/**
+ * @brief Tests whether @p lhs is considered less than @p rhs.
+ *
+ * @param lhs The left hand side.
+ * @param rhs The right hand side.
+ * @return Whether @p lhs is considered less than @p rhs.
+ */
+bool operator<(BPlusTreeRecord& lhs, BPlusTreeRecord& rhs);
 
 }
 

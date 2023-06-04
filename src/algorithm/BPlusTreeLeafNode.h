@@ -13,7 +13,7 @@
 
 namespace noid::algorithm {
 
- class BPlusTreeLeafNode : public BPlusTreeNode, public std::enable_shared_from_this<BPlusTreeLeafNode> {
+class BPlusTreeLeafNode : public BPlusTreeNode, public std::enable_shared_from_this<BPlusTreeLeafNode> {
  private:
 
     /**
@@ -57,15 +57,15 @@ namespace noid::algorithm {
      */
     void CopyUp(const K& key);
 
-     /**
-      * @brief Redistributes the node keys evenly between this node and a newly created sibling, copying up
-      * the middle key.
-      * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
-      * return @c TreeStructureChange::None.
-      *
-      * @return The side effect this split has on the containing tree.
-      */
-     EntryRearrangement Split();
+    /**
+     * @brief Redistributes the node keys evenly between this node and a newly created sibling, copying up
+     * the middle key.
+     * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
+     * return @c TreeStructureChange::None.
+     *
+     * @return The side effect this split has on the containing tree.
+     */
+    EntryRearrangement Split();
 
     /**
      * @brief Redistributes the records between itself and its left- or right sibling.
@@ -104,29 +104,31 @@ namespace noid::algorithm {
      */
     std::unique_ptr<BPlusTreeRecord> TakeLargest();
 
-     /**
-      * @brief Creates a new BPlusTreeLeafNode.
-      * @details A record must be added in order to ensure the node is never empty, except just prior to
-      * merging it with another node.
-      *
-      * @param parent The parent node, which may be @c nullptr
-      * @param order The tree order.
-      * @param record The first record.
-      */
-     BPlusTreeLeafNode(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, std::unique_ptr<BPlusTreeRecord> record);
+    /**
+     * @brief Creates a new BPlusTreeLeafNode.
+     * @details A record must be added in order to ensure the node is never empty, except just prior to
+     * merging it with another node.
+     *
+     * @param parent The parent node, which may be @c nullptr
+     * @param order The tree order.
+     * @param record The first record.
+     */
+    BPlusTreeLeafNode(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order,
+        std::unique_ptr<BPlusTreeRecord> record);
 
  public:
 
-     /**
-      * @brief Creates a new BPlusTreeLeafNode whose pointer is owned by the wrapping @c std::shared_ptr.
-      * @details A record must be added in order to ensure the node is never empty, except possibly prior to merging it
-      * with another node.
-      *
-      * @param parent The parent node, which may be @c nullptr
-      * @param order The tree order.
-      * @param record The first record.
-      */
-    [[nodiscard]] static std::shared_ptr<BPlusTreeLeafNode> Create(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, std::unique_ptr<BPlusTreeRecord> record);
+    /**
+     * @brief Creates a new BPlusTreeLeafNode whose pointer is owned by the wrapping @c std::shared_ptr.
+     * @details A record must be added in order to ensure the node is never empty, except possibly prior to merging it
+     * with another node.
+     *
+     * @param parent The parent node, which may be @c nullptr
+     * @param order The tree order.
+     * @param record The first record.
+     */
+    [[nodiscard]] static std::shared_ptr<BPlusTreeLeafNode> Create(std::shared_ptr<BPlusTreeInternalNode> parent,
+        uint8_t order, std::unique_ptr<BPlusTreeRecord> record);
 
     ~BPlusTreeLeafNode() override = default;
 

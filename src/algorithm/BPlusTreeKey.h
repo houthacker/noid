@@ -23,13 +23,13 @@ class BPlusTreeKey : public KeyBearer {
      * @param key The actual key.
      */
     explicit BPlusTreeKey(K key);
-    BPlusTreeKey()= delete;
-    BPlusTreeKey(BPlusTreeKey const&)= delete;
-    BPlusTreeKey(BPlusTreeKey &&)= default;
+    BPlusTreeKey() = delete;
+    BPlusTreeKey(BPlusTreeKey const&) = delete;
+    BPlusTreeKey(BPlusTreeKey&&) = default;
     ~BPlusTreeKey() override = default;
 
-    BPlusTreeKey& operator=(BPlusTreeKey const&)= delete;
-    BPlusTreeKey& operator=(BPlusTreeKey &&)= default;
+    BPlusTreeKey& operator=(BPlusTreeKey const&) = delete;
+    BPlusTreeKey& operator=(BPlusTreeKey&&) = default;
 
     /**
      * @brief The left child containing lesser keys. May be @c nullptr
@@ -72,7 +72,7 @@ bool operator==(const BPlusTreeKey& lhs, const BPlusTreeKey& rhs);
  * @param rhs The right hand side.
  * @return Whether the left hand key is considered less than the right hand key.
  */
-bool operator<(const BPlusTreeKey &lhs, const BPlusTreeKey& rhs);
+bool operator<(const BPlusTreeKey& lhs, const BPlusTreeKey& rhs);
 
 }
 

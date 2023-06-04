@@ -24,7 +24,8 @@ static std::mutex strerr_mutex;
 
 namespace noid::core::api {
 
-static std::string GetErrorText(int errnum) {
+static std::string GetErrorText(int errnum)
+{
 #ifdef __unix__
   char buf[1024];
 #if _POSIX_C_SOURCE >= 200112L && !defined(_GNU_SOURCE)

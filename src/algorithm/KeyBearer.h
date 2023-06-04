@@ -10,12 +10,12 @@ namespace noid::algorithm {
  */
 class KeyBearer {
  public:
-    virtual ~KeyBearer()= default;
+    virtual ~KeyBearer() = default;
 
     /**
      * @return A reference to the key
      */
-    [[nodiscard]] virtual const K &Key() const = 0;
+    [[nodiscard]] virtual const K& Key() const = 0;
 };
 
 }

@@ -9,7 +9,8 @@
 using namespace noid::backend;
 using namespace noid::backend::page;
 
-TEST_CASE("Build a DatabaseHeader") {
+TEST_CASE("Build a DatabaseHeader")
+{
   auto header = DatabaseHeader::NewBuilder()
       ->WithFirstTreeHeaderPage(1)
       .WithFirstFreeListPage(2)
@@ -24,7 +25,8 @@ TEST_CASE("Build a DatabaseHeader") {
   REQUIRE(header->GetChecksum() == 0x98a4eae7);
 }
 
-TEST_CASE("Create a DatabaseHeader with default values") {
+TEST_CASE("Create a DatabaseHeader with default values")
+{
   auto header = DatabaseHeader::NewBuilder()->Build();
 
   REQUIRE(header->GetPageSize() == DEFAULT_PAGE_SIZE);
@@ -34,7 +36,8 @@ TEST_CASE("Create a DatabaseHeader with default values") {
   REQUIRE(header->GetChecksum() == 0xa60a2358);
 }
 
-TEST_CASE("Create a DatabaseHeader based on another instance") {
+TEST_CASE("Create a DatabaseHeader based on another instance")
+{
   auto base = DatabaseHeader::NewBuilder()->Build();
   auto header = DatabaseHeader::NewBuilder(*base)->Build();
 
@@ -42,10 +45,11 @@ TEST_CASE("Create a DatabaseHeader based on another instance") {
   REQUIRE(header->GetKeySize() == base->GetKeySize());
   REQUIRE(header->GetFirstTreeHeaderPage() == base->GetFirstTreeHeaderPage());
   REQUIRE(header->GetFirstFreelistPage() == base->GetFirstTreeHeaderPage());
-  REQUIRE(header->GetChecksum() ==base->GetChecksum());
+  REQUIRE(header->GetChecksum() == base->GetChecksum());
 }
 
-TEST_CASE("Compare DatabaseHeaders by using DatabaseHeader::Equals()") {
+TEST_CASE("Compare DatabaseHeaders by using DatabaseHeader::Equals()")
+{
   auto base = DatabaseHeader::NewBuilder()->Build();
   auto expect_equal = DatabaseHeader::NewBuilder(*base)->Build();
   auto expect_not_equal = DatabaseHeader::NewBuilder(*base)->WithFirstTreeHeaderPage(1).Build();
@@ -53,5 +57,5 @@ TEST_CASE("Compare DatabaseHeaders by using DatabaseHeader::Equals()") {
   REQUIRE(base->Equals(*expect_equal));
   REQUIRE_FALSE(base->Equals(*expect_not_equal));
   REQUIRE_FALSE(expect_equal->Equals(*expect_not_equal));
-  REQUIRE_FALSE(base->GetChecksum() ==expect_not_equal->GetChecksum());
+  REQUIRE_FALSE(base->GetChecksum() == expect_not_equal->GetChecksum());
 }

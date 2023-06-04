@@ -27,7 +27,7 @@ class BPlusTree {
      * <li>Leaf node: min = order, max = order * 2</li>
      * <ul>
      */
-    uint8_t  order;
+    uint8_t order;
 
     /**
      * The root node is @c nullptr before the first insert.
@@ -57,7 +57,8 @@ class BPlusTree {
      * @param key The search key.
      * @return The found nodes.
      */
-    std::pair<std::shared_ptr<BPlusTreeInternalNode>, std::shared_ptr<BPlusTreeLeafNode>> FindNodes(const std::shared_ptr<BPlusTreeNode>& node, const K& key);
+    std::pair<std::shared_ptr<BPlusTreeInternalNode>, std::shared_ptr<BPlusTreeLeafNode>> FindNodes(
+        const std::shared_ptr<BPlusTreeNode>& node, const K& key);
 
  public:
 
@@ -68,7 +69,7 @@ class BPlusTree {
      * @throws std::invalid_argument If order is less than @c BTREE_MIN_ORDER.
      */
     explicit BPlusTree(uint8_t order);
-    ~BPlusTree()= default;
+    ~BPlusTree() = default;
 
     /**
      * @return An unmanaged pointer to the root node.

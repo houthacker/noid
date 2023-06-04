@@ -9,27 +9,33 @@
 
 namespace noid::algorithm {
 
-static const K& GetKeyReference(BPlusTreeRecord& record) {
+static const K& GetKeyReference(BPlusTreeRecord& record)
+{
   return record.Key();
 }
 
-static bool LeftKeyIsLess(std::unique_ptr<BPlusTreeRecord>& lhs, std::unique_ptr<BPlusTreeRecord>& rhs) {
+static bool LeftKeyIsLess(std::unique_ptr<BPlusTreeRecord>& lhs, std::unique_ptr<BPlusTreeRecord>& rhs)
+{
   return lhs->Key() < rhs->Key();
 }
 
-bool BPlusTreeLeafNode::IsMergeableWith(BPlusTreeLeafNode& sibling) {
+bool BPlusTreeLeafNode::IsMergeableWith(BPlusTreeLeafNode& sibling)
+{
   return this->records.size() + sibling.records.size() <= this->order * 2;
 }
 
-void BPlusTreeLeafNode::CopyUp(const K &key) {
+void BPlusTreeLeafNode::CopyUp(const K& key)
+{
   if (this->IsRoot()) {
     this->parent = BPlusTreeInternalNode::Create(nullptr, this->order, key, shared_from_this(), this->next);
-  } else {
+  }
+  else {
     this->parent->Insert(key, shared_from_this(), this->next);
   }
 }
 
-EntryRearrangement BPlusTreeLeafNode::Split() {
+EntryRearrangement BPlusTreeLeafNode::Split()
+{
   if (this->records.size() < BTREE_MIN_ORDER) {
     return {RearrangementType::None, std::nullopt};
   }
@@ -61,7 +67,8 @@ EntryRearrangement BPlusTreeLeafNode::Split() {
   return {RearrangementType::Split, split};
 }
 
-bool BPlusTreeLeafNode::Redistribute() {
+bool BPlusTreeLeafNode::Redistribute()
+{
   if (this->next && this->Parent() == this->next->Parent() && this->next->IsRich()) {
     // Take the smallest record from our right sibling and append it to our records.
     auto taken_from_sibling = this->next->TakeSmallest();
@@ -72,7 +79,8 @@ bool BPlusTreeLeafNode::Redistribute() {
     this->Parent()->GreatestNotExceeding(next_smallest_from_sibling)->Replace(next_smallest_from_sibling);
 
     return true;
-  } else if (this->previous && this->Parent() == this->Previous()->Parent() && this->previous->IsRich()) {
+  }
+  else if (this->previous && this->Parent() == this->Previous()->Parent() && this->previous->IsRich()) {
     // Take the largest record from our left sibling and prepend it to our records.
     auto taken_from_sibling = this->Previous()->TakeLargest();
     this->records.insert(this->records.begin(), std::move(taken_from_sibling));
@@ -87,17 +95,20 @@ bool BPlusTreeLeafNode::Redistribute() {
   return false;
 }
 
-EntryRearrangement BPlusTreeLeafNode::Merge() {
+EntryRearrangement BPlusTreeLeafNode::Merge()
+{
   std::shared_ptr<BPlusTreeLeafNode> smallest;
   std::shared_ptr<BPlusTreeLeafNode> largest;
 
   if (this->previous && this->previous->Parent() == this->parent && this->previous->IsMergeableWith(*this)) {
     smallest = this->previous;
     largest = shared_from_this();
-  } else if (this->next && this->next->Parent() == this->parent && this->next->IsMergeableWith(*this)) {
+  }
+  else if (this->next && this->next->Parent() == this->parent && this->next->IsMergeableWith(*this)) {
     smallest = shared_from_this();
     largest = this->next;
-  } else {
+  }
+  else {
     // todo No mergeable sibling. Called out of order? Can we prove this never happens?
     return {RearrangementType::Merge, std::nullopt};
   }
@@ -135,7 +146,8 @@ EntryRearrangement BPlusTreeLeafNode::Merge() {
   return {RearrangementType::Merge, smallest};
 }
 
-std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeSmallest() {
+std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeSmallest()
+{
   if (this->IsRich()) {
     auto smallest = std::move(this->records[0]);
     this->records.erase(this->records.begin());
@@ -146,7 +158,8 @@ std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeSmallest() {
   return {nullptr};
 }
 
-std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeLargest() {
+std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeLargest()
+{
   if (this->IsRich()) {
     auto index = this->records.size() - 1;
     auto largest = std::move(this->records[index]);
@@ -158,85 +171,102 @@ std::unique_ptr<BPlusTreeRecord> BPlusTreeLeafNode::TakeLargest() {
   return {nullptr};
 }
 
-BPlusTreeLeafNode::BPlusTreeLeafNode(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, std::unique_ptr<BPlusTreeRecord> record)
-: order(order), parent(std::move(parent)), previous(nullptr), next(nullptr) {
+BPlusTreeLeafNode::BPlusTreeLeafNode(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order,
+    std::unique_ptr<BPlusTreeRecord> record)
+    :order(order), parent(std::move(parent)), previous(nullptr), next(nullptr)
+{
   this->records.push_back(std::move(record));
 }
 
 std::shared_ptr<BPlusTreeLeafNode> BPlusTreeLeafNode::Create(
-    std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, std::unique_ptr<BPlusTreeRecord> record) {
+    std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, std::unique_ptr<BPlusTreeRecord> record)
+{
   return std::shared_ptr<BPlusTreeLeafNode>(new BPlusTreeLeafNode(std::move(parent), order, std::move(record)));
 }
 
-bool BPlusTreeLeafNode::IsRoot() {
+bool BPlusTreeLeafNode::IsRoot()
+{
   return this->parent == nullptr;
 }
 
-bool BPlusTreeLeafNode::IsFull() {
+bool BPlusTreeLeafNode::IsFull()
+{
   return this->records.size() > this->order * 2;
 }
 
-bool BPlusTreeLeafNode::IsPoor() {
+bool BPlusTreeLeafNode::IsPoor()
+{
   return this->IsRoot() ? this->records.empty() : this->records.size() < this->order;
 }
 
-bool BPlusTreeLeafNode::IsRich() {
+bool BPlusTreeLeafNode::IsRich()
+{
   return this->IsRoot() ? this->records.size() > 1 : this->records.size() > this->order;
 }
 
-bool BPlusTreeLeafNode::Contains(const K &key) {
+bool BPlusTreeLeafNode::Contains(const K& key)
+{
   return BinarySearch(this->records, 0, static_cast<int64_t>(this->records.size() - 1),
-                      key,GetKeyReference) >= 0;
+      key, GetKeyReference) >= 0;
 }
 
-std::shared_ptr<BPlusTreeInternalNode> BPlusTreeLeafNode::Parent() {
+std::shared_ptr<BPlusTreeInternalNode> BPlusTreeLeafNode::Parent()
+{
   return this->parent;
 }
 
-std::shared_ptr<BPlusTreeLeafNode> BPlusTreeLeafNode::Previous() {
+std::shared_ptr<BPlusTreeLeafNode> BPlusTreeLeafNode::Previous()
+{
   return this->previous;
 }
 
-std::shared_ptr<BPlusTreeLeafNode> BPlusTreeLeafNode::Next() {
+std::shared_ptr<BPlusTreeLeafNode> BPlusTreeLeafNode::Next()
+{
   return this->next;
 }
 
-const K& BPlusTreeLeafNode::SmallestKey() {
+const K& BPlusTreeLeafNode::SmallestKey()
+{
   return this->records[0]->Key();
 }
 
-const K& BPlusTreeLeafNode::LargestKey() {
+const K& BPlusTreeLeafNode::LargestKey()
+{
   return this->records[this->records.size() - 1]->Key();
 }
 
-void BPlusTreeLeafNode::SetParent(std::shared_ptr<BPlusTreeInternalNode> p) {
+void BPlusTreeLeafNode::SetParent(std::shared_ptr<BPlusTreeInternalNode> p)
+{
   if (p) {
     this->parent = p;
   }
 }
 
-bool BPlusTreeLeafNode::Insert(const K &key, V &value) {
+bool BPlusTreeLeafNode::Insert(const K& key, V& value)
+{
   auto index = noid::algorithm::BinarySearch(
-      this->records, 0, static_cast<int64_t>(this->records.size() - 1), key,GetKeyReference);
+      this->records, 0, static_cast<int64_t>(this->records.size() - 1), key, GetKeyReference);
 
   if (index == -1) {
     this->records.push_back(std::make_unique<BPlusTreeRecord>(key, value));
     std::sort(this->records.begin(), this->records.end(), LeftKeyIsLess);
 
     return true;
-  } else {
+  }
+  else {
     this->records[index]->Replace(value);
     return false;
   }
 }
 
-std::optional<V> BPlusTreeLeafNode::Remove(const K &key) {
+std::optional<V> BPlusTreeLeafNode::Remove(const K& key)
+{
   if (this->records.empty()) {
     return std::nullopt;
   }
 
   auto index = BinarySearch(
-      this->records, 0, static_cast<int64_t>(this->records.size() - 1), key,GetKeyReference);
+      this->records, 0, static_cast<int64_t>(this->records.size() - 1), key, GetKeyReference);
   if (index >= 0) {
     auto record = std::move(this->records[index]);
     this->records.erase(this->records.begin() + index);
@@ -247,21 +277,24 @@ std::optional<V> BPlusTreeLeafNode::Remove(const K &key) {
   return std::nullopt;
 }
 
-EntryRearrangement BPlusTreeLeafNode::Rearrange() {
+EntryRearrangement BPlusTreeLeafNode::Rearrange()
+{
   if (this->IsPoor() || (this->parent && this->parent->IsRoot() && this->parent->IsPoor())) {
     if (this->Redistribute()) {
       return {RearrangementType::Redistribute, std::nullopt};
     }
 
     return this->Merge();
-  } else if (this->IsFull()) {
+  }
+  else if (this->IsFull()) {
     return this->Split();
   }
 
   return {RearrangementType::None, std::nullopt};
 }
 
-void BPlusTreeLeafNode::Write(std::stringstream &out) {
+void BPlusTreeLeafNode::Write(std::stringstream& out)
+{
   out << '[';
   for (std::size_t i = 0; i < this->records.size(); i++) {
     auto record = this->records[i].get();

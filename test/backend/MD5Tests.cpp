@@ -9,7 +9,8 @@
 
 using namespace noid::backend;
 
-TEST_CASE("Create MD5 hash of empty string") {
+TEST_CASE("Create MD5 hash of empty string")
+{
   auto empty_string = std::string("");
   auto md5 = MD5::Digest(empty_string);
 
@@ -17,7 +18,8 @@ TEST_CASE("Create MD5 hash of empty string") {
   REQUIRE(md5.ToHexString() == expected);
 }
 
-TEST_CASE("Create MD5 hash of 'The quick brown fox...'") {
+TEST_CASE("Create MD5 hash of 'The quick brown fox...'")
+{
   auto empty_string = std::string("The quick brown fox jumps over the lazy dog");
   auto md5 = MD5::Digest(empty_string);
 

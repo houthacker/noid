@@ -14,7 +14,7 @@
 
 namespace noid::algorithm {
 
- class BPlusTreeInternalNode : public BPlusTreeNode, public std::enable_shared_from_this<BPlusTreeInternalNode> {
+class BPlusTreeInternalNode : public BPlusTreeNode, public std::enable_shared_from_this<BPlusTreeInternalNode> {
  private:
 
     /**
@@ -59,15 +59,15 @@ namespace noid::algorithm {
      */
     void PushUp(std::unique_ptr<BPlusTreeKey> key);
 
-     /**
-      * @brief Redistributes the node keys evenly between this node and a newly created sibling, pushing up
-      * the middle key.
-      * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
-      * return @c SplitSideEffect::None.
-      *
-      * @return The side effect this split has on the containing tree.
-      */
-     EntryRearrangement Split();
+    /**
+     * @brief Redistributes the node keys evenly between this node and a newly created sibling, pushing up
+     * the middle key.
+     * @details If the node contains less than @c BTREE_MIN_ORDER elements, this method does nothing but
+     * return @c SplitSideEffect::None.
+     *
+     * @return The side effect this split has on the containing tree.
+     */
+    EntryRearrangement Split();
 
     /**
      * @brief Redistributes the keys between itself, its parent and its left- or right sibling.
@@ -136,7 +136,8 @@ namespace noid::algorithm {
      * @param keys The keys to adopt.
      * @return The new internal node.
      */
-    static std::shared_ptr<BPlusTreeInternalNode> Create(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, std::vector<std::unique_ptr<BPlusTreeKey>> keys);
+    static std::shared_ptr<BPlusTreeInternalNode> Create(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order,
+        std::vector<std::unique_ptr<BPlusTreeKey>> keys);
 
  public:
 
@@ -153,10 +154,11 @@ namespace noid::algorithm {
      * @param right_child The right child, containing the equal- and greater elements.
      * @return the new internal node.
      */
-     static std::shared_ptr<BPlusTreeInternalNode> Create(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order, const K& key,
-                                                        std::shared_ptr<BPlusTreeNode> left_child, std::shared_ptr<BPlusTreeNode> right_child);
+    static std::shared_ptr<BPlusTreeInternalNode> Create(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order,
+        const K& key,
+        std::shared_ptr<BPlusTreeNode> left_child, std::shared_ptr<BPlusTreeNode> right_child);
 
-     ~BPlusTreeInternalNode() override = default;
+    ~BPlusTreeInternalNode() override = default;
 
     /**
      * @return Whether this node is the containing trees' root node

@@ -8,15 +8,18 @@
 
 namespace noid::algorithm {
 
-static const K& GetKeyReference(BPlusTreeKey& key) {
+static const K& GetKeyReference(BPlusTreeKey& key)
+{
   return key.Key();
 }
 
-static bool LeftKeyIsLess(std::unique_ptr<BPlusTreeKey>& lhs, std::unique_ptr<BPlusTreeKey>& rhs) {
+static bool LeftKeyIsLess(std::unique_ptr<BPlusTreeKey>& lhs, std::unique_ptr<BPlusTreeKey>& rhs)
+{
   return *lhs < *rhs;
 }
 
-std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::LeftSibling() {
+std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::LeftSibling()
+{
   if (this->IsRoot()) {
     return nullptr;
   }
@@ -25,31 +28,37 @@ std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::LeftSibling() {
   return parent_gne ? std::dynamic_pointer_cast<BPlusTreeInternalNode>(parent_gne->left_child) : nullptr;
 }
 
-std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::RightSibling() {
+std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::RightSibling()
+{
   if (this->IsRoot()) {
     return nullptr;
   }
 
   auto parent_next_largest = this->parent->NextLargest(this->keys[this->keys.size() - 1]->Key());
-  return parent_next_largest ? std::dynamic_pointer_cast<BPlusTreeInternalNode>(parent_next_largest->right_child) : nullptr;
+  return parent_next_largest ? std::dynamic_pointer_cast<BPlusTreeInternalNode>(parent_next_largest->right_child)
+                             : nullptr;
 }
 
-bool BPlusTreeInternalNode::IsMergeableWith(BPlusTreeInternalNode &sibling) {
+bool BPlusTreeInternalNode::IsMergeableWith(BPlusTreeInternalNode& sibling)
+{
   return this->keys.size() + sibling.keys.size() <= this->order * 2;
 }
 
-void BPlusTreeInternalNode::PushUp(std::unique_ptr<BPlusTreeKey> container) {
+void BPlusTreeInternalNode::PushUp(std::unique_ptr<BPlusTreeKey> container)
+{
   if (this->IsRoot()) {
     auto vec = std::vector<std::unique_ptr<BPlusTreeKey>>();
     vec.push_back(std::move(container));
 
     this->parent = BPlusTreeInternalNode::Create(nullptr, this->order, std::move(vec));
-  } else {
+  }
+  else {
     this->parent->InsertInternal(std::move(container));
   }
 }
 
-EntryRearrangement BPlusTreeInternalNode::Split() {
+EntryRearrangement BPlusTreeInternalNode::Split()
+{
   if (this->keys.size() < BTREE_MIN_ORDER) {
     return {RearrangementType::None, std::nullopt};
   }
@@ -82,7 +91,8 @@ EntryRearrangement BPlusTreeInternalNode::Split() {
   return {RearrangementType::Split, split};
 }
 
-bool BPlusTreeInternalNode::Redistribute() {
+bool BPlusTreeInternalNode::Redistribute()
+{
   if (this->IsRoot()) {
     return false; // nothing to redistribute since root has no siblings.
   }
@@ -124,7 +134,8 @@ bool BPlusTreeInternalNode::Redistribute() {
   return false;
 }
 
-EntryRearrangement BPlusTreeInternalNode::Merge() {
+EntryRearrangement BPlusTreeInternalNode::Merge()
+{
   auto left_sibling = this->LeftSibling();
   auto right_sibling = this->RightSibling();
   std::shared_ptr<BPlusTreeInternalNode> smallest;
@@ -133,10 +144,12 @@ EntryRearrangement BPlusTreeInternalNode::Merge() {
   if (left_sibling && left_sibling->IsMergeableWith(*this)) {
     smallest = left_sibling;
     largest = shared_from_this();
-  } else if (right_sibling && right_sibling->IsMergeableWith(*this)) {
+  }
+  else if (right_sibling && right_sibling->IsMergeableWith(*this)) {
     smallest = shared_from_this();
     largest = right_sibling;
-  } else {
+  }
+  else {
     // todo No mergeable sibling. Called out of order? Can we prove this never happens?
     return {RearrangementType::Merge, std::nullopt};
   }
@@ -174,7 +187,8 @@ EntryRearrangement BPlusTreeInternalNode::Merge() {
   return {RearrangementType::Merge, smallest};
 }
 
-void BPlusTreeInternalNode::InsertInternal(std::unique_ptr<BPlusTreeKey> container) {
+void BPlusTreeInternalNode::InsertInternal(std::unique_ptr<BPlusTreeKey> container)
+{
   auto ptr = container.get();
 
   this->keys.push_back(std::move(container));
@@ -204,7 +218,8 @@ void BPlusTreeInternalNode::InsertInternal(std::unique_ptr<BPlusTreeKey> contain
   }
 }
 
-std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeLargest() {
+std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeLargest()
+{
   if (this->keys.empty()) {
     return {nullptr};
   }
@@ -216,7 +231,8 @@ std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeLargest() {
   return element;
 }
 
-std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeSmallest() {
+std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeSmallest()
+{
   if (this->keys.empty()) {
     return {nullptr};
   }
@@ -227,8 +243,9 @@ std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeSmallest() {
   return element;
 }
 
-std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeMiddle(BPlusTreeInternalNode &left,
-                                                                BPlusTreeInternalNode &right) {
+std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeMiddle(BPlusTreeInternalNode& left,
+    BPlusTreeInternalNode& right)
+{
   auto index = noid::algorithm::GreatestNotExceeding(
       this->keys, 0, static_cast<int64_t>(this->keys.size() - 1), right.Smallest()->Key(), GetKeyReference);
   if (index >= 1 /* The element at index zero has no left child */ ) {
@@ -247,18 +264,19 @@ std::unique_ptr<BPlusTreeKey> BPlusTreeInternalNode::TakeMiddle(BPlusTreeInterna
 
 // private, support for Split and PushUp
 BPlusTreeInternalNode::BPlusTreeInternalNode(std::shared_ptr<BPlusTreeInternalNode> parent, uint8_t order)
-    : order(order), parent(std::move(parent)) {}
+    :order(order), parent(std::move(parent)) { }
 
 // private
 std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::Create(
     std::shared_ptr<BPlusTreeInternalNode> parent,
     uint8_t order,
-    std::vector<std::unique_ptr<BPlusTreeKey>> keys) {
+    std::vector<std::unique_ptr<BPlusTreeKey>> keys)
+{
 
   auto instance = std::shared_ptr<BPlusTreeInternalNode>(new BPlusTreeInternalNode(std::move(parent), order));
 
   // Adopt the keys
-  for (auto &key : keys) {
+  for (auto& key : keys) {
     if (key->left_child) {
       key->left_child->SetParent(instance);
     }
@@ -275,9 +293,10 @@ std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::Create(
 std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::Create(
     std::shared_ptr<BPlusTreeInternalNode> parent,
     uint8_t order,
-    const K &key,
+    const K& key,
     std::shared_ptr<BPlusTreeNode> left_child,
-    std::shared_ptr<BPlusTreeNode> right_child) {
+    std::shared_ptr<BPlusTreeNode> right_child)
+{
 
   auto instance = std::shared_ptr<BPlusTreeInternalNode>(new BPlusTreeInternalNode(std::move(parent), order));
   auto container = std::make_unique<BPlusTreeKey>(key);
@@ -296,41 +315,50 @@ std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::Create(
   return instance;
 }
 
-bool BPlusTreeInternalNode::IsRoot() {
+bool BPlusTreeInternalNode::IsRoot()
+{
   return this->parent == nullptr;
 
 }
 
-bool BPlusTreeInternalNode::IsFull() {
+bool BPlusTreeInternalNode::IsFull()
+{
   return this->keys.size() > this->order * 2;
 }
 
-bool BPlusTreeInternalNode::IsEmpty() {
+bool BPlusTreeInternalNode::IsEmpty()
+{
   return this->keys.empty();
 }
 
-bool BPlusTreeInternalNode::IsPoor() {
+bool BPlusTreeInternalNode::IsPoor()
+{
   return this->IsRoot() ? this->keys.empty() : this->keys.size() < this->order;
 }
 
-bool BPlusTreeInternalNode::IsRich() {
+bool BPlusTreeInternalNode::IsRich()
+{
   return this->IsRoot() ? this->keys.size() > 1 : this->keys.size() > this->order;
 }
 
-bool BPlusTreeInternalNode::Contains(const K &key) {
+bool BPlusTreeInternalNode::Contains(const K& key)
+{
   return BinarySearch(this->keys, 0, static_cast<int64_t>(this->keys.size() - 1),
-                      key, GetKeyReference) >= 0;
+      key, GetKeyReference) >= 0;
 }
 
-std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::Parent() {
+std::shared_ptr<BPlusTreeInternalNode> BPlusTreeInternalNode::Parent()
+{
   return this->parent;
 }
 
-BPlusTreeKey* BPlusTreeInternalNode::Smallest() {
+BPlusTreeKey* BPlusTreeInternalNode::Smallest()
+{
   return this->keys[0].get();
 }
 
-BPlusTreeKey* BPlusTreeInternalNode::GreatestNotExceeding(const K &key) {
+BPlusTreeKey* BPlusTreeInternalNode::GreatestNotExceeding(const K& key)
+{
   auto index = noid::algorithm::GreatestNotExceeding(
       this->keys, 0, static_cast<int64_t>(this->keys.size() - 1), key, GetKeyReference);
   if (index >= 0) {
@@ -340,9 +368,10 @@ BPlusTreeKey* BPlusTreeInternalNode::GreatestNotExceeding(const K &key) {
   return nullptr;
 }
 
-BPlusTreeKey* BPlusTreeInternalNode::NextLargest(const K &key) {
+BPlusTreeKey* BPlusTreeInternalNode::NextLargest(const K& key)
+{
   auto index = noid::algorithm::NextLargest(this->keys, 0, static_cast<int64_t>(this->keys.size() - 1),
-                                          key,GetKeyReference);
+      key, GetKeyReference);
 
   if (index >= 0) {
     return this->keys[index].get();
@@ -351,13 +380,16 @@ BPlusTreeKey* BPlusTreeInternalNode::NextLargest(const K &key) {
   return nullptr;
 }
 
-void BPlusTreeInternalNode::SetParent(std::shared_ptr<BPlusTreeInternalNode> p) {
+void BPlusTreeInternalNode::SetParent(std::shared_ptr<BPlusTreeInternalNode> p)
+{
   if (p && p != shared_from_this()) {
     this->parent = p;
   }
 }
 
-bool BPlusTreeInternalNode::Insert(const K& key, std::shared_ptr<BPlusTreeNode> left_child, std::shared_ptr<BPlusTreeNode> right_child) {
+bool BPlusTreeInternalNode::Insert(const K& key, std::shared_ptr<BPlusTreeNode> left_child,
+    std::shared_ptr<BPlusTreeNode> right_child)
+{
   auto index = BinarySearch(
       this->keys, 0, static_cast<int64_t>(this->keys.size() - 1), key, GetKeyReference);
 
@@ -373,7 +405,8 @@ bool BPlusTreeInternalNode::Insert(const K& key, std::shared_ptr<BPlusTreeNode> 
   return false;
 }
 
-bool BPlusTreeInternalNode::Remove(const K &key) {
+bool BPlusTreeInternalNode::Remove(const K& key)
+{
   if (this->keys.empty()) {
     return false;
   }
@@ -389,21 +422,24 @@ bool BPlusTreeInternalNode::Remove(const K &key) {
   return false;
 }
 
-EntryRearrangement BPlusTreeInternalNode::Rearrange() {
+EntryRearrangement BPlusTreeInternalNode::Rearrange()
+{
   if (this->IsPoor() || (this->parent && this->parent->IsRoot() && this->parent->IsPoor())) {
     if (this->Redistribute()) {
       return {RearrangementType::Redistribute, std::nullopt};
     }
 
     return this->Merge();
-  } else if (this->IsFull()) {
+  }
+  else if (this->IsFull()) {
     return this->Split();
   }
 
   return {RearrangementType::None, std::nullopt};
 }
 
-void BPlusTreeInternalNode::Write(std::stringstream &out) {
+void BPlusTreeInternalNode::Write(std::stringstream& out)
+{
   out << '[';
   for (std::size_t i = 0; i < this->keys.size(); i++) {
     auto record = this->keys[i].get();

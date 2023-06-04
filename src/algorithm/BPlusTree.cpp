@@ -9,7 +9,8 @@
 
 namespace noid::algorithm {
 
-static inline bool IsInternalNode(const std::shared_ptr<BPlusTreeNode>& node) {
+static inline bool IsInternalNode(const std::shared_ptr<BPlusTreeNode>& node)
+{
   if (std::dynamic_pointer_cast<BPlusTreeInternalNode>(node)) {
     return true;
   }
@@ -17,7 +18,8 @@ static inline bool IsInternalNode(const std::shared_ptr<BPlusTreeNode>& node) {
   return false;
 }
 
-static inline uint8_t EnsureMinOrder(uint8_t value) {
+static inline uint8_t EnsureMinOrder(uint8_t value)
+{
   if (value >= BTREE_MIN_ORDER) {
     return value;
   }
@@ -27,9 +29,12 @@ static inline uint8_t EnsureMinOrder(uint8_t value) {
   throw std::invalid_argument(buf.str());
 }
 
-BPlusTree::BPlusTree(uint8_t order) : order(EnsureMinOrder(order)), root(nullptr) {}
+BPlusTree::BPlusTree(uint8_t order)
+    :order(EnsureMinOrder(order)), root(nullptr) { }
 
-std::shared_ptr<BPlusTreeLeafNode> BPlusTree::FindLeafRangeMatch(const std::shared_ptr<BPlusTreeNode>& node, const K &key) {
+std::shared_ptr<BPlusTreeLeafNode> BPlusTree::FindLeafRangeMatch(const std::shared_ptr<BPlusTreeNode>& node,
+    const K& key)
+{
   if (IsInternalNode(node)) {
     auto internal_node = std::reinterpret_pointer_cast<BPlusTreeInternalNode>(node);
 
@@ -42,7 +47,9 @@ std::shared_ptr<BPlusTreeLeafNode> BPlusTree::FindLeafRangeMatch(const std::shar
   return std::dynamic_pointer_cast<BPlusTreeLeafNode>(node);
 }
 
-std::pair<std::shared_ptr<BPlusTreeInternalNode>, std::shared_ptr<BPlusTreeLeafNode>> BPlusTree::FindNodes(const std::shared_ptr<BPlusTreeNode>& node, const K &key) {
+std::pair<std::shared_ptr<BPlusTreeInternalNode>, std::shared_ptr<BPlusTreeLeafNode>> BPlusTree::FindNodes(
+    const std::shared_ptr<BPlusTreeNode>& node, const K& key)
+{
   if (IsInternalNode(node)) {
     auto internal_node = std::reinterpret_pointer_cast<BPlusTreeInternalNode>(node);
 
@@ -55,14 +62,16 @@ std::pair<std::shared_ptr<BPlusTreeInternalNode>, std::shared_ptr<BPlusTreeLeafN
     return this->FindNodes(next, key);
   }
 
-  return {nullptr, std::reinterpret_pointer_cast<BPlusTreeLeafNode>(node) };
+  return {nullptr, std::reinterpret_pointer_cast<BPlusTreeLeafNode>(node)};
 }
 
-BPlusTreeNode *BPlusTree::Root() {
+BPlusTreeNode* BPlusTree::Root()
+{
   return this->root.get();
 }
 
-InsertType BPlusTree::Insert(const K &key, V &value) {
+InsertType BPlusTree::Insert(const K& key, V& value)
+{
   auto type = InsertType::Insert;
   if (this->root == nullptr) {
     this->root = BPlusTreeLeafNode::Create(nullptr, order, std::make_unique<BPlusTreeRecord>(key, value));
@@ -87,8 +96,9 @@ InsertType BPlusTree::Insert(const K &key, V &value) {
   return type;
 }
 
-std::optional<V> BPlusTree::Remove(const K &key) {
-  const auto & [internal, leaf] = this->FindNodes(this->root, key);
+std::optional<V> BPlusTree::Remove(const K& key)
+{
+  const auto& [internal, leaf] = this->FindNodes(this->root, key);
 
   if (leaf->Contains(key)) {
     auto removed = leaf->Remove(key);
@@ -129,7 +139,8 @@ std::optional<V> BPlusTree::Remove(const K &key) {
   return std::nullopt;
 }
 
-void BPlusTree::Write(std::stringstream &out) {
+void BPlusTree::Write(std::stringstream& out)
+{
   if (this->root) {
     auto node = this->root;
     while (node) {
@@ -141,7 +152,8 @@ void BPlusTree::Write(std::stringstream &out) {
         auto smallest = internal->Smallest();
 
         node = smallest ? smallest->left_child : nullptr;
-      } else {
+      }
+      else {
         node = nullptr; // no layer after a leaf
       }
 

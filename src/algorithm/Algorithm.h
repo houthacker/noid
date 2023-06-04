@@ -27,7 +27,8 @@ namespace noid::algorithm {
  */
 template<typename T, typename Func>
 int64_t BinarySearch(const std::vector<std::unique_ptr<T>>& haystack, int64_t low,
-                     int64_t high, const K& needle, Func get_key_reference) {
+    int64_t high, const K& needle, Func get_key_reference)
+{
   static_assert(std::is_base_of_v<KeyBearer, T>, "Haystack elements must derive from KeyBearer");
   if (high >= low) {
     auto middle_index = low + (high - low) / 2;
@@ -35,7 +36,8 @@ int64_t BinarySearch(const std::vector<std::unique_ptr<T>>& haystack, int64_t lo
 
     if (middle == needle) {
       return middle_index;
-    } else if (middle < needle) {
+    }
+    else if (middle < needle) {
       // search right
       return BinarySearch(haystack, middle_index + 1, high, needle, get_key_reference);
     }
@@ -62,17 +64,20 @@ int64_t BinarySearch(const std::vector<std::unique_ptr<T>>& haystack, int64_t lo
  */
 template<typename T, typename Func>
 int64_t GreatestNotExceeding(const std::vector<std::unique_ptr<T>>& haystack, int64_t low,
-                             int64_t high, const K& needle, Func get_key_reference) {
+    int64_t high, const K& needle, Func get_key_reference)
+{
   static_assert(std::is_base_of_v<KeyBearer, T>, "Haystack elements must derive from KeyBearer");
   auto middle_index = low + (high - low) / 2;
   auto& middle = get_key_reference(*haystack[middle_index]);
 
-  if (middle_index == low && needle < middle /* use instead of middle > needle to prevent implementation of an extra operator */ ) {
+  if (middle_index == low
+      && needle < middle /* use instead of middle > needle to prevent implementation of an extra operator */ ) {
     return -1;
   }
 
   auto is_candidate = middle < needle || middle == needle;
-  if (is_candidate && (middle_index == high || needle < get_key_reference(*haystack[middle_index + 1]) /* invert operator to prevent implementation of an extra operator */ )) {
+  if (is_candidate && (middle_index == high || needle < get_key_reference(
+      *haystack[middle_index + 1]) /* invert operator to prevent implementation of an extra operator */ )) {
     return middle_index;
   }
 
@@ -98,7 +103,8 @@ int64_t GreatestNotExceeding(const std::vector<std::unique_ptr<T>>& haystack, in
  */
 template<typename T, typename Func>
 int64_t NextLargest(const std::vector<std::unique_ptr<T>>& haystack, int64_t low,
-                         int64_t high, const K& needle, Func get_key_reference) {
+    int64_t high, const K& needle, Func get_key_reference)
+{
   static_assert(std::is_base_of_v<KeyBearer, T>, "Haystack elements must derive from KeyBearer");
   auto middle_index = low + (high - low) / 2;
   auto& middle_element = get_key_reference(*haystack[middle_index]);
@@ -106,7 +112,8 @@ int64_t NextLargest(const std::vector<std::unique_ptr<T>>& haystack, int64_t low
   if (low != high) {
     if (middle_element < needle || middle_element == needle) {
       return NextLargest(haystack, middle_index + 1, high, needle, get_key_reference);
-    } else {
+    }
+    else {
       return NextLargest(haystack, low, middle_index, needle, get_key_reference);
     }
   }

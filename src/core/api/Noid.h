@@ -17,7 +17,7 @@ namespace noid::core::api {
  */
 class Noid {
  private:
-    Noid() =default;
+    Noid() = default;
  public:
     static std::unique_ptr<Noid> Configure();
 };

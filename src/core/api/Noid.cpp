@@ -6,7 +6,8 @@
 
 namespace noid::core::api {
 
-std::unique_ptr<Noid> Noid::Configure() {
+std::unique_ptr<Noid> Noid::Configure()
+{
   return std::unique_ptr<Noid>(new Noid());
 }
 
