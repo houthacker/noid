@@ -65,9 +65,9 @@ class Freelist {
     /**
      * @brief Creates a new builder for @c Freelist instances, using @c base as a starting point.
      *
-     * @param base The raw data to use as a basis for the new instance.
+     * @param base The raw bytes to use as a basis for the new instance.
      * @return The new builder instance.
-     * @throws std::invalid_argument if the given raw data is not a valid serialized @c Freelist.
+     * @throws std::invalid_argument if the given raw data do not represent a valid serialized @c Freelist.
      */
     static std::unique_ptr<FreelistBuilder> NewBuilder(std::vector<byte> && base);
 

@@ -71,21 +71,22 @@ class DatabaseHeader {
     static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder();
 
     /**
-     * @brief Creates a new builder for @c DatabaseHeader instances, using the given raw array as a base.
-     * @details The data in this array is expanded to
-     *
-     * @param base The data to use as a basis for the new @c DatabaseHeader instance.
-     * @return The new builder instance.
-     */
-    static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> &base);
-
-    /**
      * @brief Creates a new builder for @c DatabaseHeader instances, using @p base as a starting point.
      *
      * @param base The @c DatabaseHeader to use as a basis for the new instance.
      * @return The new builder instance.
      */
     static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(const DatabaseHeader& base);
+
+    /**
+     * @brief Creates a new builder for @c DatabaseHeader instances, using the given raw array as a base.
+     * @details The data in this array is expanded to
+     *
+     * @param base The raw bytes to use as a basis for the new @c DatabaseHeader instance.
+     * @return The new builder instance.
+     * @throws std::invalid_argument if the given bytes do not represent a valid @c DatabaseHeader.
+     */
+    static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> &base);
 
     /**
      * @brief Creates a new array containing the serialized representation of this database header.

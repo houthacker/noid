@@ -95,9 +95,9 @@ class TreeHeader {
     /**
      * @brief Creates a new builder for @c TreeHeader instances, using @c base as a starting point.
      *
-     * @param base The raw data to use as a basis for the new instance.
+     * @param base The raw bytes to use as a basis for the new instance.
      * @return The new builder instance.
-     * @throws std::invalid_argument if the given raw data is not a valid @c TreeHeader.
+     * @throws std::invalid_argument if the given raw data do not represent a valid @c TreeHeader.
      */
     static std::unique_ptr<TreeHeaderBuilder> NewBuilder(std::vector<byte>&& base);
 

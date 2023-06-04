@@ -40,8 +40,7 @@ bool NodeEntry::operator==(const NodeEntry& other) const
 }
 
 InternalNode::InternalNode(PageNumber leftmost_child, std::vector<NodeEntry>&& entries)
-    :
-    leftmost_child(leftmost_child), entries(std::move(entries)) { }
+    :leftmost_child(leftmost_child), entries(std::move(entries)) { }
 
 std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder()
 {
@@ -75,37 +74,27 @@ const NodeEntry& InternalNode::EntryAt(uint16_t slot) const
 
 /*** InternalNodeBuilder ***/
 
-
 InternalNodeBuilder::InternalNodeBuilder()
-    :
-    page_size(NoidConfig::Get().vfs_page_size),
-    max_slot(CalculateMaxEntries(page_size) - 1),
-    leftmost_child(0)
+    :page_size(NoidConfig::Get().vfs_page_size), max_slot(CalculateMaxEntries(page_size) - 1), leftmost_child(0)
 {
   this->entries.reserve(max_slot + 1);
 }
 
 InternalNodeBuilder::InternalNodeBuilder(const InternalNode& base)
-    :
-    page_size(NoidConfig::Get().vfs_page_size),
-    max_slot(CalculateMaxEntries(page_size) - 1),
-    leftmost_child(base.leftmost_child),
-    entries(base.entries) { }
+    :page_size(NoidConfig::Get().vfs_page_size), max_slot(CalculateMaxEntries(page_size) - 1),
+     leftmost_child(base.leftmost_child), entries(base.entries) { }
 
 InternalNodeBuilder::InternalNodeBuilder(std::vector<byte>&& base)
-    :
-    page_size(NoidConfig::Get().vfs_page_size),
-    max_slot(CalculateMaxEntries(page_size) - 1),
-    leftmost_child(read_le_uint32<byte>(base, LEFTMOST_CHILD_PAGE_OFFSET))
+    :page_size(NoidConfig::Get().vfs_page_size), max_slot(CalculateMaxEntries(page_size) - 1),
+     leftmost_child(read_le_uint32<byte>(base, LEFTMOST_CHILD_PAGE_OFFSET))
 {
-
   auto next_free_slot = read_le_uint16<byte>(base, ENTRY_COUNT_OFFSET);
   this->entries.reserve(next_free_slot);
 
-  for (int slot = 0; slot < next_free_slot; slot++) {
+  for (auto slot = 0; slot < next_free_slot; slot++) {
     auto container_offset = SlotToIndex(slot);
     this->entries.push_back({
-        read_container<byte, std::array<byte, FIXED_KEY_SIZE>>(base, container_offset, next_free_slot),
+        read_container<byte, std::array<byte, FIXED_KEY_SIZE>>(base, container_offset, FIXED_KEY_SIZE),
         read_le_uint32<byte>(base, container_offset + FIXED_KEY_SIZE)
     });
   }
@@ -144,7 +133,7 @@ InternalNodeBuilder& InternalNodeBuilder::WithEntry(std::array<byte, FIXED_KEY_S
 {
   if (this->entries.size() > slot_hint) {
     // slot_hint refers to an occupied slot, so replace it.
-    this->entries[slot_hint] = { key, right_child_page};
+    this->entries[slot_hint] = {key, right_child_page};
     return *this;
   }
 

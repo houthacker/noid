@@ -44,12 +44,12 @@ std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder()
   return DatabaseHeaderBuilder::Create();
 }
 
-std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE>& base)
+std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder(const DatabaseHeader& base)
 {
   return DatabaseHeaderBuilder::Create(base);
 }
 
-std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder(const DatabaseHeader& base)
+std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE>& base)
 {
   return DatabaseHeaderBuilder::Create(base);
 }

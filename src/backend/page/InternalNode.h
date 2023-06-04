@@ -77,9 +77,9 @@ class InternalNode {
     /**
      * @brief Creates a new builder for @c InternalNode instances, using @c base as a starting point.
      *
-     * @param base The raw entries to use as a basis for the new instance.
+     * @param base The raw bytes to use as a basis for the new instance.
      * @return The new builder instance.
-     * @throws std::invalid_argument if the given raw entries is not a valid @c InternalNode.
+     * @throws std::invalid_argument if the given raw bytes are not a valid @c InternalNode.
      */
     static std::unique_ptr<InternalNodeBuilder> NewBuilder(std::vector<byte>&& base);
 
