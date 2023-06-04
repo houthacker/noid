@@ -19,7 +19,7 @@ TEST_CASE("Build a TreeHeader") {
       .Build();
 
   REQUIRE(tree_header->GetTreeType() == TreeType::Table);
-  REQUIRE(tree_header->GetRootNodePageNumber() == 1337);
+  REQUIRE(tree_header->GetRoot() == 1337);
   REQUIRE(tree_header->GetMaxInternalEntries() == 203); // calculated default value
   REQUIRE(tree_header->GetMaxLeafRecords() == 169); // calculated default value
 }
@@ -35,12 +35,33 @@ TEST_CASE("Build a TreeHeader based on another TreeHeader") {
       .Build();
 
   auto tree_header = TreeHeader::NewBuilder(*base)
-      ->WithRootPageNumber(1337)
-      .Build();
-  REQUIRE(tree_header->GetTreeType() == TreeType::Index);
-  REQUIRE(tree_header->GetRootNodePageNumber() == 1337);
+      ->Build();
+  REQUIRE(tree_header->GetTreeType() == base->GetTreeType());
+  REQUIRE(tree_header->GetRoot() == base->GetRoot());
   REQUIRE(tree_header->GetMaxInternalEntries() == base->GetMaxInternalEntries());
   REQUIRE(tree_header->GetMaxLeafRecords() == base->GetMaxLeafRecords());
+}
+
+TEST_CASE("Build a TreeHeader based on another and try to change the root page") {
+  auto base = TreeHeader::NewBuilder()
+      ->WithTreeType(TreeType::Index)
+      .WithRootPageNumber(1338)
+      .Build();
+
+  CHECK_THROWS_AS(TreeHeader::NewBuilder(*base)->WithRootPageNumber(base->GetRoot() - 1).Build(), std::domain_error);
+}
+
+TEST_CASE("Build a TreeHeader based on another and try to change the tree type") {
+  auto base = TreeHeader::NewBuilder()
+      ->WithTreeType(TreeType::Index)
+      .WithRootPageNumber(1338)
+      .Build();
+
+  CHECK_THROWS_AS(TreeHeader::NewBuilder(*base)->WithTreeType(TreeType::Table).Build(), std::domain_error);
+}
+
+TEST_CASE("Build a TreeHeader and try to leave the tree type at its default value of TreeType::None") {
+  CHECK_THROWS_AS(TreeHeader::NewBuilder()->WithRootPageNumber(1337).Build(), std::domain_error);
 }
 
 TEST_CASE("Build a TreeHeader based on another TreeHeader and try to change the TreeType") {
@@ -71,7 +92,7 @@ TEST_CASE("Build a TreeHeader based on a std::vector<byte>") {
 
   auto tree_header = TreeHeader::NewBuilder(std::move(base))->Build();
   REQUIRE(tree_header->GetTreeType() == tree_type);
-  REQUIRE(tree_header->GetRootNodePageNumber() == root_page);
+  REQUIRE(tree_header->GetRoot() == root_page);
   REQUIRE(tree_header->GetMaxInternalEntries() == max_entries);
   REQUIRE(tree_header->GetMaxLeafRecords() == max_records);
 }
