@@ -59,7 +59,7 @@ class DatabaseHeader {
     /*
      * Creates a new @c DatabaseHeader
      */
-    DatabaseHeader(uint16_t page_size, uint8_t key_size, PageNumber first_free_header_page, PageNumber first_freelist_page, uint32_t checksum);
+    DatabaseHeader(uint16_t page_size, uint8_t key_size, PageNumber first_tree_header_page, PageNumber first_freelist_page, uint32_t checksum);
 
  public:
 

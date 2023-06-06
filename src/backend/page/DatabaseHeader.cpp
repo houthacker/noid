@@ -33,10 +33,10 @@ static std::array<byte, DatabaseHeader::BYTE_SIZE> const& Validate(
   return data;
 }
 
-DatabaseHeader::DatabaseHeader(uint16_t page_size, uint8_t key_size, PageNumber first_free_header_page,
+DatabaseHeader::DatabaseHeader(uint16_t page_size, uint8_t key_size, PageNumber first_tree_header_page,
     PageNumber first_freelist_page, uint32_t checksum)
     :
-    page_size(page_size), key_size(key_size), first_tree_header_page(first_free_header_page),
+    page_size(page_size), key_size(key_size), first_tree_header_page(first_tree_header_page),
     first_freelist_page(first_freelist_page), checksum(checksum) { }
 
 std::unique_ptr<DatabaseHeaderBuilder> DatabaseHeader::NewBuilder()
