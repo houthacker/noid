@@ -9,7 +9,7 @@
 #include "backend/Bits.h"
 #include "backend/NoidConfig.h"
 
-static uint16_t INTERNAL_NODE_MAGIC = 0x5049; // 'IN' for Internal Node
+static uint16_t INTERNAL_NODE_MAGIC = 0x4e49; // 'IN' for Internal Node
 static uint8_t MAGIC_OFFSET = 0;
 static uint8_t ENTRY_COUNT_OFFSET = 2;
 static uint8_t LEFTMOST_CHILD_PAGE_OFFSET = 8;

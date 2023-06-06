@@ -69,7 +69,7 @@ With a page size of 4096 bytes, this value is 204.
 
 | offset | size (bytes)           | description                              |
 |--------|------------------------|------------------------------------------|
-| 0      | 2                      | `'IP'` (internal page)                   |
+| 0      | 2                      | `'IN'` (internal node)                   |
 | 2      | 2                      | LE `uint16_t` next free entry slot       |
 | 8      | 4                      | LE `uint32_t` leftmost child page number |
 | 12     | 12                     | Padding (zeroed)                         |
@@ -90,7 +90,7 @@ The leaf node pages contain the records that contain the actual data.
 
 | offset | size (bytes)               | description                             |
 |--------|----------------------------|-----------------------------------------|
-| 0      | 1                          | `'LP'` (leaf page)                      |
+| 0      | 1                          | `'LN'` (leaf node)                      |
 | 2      | 2                          | `uint16_t` record count                 |
 | 5      | 4                          | LE `uint32_t` left sibling page number  |
 | 9      | 4                          | LE `uint32_t` right sibling page number |

@@ -19,9 +19,11 @@ class LeafNodeBuilder;
  * @brief Data object for the node record which contains the actual data.
  * @note Since this is not a page type, it does not get its own translation unit.
  */
-struct NodeRecord {
+class NodeRecord {
+ public:
     static uint8_t const INLINE_PAYLOAD_SIZE = 7;
 
+ private:
     /**
      * @brief The search key that is associated with the payload.
      */
@@ -43,6 +45,38 @@ struct NodeRecord {
      */
     std::array<byte, INLINE_PAYLOAD_SIZE> payload;
 
+ public:
+
+    /**
+     * @brief Creates a new @c NodeRecord with the given data.
+     * @details The payload is either all payload, or in the case the payload overflows, the last four bytes
+     * contain the page number of the first overflow page.
+     *
+     * @param key The record key.
+     * @param inline_indicator The size of the inline payload, or zero if the payload also resides in overflow pages.
+     * @param payload The payload.
+     */
+    NodeRecord(std::array<byte, FIXED_KEY_SIZE> key, byte inline_indicator, std::array<byte, INLINE_PAYLOAD_SIZE> payload);
+
+    /**
+     * @return The record key.
+     */
+    [[nodiscard]] const std::array<byte, FIXED_KEY_SIZE>& GetKey() const;
+
+    /**
+     * @details Returns the byte size of the payload if the full payload fits in this record. If at least
+     * one overflow page is necessary, this value is 0 and the payload is divided in 3 bytes payload and 4 bytes
+     * containing the page number of the first overflow page.
+     *
+     * @return The inline payload size, or zero if the payload overflows.
+     */
+    [[nodiscard]] byte GetInlineIndicator() const;
+
+    /**
+     * @return The payload bytes.
+     */
+    [[nodiscard]] const std::array<byte, INLINE_PAYLOAD_SIZE>& GetPayload() const;
+
     /**
      * @brief Interprets the last four bytes of the payload as a @c PageNumber. If @c NodeRecord::inline_indicator
      * is set to non-zero, calling this method will throw an exception since the retrieved value
@@ -52,6 +86,8 @@ struct NodeRecord {
      * @throws std::domain_error if called when @c NodeRecord::inline_indicator is non-zero.
      */
     [[nodiscard]] PageNumber GetOverflowPage() const;
+
+    bool operator==(const NodeRecord& other) const;
 };
 
 /**

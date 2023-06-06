@@ -9,6 +9,7 @@
 #include "backend/Bits.h"
 #include "backend/NoidConfig.h"
 
+static uint16_t LEAF_NODE_MAGIC = 0x4e4c; // 'LN' for Leaf Node
 static uint8_t MAGIC_OFFSET = 0;
 static uint8_t RECORD_COUNT_OFFSET = 2;
 static uint8_t LEFT_SIBLING_OFFSET = 5;
@@ -18,14 +19,23 @@ namespace noid::backend::page {
 
 static std::vector<byte>& Validate(std::vector<byte>& data)
 {
-  // TODO validation
-  return data;
+  auto page_size = NoidConfig::Get().vfs_page_size;
+  if (data.size() == page_size && read_le_uint16<byte>(data, MAGIC_OFFSET) == LEAF_NODE_MAGIC
+      && read_le_uint16<byte>(data, RECORD_COUNT_OFFSET) < CalculateMaxRecords(page_size)) {
+    return data;
+  }
+
+  throw std::invalid_argument("Given raw data is not a valid serialized LeafNode instance.");
 }
 
 static inline std::size_t SlotToIndex(uint16_t slot)
 {
   return RECORD_COUNT_OFFSET + slot * sizeof(PageNumber);
 }
+
+NodeRecord::NodeRecord(std::array<byte, FIXED_KEY_SIZE> key, byte inline_indicator,
+    std::array<byte, INLINE_PAYLOAD_SIZE> payload)
+    :key(key), inline_indicator(inline_indicator), payload(payload) { }
 
 PageNumber NodeRecord::GetOverflowPage() const
 {
@@ -38,6 +48,26 @@ PageNumber NodeRecord::GetOverflowPage() const
 
 LeafNode::LeafNode(PageNumber left_sibling, PageNumber right_sibling, std::vector<NodeRecord>&& records)
     :left_sibling(left_sibling), right_sibling(right_sibling), records(std::move(records)) { }
+
+const std::array<byte, FIXED_KEY_SIZE>& NodeRecord::GetKey() const
+{
+  return this->key;
+}
+
+byte NodeRecord::GetInlineIndicator() const
+{
+  return this->inline_indicator;
+}
+
+const std::array<byte, NodeRecord::INLINE_PAYLOAD_SIZE>& NodeRecord::GetPayload() const
+{
+  return this->payload;
+}
+
+bool NodeRecord::operator==(const NodeRecord& other) const
+{
+  return this->key == other.key && this->inline_indicator == other.inline_indicator && this->payload == other.payload;
+}
 
 std::unique_ptr<LeafNodeBuilder> LeafNode::NewBuilder()
 {
@@ -97,12 +127,12 @@ LeafNodeBuilder::LeafNodeBuilder(std::vector<byte>&& base)
 
   for (auto slot = 0; slot < next_free_slot; slot++) {
     auto record_offset = SlotToIndex(slot);
-    this->records.push_back({
+    this->records.emplace_back(
         read_container<byte, std::array<byte, FIXED_KEY_SIZE>>(base, record_offset, FIXED_KEY_SIZE),
         read_uint8<byte>(base, record_offset + FIXED_KEY_SIZE),
         read_container<byte, std::array<byte, NodeRecord::INLINE_PAYLOAD_SIZE>>(base,
             record_offset + FIXED_KEY_SIZE + sizeof(uint8_t), NodeRecord::INLINE_PAYLOAD_SIZE)
-    });
+    );
   }
 }
 
@@ -133,7 +163,7 @@ LeafNodeBuilder& LeafNodeBuilder::WithRightSibling(PageNumber sibling)
 
 LeafNodeBuilder& LeafNodeBuilder::WithRecord(NodeRecord record)
 {
-  if (this->records.size() - 1 == this->max_slot) {
+  if (this->IsFull()) {
     throw std::overflow_error("Cannot add record: node is full");
   }
 
