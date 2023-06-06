@@ -9,7 +9,9 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+
 #include "backend/Types.h"
+#include "Node.h"
 
 namespace noid::backend::page {
 
@@ -19,7 +21,7 @@ class LeafNodeBuilder;
  * @brief Data object for the node record which contains the actual data.
  * @note Since this is not a page type, it does not get its own translation unit.
  */
-class NodeRecord {
+class NodeRecord : public Node {
  public:
     static uint8_t const INLINE_PAYLOAD_SIZE = 7;
 

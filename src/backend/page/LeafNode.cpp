@@ -46,9 +46,6 @@ PageNumber NodeRecord::GetOverflowPage() const
   return read_le_uint32<byte>(this->payload, this->payload.size() - sizeof(PageNumber));
 }
 
-LeafNode::LeafNode(PageNumber left_sibling, PageNumber right_sibling, std::vector<NodeRecord>&& records)
-    :left_sibling(left_sibling), right_sibling(right_sibling), records(std::move(records)) { }
-
 const std::array<byte, FIXED_KEY_SIZE>& NodeRecord::GetKey() const
 {
   return this->key;
@@ -68,6 +65,9 @@ bool NodeRecord::operator==(const NodeRecord& other) const
 {
   return this->key == other.key && this->inline_indicator == other.inline_indicator && this->payload == other.payload;
 }
+
+LeafNode::LeafNode(PageNumber left_sibling, PageNumber right_sibling, std::vector<NodeRecord>&& records)
+    :left_sibling(left_sibling), right_sibling(right_sibling), records(std::move(records)) { }
 
 std::unique_ptr<LeafNodeBuilder> LeafNode::NewBuilder()
 {

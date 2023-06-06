@@ -8,7 +8,9 @@
 #include <array>
 #include <memory>
 #include <vector>
+
 #include "backend/Types.h"
+#include "Node.h"
 
 namespace noid::backend::page {
 
@@ -36,7 +38,7 @@ struct NodeEntry {
     bool operator==(const NodeEntry& other) const;
 };
 
-class InternalNode {
+class InternalNode : public Node {
  private:
     friend class InternalNodeBuilder;
 
