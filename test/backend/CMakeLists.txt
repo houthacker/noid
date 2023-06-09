@@ -2,7 +2,8 @@ project(noid_tests)
 
 set(SOURCE_FILES
         BitsTests.cpp
-        MD5Tests.cpp)
+        MD5Tests.cpp
+        PagerTests.cpp)
 
 target_sources(noid_tests PUBLIC ${SOURCE_FILES})
 

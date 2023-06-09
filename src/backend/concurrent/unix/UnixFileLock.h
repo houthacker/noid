@@ -125,6 +125,14 @@ class UnixFileLock {
         this->mutex.unlock();
       }
     }
+
+    [[nodiscard]] bool owns_lock() const noexcept {
+      return this->mutex_holder == std::this_thread::get_id();
+    }
+
+    explicit operator bool() const noexcept {
+      return this->owns_lock();
+    }
 };
 
 }

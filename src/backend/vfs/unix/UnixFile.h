@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <memory>
 
+#include "backend/FixedSizeVector.h"
 #include "backend/vfs/NoidFile.h"
 #include "backend/vfs/unix/Inode.h"
 #include "backend/concurrent/IntentAwareMutex.h"
@@ -89,8 +90,17 @@ class UnixFile : public NoidFile<UnixFileLock<IntentAwareMutex>, UnixSharedFileL
     /**
      * @return The associated file descriptor.
      */
-    int GetFileDescriptor();
+    [[nodiscard]] int GetFileDescriptor() const;
 #endif
+
+    /**
+     * @brief Returns the file size in bytes.
+     * @details This method does not block. This allows callers to decide themselves about the blocking scope.
+     *
+     * @return The file size.
+     * @throw std::ios_base::failure if the file size could not be retrieved.
+     */
+    std::uintmax_t Size() override;
 
     /**
      * @brief Atomically writes the @p length bytes from @p source to this file, starting at @p start_position.
@@ -111,6 +121,9 @@ class UnixFile : public NoidFile<UnixFileLock<IntentAwareMutex>, UnixSharedFileL
     /**
      * @brief Reads @p size bytes from this file into @p container, starting at @p start_position.
      *
+     * @note This method does <em>not</em> insert element, but instead overwrites them and assumes the given container
+     * can fit @p size elements from @p container_pos.
+     *
      * @note Reading an arbitrary amount of bytes from a file is not atomic in the sense that all or nothing is read,
      * therefore this method is marked @c [[nodiscard]] to warn callers if they discard the actual amount of bytes read.
      *
@@ -124,7 +137,7 @@ class UnixFile : public NoidFile<UnixFileLock<IntentAwareMutex>, UnixSharedFileL
      * @return The amount of bytes read.
      * @throws std::ios_base::failure if reading @p size bytes from the file fails.
      */
-    [[nodiscard]] std::size_t Read(std::vector<byte>& container, std::vector<byte>::iterator container_pos,
+    [[nodiscard]] std::size_t Read(FixedSizeVector<byte>& container, std::vector<byte>::iterator container_pos,
                                    Position start_position, std::size_t size) override;
 
     /**

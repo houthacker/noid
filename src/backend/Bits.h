@@ -10,6 +10,7 @@
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <cstring> // memcpy
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -482,11 +483,35 @@ Destination read_container(const Source& source, typename Source::size_type read
 template<typename T, Container<T> Destination, Container<T> Source>
 Destination& write_container(Destination& destination, typename Destination::size_type write_idx, const Source& source)
 {
-  if (source.size() > write_idx + destination.size()) {
+  if (source.size() > destination.size() - write_idx) {
     throw std::out_of_range("Cannot fit source into destination");
   }
 
   std::copy(std::begin(source), std::end(source), std::begin(destination) + write_idx);
+
+  return destination;
+}
+
+/**
+ * @brief Writes all entries from @p source into @p destination, starting at @p write_idx.
+ *
+ * @tparam T The source element type.
+ * @tparam Destination The destination container type.
+ * @tparam Source The source container type.
+ * @param destination The destination byte container.
+ * @param write_idx The index withing destination to start writing at.
+ * @param source The source container.
+ * @return A reference to the destination container.
+ * @throws std::out_of_range if source doesn't fit into destination using the given @p write_idx.
+ */
+template<typename T, Container<byte> Destination, Container<T> Source>
+Destination& write_contiguous_container(Destination& destination, typename Destination::size_type write_idx, const Source& source) {
+  auto required_destination_size = write_idx + (source.size() * sizeof(T));
+  if (destination.size() < required_destination_size) {
+    throw std::out_of_range("Cannot fit source into destination");
+  }
+
+  std::memcpy(destination.data() + write_idx, source.data(), source.size() * sizeof(T));
 
   return destination;
 }

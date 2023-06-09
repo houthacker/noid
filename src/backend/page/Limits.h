@@ -30,6 +30,16 @@ const uint8_t LEAF_NODE_HEADER_SIZE = 24;
 const uint8_t LEAF_NODE_RECORD_SIZE = 24;
 
 /**
+ * @brief The size in bytes of a @c Freelist header.
+ */
+const uint8_t FREELIST_HEADER_SIZE = 12;
+
+/**
+ * @brief The size in bytes of a freelist entry.
+ */
+const uint8_t FREELIST_ENTRY_SIZE = sizeof(PageNumber);
+
+/**
  * @brief Calculates the maximum amount of entries an internal node is allowed to contain, as
  * a function of page size.
  *
@@ -51,6 +61,18 @@ inline constexpr uint16_t CalculateMaxEntries(uint16_t page_size)
 inline constexpr uint16_t CalculateMaxRecords(uint16_t page_size)
 {
   return (uint16_t) ((page_size - LEAF_NODE_HEADER_SIZE) / LEAF_NODE_RECORD_SIZE);
+}
+
+/**
+ * @brief Calculates the maximum amount of entries a freelist page is allowed to contain,
+ * as a function of page size.
+ *
+ * @param page_size The page size in bytes.
+ * @return The maximum amount of entries for the given page size.
+ */
+inline constexpr uint16_t CalculateMaxFreelistEntries(uint16_t page_size)
+{
+  return (uint16_t) ((page_size - FREELIST_HEADER_SIZE) / FREELIST_ENTRY_SIZE);
 }
 
 }

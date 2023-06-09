@@ -5,8 +5,11 @@
 #include <catch2/catch.hpp>
 
 #include <stdexcept>
+
+#include "backend/FixedSizeVector.h"
 #include "backend/page/Freelist.h"
 
+using namespace noid::backend;
 using namespace noid::backend::page;
 
 TEST_CASE("Build a Freelist")
@@ -53,7 +56,7 @@ TEST_CASE("Build a Freelist based on another Freelist")
 TEST_CASE("Build a Freelist from an invalid raw byte vector")
 {
   // Try to create a Freelist based on a vector which has the correct size, but is otherwise empty.
-  CHECK_THROWS_AS(Freelist::NewBuilder(std::vector<noid::backend::byte>(4096)), std::invalid_argument);
+  CHECK_THROWS_AS(Freelist::NewBuilder(FixedSizeVector<byte>(4096)), std::invalid_argument);
 }
 
 TEST_CASE("Build a Freelist that contains exactly the maximum amount of pages")
@@ -94,4 +97,20 @@ TEST_CASE("Build a Freelist based on another and overwrite some free page number
   REQUIRE(freelist->FreePageAt(0) == 1339);
   REQUIRE(freelist->FreePageAt(1) == 1338);
   REQUIRE(freelist->Size() == 2);
+}
+
+TEST_CASE("Freelist::ToBytes() cycle") {
+  auto original = Freelist::NewBuilder()->WithPrevious(1)
+      .WithNext(3)
+      .WithFreePage(1337)
+      .WithFreePage(1338)
+      .Build();
+
+  auto from_bytes = Freelist::NewBuilder(original->ToBytes())->Build();
+  REQUIRE(from_bytes->Previous() == original->Previous());
+  REQUIRE(from_bytes->Next() == original->Next());
+  REQUIRE(from_bytes->FreePageAt(0) == original->FreePageAt(0));
+  REQUIRE(from_bytes->FreePageAt(1) == original->FreePageAt(1));
+  REQUIRE(from_bytes->Size() == original->Size());
+  REQUIRE(from_bytes->ToBytes() == original->ToBytes());
 }

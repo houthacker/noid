@@ -12,6 +12,7 @@ template <typename T, typename V>
 concept Container = requires(T obj, std::size_t i) {
   { obj.size() } -> std::convertible_to<std::size_t>;
   { obj.operator[](i) } -> std::convertible_to<V&>;
+  { obj.data() } -> std::convertible_to<V*>;
 };
 
 template <typename T, typename V>

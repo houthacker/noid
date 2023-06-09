@@ -13,7 +13,6 @@ set(HEADER_FILES
 set(SOURCE_FILES
         MD5.cpp
         UUID.cpp
-        Pager.cpp
         WAL.cpp
         BPlusTree.cpp page/Limits.h)
 
