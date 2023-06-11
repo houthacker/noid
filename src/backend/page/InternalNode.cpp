@@ -17,7 +17,7 @@ static uint8_t ENTRY_LIST_OFFSET = 24;
 
 namespace noid::backend::page {
 
-static std::vector<byte>& Validate(std::vector<byte>& raw_data)
+static DynamicArray<byte>& Validate(DynamicArray<byte>& raw_data)
 {
   auto page_size = NoidConfig::Get().vfs_page_size;
   if (raw_data.size() == page_size
@@ -39,7 +39,7 @@ bool NodeEntry::operator==(const NodeEntry& other) const
   return this->right_child == other.right_child && this->key == other.key;
 }
 
-InternalNode::InternalNode(PageNumber leftmost_child, std::vector<NodeEntry>&& entries)
+InternalNode::InternalNode(PageNumber leftmost_child, DynamicArray<NodeEntry>&& entries)
     :leftmost_child(leftmost_child), entries(std::move(entries)) { }
 
 std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder()
@@ -52,7 +52,7 @@ std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(const InternalNode
   return std::unique_ptr<InternalNodeBuilder>(new InternalNodeBuilder(base));
 }
 
-std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(std::vector<byte>&& base)
+std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(DynamicArray<byte>&& base)
 {
   return std::unique_ptr<InternalNodeBuilder>(new InternalNodeBuilder(std::move(Validate(base))));
 }
@@ -82,9 +82,11 @@ InternalNodeBuilder::InternalNodeBuilder()
 
 InternalNodeBuilder::InternalNodeBuilder(const InternalNode& base)
     :page_size(NoidConfig::Get().vfs_page_size), max_slot(CalculateMaxEntries(page_size) - 1),
-     leftmost_child(base.leftmost_child), entries(base.entries) { }
+     leftmost_child(base.leftmost_child), entries(base.entries.size()) {
+  std::copy(base.entries.begin(), base.entries.end(), this->entries.begin());
+}
 
-InternalNodeBuilder::InternalNodeBuilder(std::vector<byte>&& base)
+InternalNodeBuilder::InternalNodeBuilder(DynamicArray<byte>&& base)
     :page_size(NoidConfig::Get().vfs_page_size), max_slot(CalculateMaxEntries(page_size) - 1),
      leftmost_child(read_le_uint32<byte>(base, LEFTMOST_CHILD_PAGE_OFFSET))
 {
@@ -102,7 +104,10 @@ InternalNodeBuilder::InternalNodeBuilder(std::vector<byte>&& base)
 
 std::unique_ptr<const InternalNode> InternalNodeBuilder::Build()
 {
-  return std::unique_ptr<const InternalNode>(new InternalNode(this->leftmost_child, std::move(this->entries)));
+  auto entry_list = DynamicArray<NodeEntry>(this->entries.size());
+  std::copy(this->entries.begin(), this->entries.end(), entry_list.begin());
+
+  return std::unique_ptr<const InternalNode>(new InternalNode(this->leftmost_child, std::move(entry_list)));
 }
 
 bool InternalNodeBuilder::IsFull()

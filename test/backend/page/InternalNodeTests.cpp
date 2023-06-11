@@ -8,6 +8,7 @@
 #include "backend/page/InternalNode.h"
 #include "backend/NoidConfig.h"
 #include "backend/Bits.h"
+#include "backend/DynamicArray.h"
 
 using namespace noid::backend;
 using namespace noid::backend::page;
@@ -63,7 +64,7 @@ TEST_CASE("Build an InternalNode based on another and overwrite some entries")
 
 TEST_CASE("Build an InternalNode based on an invalid raw byte vector")
 {
-  CHECK_THROWS_AS(InternalNode::NewBuilder(std::vector<byte>(4096)), std::invalid_argument);
+  CHECK_THROWS_AS(InternalNode::NewBuilder(DynamicArray<byte>(4096)), std::invalid_argument);
 }
 
 TEST_CASE("Try building an InternalNode that contains too many entries")

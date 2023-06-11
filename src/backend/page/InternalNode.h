@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 
+#include "backend/DynamicArray.h"
 #include "backend/Types.h"
 #include "Node.h"
 
@@ -55,9 +56,9 @@ class InternalNode : public Node {
     /**
      * @brief The list of @c NodeEntry instances.
      */
-    const std::vector<NodeEntry> entries;
+    const DynamicArray<NodeEntry> entries;
 
-    explicit InternalNode(PageNumber leftmost_child, std::vector<NodeEntry>&& entries);
+    explicit InternalNode(PageNumber leftmost_child, DynamicArray<NodeEntry>&& entries);
 
  public:
 
@@ -83,7 +84,7 @@ class InternalNode : public Node {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given raw bytes are not a valid @c InternalNode.
      */
-    static std::unique_ptr<InternalNodeBuilder> NewBuilder(std::vector<byte>&& base);
+    static std::unique_ptr<InternalNodeBuilder> NewBuilder(DynamicArray<byte>&& base);
 
     /**
      * @return The amount of entries contained in this @c InternalNode
@@ -129,7 +130,7 @@ class InternalNodeBuilder {
 
     explicit InternalNodeBuilder();
     explicit InternalNodeBuilder(const InternalNode& base);
-    explicit InternalNodeBuilder(std::vector<byte>&& base);
+    explicit InternalNodeBuilder(DynamicArray<byte>&& base);
 
  public:
 
