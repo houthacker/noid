@@ -17,7 +17,7 @@ static uint8_t RIGHT_SIBLING_OFFSET = 9;
 
 namespace noid::backend::page {
 
-static std::vector<byte>& Validate(std::vector<byte>& data)
+static DynamicArray<byte>& Validate(DynamicArray<byte>& data)
 {
   auto page_size = NoidConfig::Get().vfs_page_size;
   if (data.size() == page_size && read_le_uint16<byte>(data, MAGIC_OFFSET) == LEAF_NODE_MAGIC
@@ -66,7 +66,7 @@ bool NodeRecord::operator==(const NodeRecord& other) const
   return this->key == other.key && this->inline_indicator == other.inline_indicator && this->payload == other.payload;
 }
 
-LeafNode::LeafNode(PageNumber left_sibling, PageNumber right_sibling, std::vector<NodeRecord>&& records)
+LeafNode::LeafNode(PageNumber left_sibling, PageNumber right_sibling, DynamicArray<NodeRecord>&& records)
     :left_sibling(left_sibling), right_sibling(right_sibling), records(std::move(records)) { }
 
 std::unique_ptr<LeafNodeBuilder> LeafNode::NewBuilder()
@@ -79,7 +79,7 @@ std::unique_ptr<LeafNodeBuilder> LeafNode::NewBuilder(const LeafNode& base)
   return std::unique_ptr<LeafNodeBuilder>(new LeafNodeBuilder(base));
 }
 
-std::unique_ptr<LeafNodeBuilder> LeafNode::NewBuilder(std::vector<byte>&& base)
+std::unique_ptr<LeafNodeBuilder> LeafNode::NewBuilder(DynamicArray<byte>&& base)
 {
   return std::unique_ptr<LeafNodeBuilder>(new LeafNodeBuilder(std::move(Validate(base))));
 }
@@ -115,9 +115,11 @@ LeafNodeBuilder::LeafNodeBuilder()
 
 LeafNodeBuilder::LeafNodeBuilder(const LeafNode& base)
     :page_size(NoidConfig::Get().vfs_page_size), max_slot(CalculateMaxRecords(page_size) - 1),
-     left_sibling(base.left_sibling), right_sibling(base.right_sibling), records(base.records) { }
+     left_sibling(base.left_sibling), right_sibling(base.right_sibling), records(base.records.size()) {
+  std::copy(base.records.begin(), base.records.end(), this->records.begin());
+}
 
-LeafNodeBuilder::LeafNodeBuilder(std::vector<byte>&& base)
+LeafNodeBuilder::LeafNodeBuilder(DynamicArray<byte>&& base)
     :page_size(NoidConfig::Get().vfs_page_size), max_slot(CalculateMaxRecords(page_size) - 1),
      left_sibling(read_le_uint16<byte>(base, LEFT_SIBLING_OFFSET)),
      right_sibling(read_le_uint16<byte>(base, RIGHT_SIBLING_OFFSET))
@@ -138,8 +140,11 @@ LeafNodeBuilder::LeafNodeBuilder(std::vector<byte>&& base)
 
 std::unique_ptr<const LeafNode> LeafNodeBuilder::Build()
 {
+  auto record_list = DynamicArray<NodeRecord>(this->records.size());
+  std::copy(this->records.begin(), this->records.end(), record_list.begin());
+
   return std::unique_ptr<const LeafNode>(
-      new LeafNode(this->left_sibling, this->right_sibling, std::move(this->records)));
+      new LeafNode(this->left_sibling, this->right_sibling, std::move(record_list)));
 }
 
 bool LeafNodeBuilder::IsFull()

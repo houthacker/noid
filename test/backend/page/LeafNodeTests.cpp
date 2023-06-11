@@ -8,6 +8,7 @@
 #include "backend/page/LeafNode.h"
 #include "backend/NoidConfig.h"
 #include "backend/Bits.h"
+#include "backend/DynamicArray.h"
 
 using namespace noid::backend;
 using namespace noid::backend::page;
@@ -89,5 +90,5 @@ TEST_CASE("Build a LeafNode based on another and overwrite a record") {
 }
 
 TEST_CASE("Try building a LeafNode from an invalid raw byte vector") {
-  CHECK_THROWS_AS(LeafNode::NewBuilder(std::vector<byte>(4096)), std::invalid_argument);
+  CHECK_THROWS_AS(LeafNode::NewBuilder(DynamicArray<byte>(4096)), std::invalid_argument);
 }

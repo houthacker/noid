@@ -10,6 +10,7 @@
 #include <memory>
 #include <vector>
 
+#include "backend/DynamicArray.h"
 #include "backend/Types.h"
 #include "Node.h"
 
@@ -48,6 +49,11 @@ class NodeRecord : public Node {
     std::array<byte, INLINE_PAYLOAD_SIZE> payload;
 
  public:
+
+    /**
+     * @brief Default constructor.
+     */
+    NodeRecord() = default;
 
     /**
      * @brief Creates a new @c NodeRecord with the given data.
@@ -112,9 +118,9 @@ class LeafNode {
     /**
      * @brief The records containing the actual data.
      */
-    const std::vector<NodeRecord> records;
+    const DynamicArray<NodeRecord> records;
 
-    LeafNode(PageNumber left_sibling, PageNumber right_sibling, std::vector<NodeRecord> && records);
+    LeafNode(PageNumber left_sibling, PageNumber right_sibling, DynamicArray<NodeRecord> && records);
  public:
 
     /**
@@ -139,7 +145,7 @@ class LeafNode {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given raw bytes do not represent a valid @c LeafNode.
      */
-    static std::unique_ptr<LeafNodeBuilder> NewBuilder(std::vector<byte> && base);
+    static std::unique_ptr<LeafNodeBuilder> NewBuilder(DynamicArray<byte> && base);
 
     /**
      * @return The amount of records in this @c LeafNode.
@@ -196,7 +202,7 @@ class LeafNodeBuilder {
 
     explicit LeafNodeBuilder();
     explicit LeafNodeBuilder(const LeafNode& base);
-    explicit LeafNodeBuilder(std::vector<byte> && base);
+    explicit LeafNodeBuilder(DynamicArray<byte> && base);
 
  public:
 
