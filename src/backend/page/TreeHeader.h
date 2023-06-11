@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+
+#include "backend/DynamicArray.h"
 #include "backend/Types.h"
 
 namespace noid::backend::page {
@@ -99,7 +101,7 @@ class TreeHeader {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given raw data do not represent a valid @c TreeHeader.
      */
-    static std::unique_ptr<TreeHeaderBuilder> NewBuilder(std::vector<byte>&& base);
+    static std::unique_ptr<TreeHeaderBuilder> NewBuilder(DynamicArray<byte>&& base);
 
     /**
      * @return The type of b+tree this is the header for.
@@ -159,7 +161,7 @@ class TreeHeaderBuilder {
 
     explicit TreeHeaderBuilder();
     explicit TreeHeaderBuilder(const TreeHeader& base);
-    explicit TreeHeaderBuilder(std::vector<byte>&& base);
+    explicit TreeHeaderBuilder(DynamicArray<byte>&& base);
 
  public:
 

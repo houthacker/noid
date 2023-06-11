@@ -14,7 +14,7 @@ static uint8_t ROOT_NODE_PAGE_OFFSET = 6;
 
 namespace noid::backend::page {
 
-static std::vector<byte>& Validate(std::vector<byte>& data)
+static DynamicArray<byte>& Validate(DynamicArray<byte>& data)
 {
   auto magic = read_le_uint16<byte>(data, TREE_HEADER_MAGIC_OFFSET);
   if (magic != (uint16_t) TreeType::Index && magic != (uint16_t) TreeType::Table) {
@@ -48,7 +48,7 @@ std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(const TreeHeader& base
   return std::unique_ptr<TreeHeaderBuilder>(new TreeHeaderBuilder(base));
 }
 
-std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(std::vector<byte>&& base)
+std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(DynamicArray<byte>&& base)
 {
   return std::unique_ptr<TreeHeaderBuilder>(new TreeHeaderBuilder(std::move(Validate(base))));
 }
@@ -84,7 +84,7 @@ TreeHeaderBuilder::TreeHeaderBuilder(const TreeHeader& base)
     :page_size(NoidConfig::Get().vfs_page_size), tree_type(base.tree_type), max_node_entries(base.max_node_entries),
      max_node_records(base.max_node_records), root(base.root) { }
 
-TreeHeaderBuilder::TreeHeaderBuilder(std::vector<byte>&& base)
+TreeHeaderBuilder::TreeHeaderBuilder(DynamicArray<byte>&& base)
     :page_size(NoidConfig::Get().vfs_page_size),
      tree_type(static_cast<TreeType>(read_le_uint16<byte>(base, TREE_HEADER_MAGIC_OFFSET))),
      max_node_entries(read_le_uint16<byte>(base, MAX_ENTRIES_OFFSET)),
