@@ -6,7 +6,7 @@
 
 #include <stdexcept>
 
-#include "backend/FixedSizeVector.h"
+#include "backend/DynamicArray.h"
 #include "backend/page/Freelist.h"
 
 using namespace noid::backend;
@@ -56,7 +56,7 @@ TEST_CASE("Build a Freelist based on another Freelist")
 TEST_CASE("Build a Freelist from an invalid raw byte vector")
 {
   // Try to create a Freelist based on a vector which has the correct size, but is otherwise empty.
-  CHECK_THROWS_AS(Freelist::NewBuilder(FixedSizeVector<byte>(4096)), std::invalid_argument);
+  CHECK_THROWS_AS(Freelist::NewBuilder(DynamicArray<byte>(4096)), std::invalid_argument);
 }
 
 TEST_CASE("Build a Freelist that contains exactly the maximum amount of pages")

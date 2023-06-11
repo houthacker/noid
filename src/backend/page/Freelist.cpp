@@ -2,6 +2,7 @@
  * Copyright 2023, noid authors. See LICENSE.md for licensing terms.
  */
 
+#include <algorithm>
 #include <sstream>
 #include <string>
 
@@ -18,14 +19,15 @@ static uint8_t FREELIST_OFFSET = 12;
 
 namespace noid::backend::page {
 
-static FixedSizeVector<byte>& Validate(FixedSizeVector<byte>& data)
+static DynamicArray<byte>& Validate(DynamicArray<byte>& data)
 {
   if (data.size() != NoidConfig::Get().vfs_page_size) {
     std::stringstream stream;
     stream << "Invalid data size (expect " << NoidConfig::Get().vfs_page_size << ", but got " << +data.size() << ").";
 
     throw std::invalid_argument(stream.str());
-  } else if (read_le_uint16<byte>(data, 0) != FREELIST_MAGIC) {
+  }
+  else if (read_le_uint16<byte>(data, 0) != FREELIST_MAGIC) {
     throw std::invalid_argument("Invalid Freelist magic");
   }
 
@@ -37,7 +39,7 @@ static inline std::size_t SlotToIndex(uint16_t slot)
   return FREELIST_OFFSET + slot * sizeof(PageNumber);
 }
 
-Freelist::Freelist(uint16_t page_size, PageNumber previous, PageNumber next, FixedSizeVector<PageNumber> free_pages)
+Freelist::Freelist(uint16_t page_size, PageNumber previous, PageNumber next, DynamicArray<PageNumber> free_pages)
     :page_size(page_size), previous(previous), next(next), free_pages(std::move(free_pages)) { }
 
 std::unique_ptr<FreelistBuilder> Freelist::NewBuilder()
@@ -50,7 +52,7 @@ std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(const Freelist& base)
   return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(base));
 }
 
-std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(FixedSizeVector<byte>&& base)
+std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(DynamicArray<byte>&& base)
 {
   return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(std::move(Validate(base))));
 }
@@ -75,9 +77,9 @@ PageNumber Freelist::FreePageAt(uint16_t pos) const
   return this->free_pages.at(pos);
 }
 
-FixedSizeVector<byte> Freelist::ToBytes() const
+DynamicArray<byte> Freelist::ToBytes() const
 {
-  auto serialized = FixedSizeVector<byte>(this->page_size);
+  auto serialized = DynamicArray<byte>(this->page_size);
   write_le_uint32<byte>(serialized, MAGIC_OFFSET, FREELIST_MAGIC);
   write_le_uint32<byte>(serialized, PREVIOUS_PAGE_OFFSET, this->previous);
   write_le_uint32<byte>(serialized, NEXT_PAGE_OFFSET, this->next);
@@ -103,31 +105,36 @@ FreelistBuilder::FreelistBuilder(const Freelist& base)
     page_size(NoidConfig::Get().vfs_page_size),
     max_slot(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1),
     cursor(base.Size()),
-    free_pages(base.free_pages.backing_vector()) { }
+    free_pages(base.free_pages.size())
+{
+  std::copy(base.free_pages.begin(), base.free_pages.end(), this->free_pages.begin());
+}
 
-FreelistBuilder::FreelistBuilder(FixedSizeVector<byte>&& base)
+FreelistBuilder::FreelistBuilder(DynamicArray<byte>&& base)
     :
     previous_freelist_entry(read_le_uint32<byte>(base, PREVIOUS_PAGE_OFFSET)),
     next_freelist_entry(read_le_uint32<byte>(base, NEXT_PAGE_OFFSET)),
     page_size(NoidConfig::Get().vfs_page_size),
     max_slot(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1),
-    cursor(read_le_uint16<byte>(base, NEXT_FREE_SLOT_OFFSET)),
-    free_pages(cursor)
+    cursor(0),
+    free_pages(read_le_uint16<byte>(base, NEXT_FREE_SLOT_OFFSET))
 {
 
-  auto next_free_slot = read_le_uint16<byte>(base, NEXT_FREE_SLOT_OFFSET);
-  for (int slot = 0; slot < next_free_slot; slot++) {
-    this->free_pages[slot] = read_le_uint32<byte>(base, SlotToIndex(slot));
+  for (; this->cursor < this->free_pages.size(); this->cursor++) {
+    this->free_pages[cursor] = read_le_uint32<byte>(base, SlotToIndex(cursor));
   }
 }
 
 std::unique_ptr<const Freelist> FreelistBuilder::Build() const
 {
+  auto free_list = DynamicArray<PageNumber>(this->free_pages.size());
+  std::copy(this->free_pages.begin(), this->free_pages.end(), free_list.begin());
+
   return std::unique_ptr<const Freelist>(new Freelist(
       this->page_size,
       this->previous_freelist_entry,
       this->next_freelist_entry,
-      FixedSizeVector(this->free_pages)));
+      std::move(free_list)));
 }
 
 FreelistBuilder& FreelistBuilder::WithPrevious(PageNumber previous)
@@ -157,7 +164,7 @@ FreelistBuilder& FreelistBuilder::WithFreePage(PageNumber free_page)
 
 FreelistBuilder& FreelistBuilder::WithFreePage(PageNumber free_page, std::size_t slot_hint)
 {
-  if (slot_hint < this->cursor) {
+  if (slot_hint <= this->cursor) {
     this->free_pages[slot_hint] = free_page;
     return *this;
   }

@@ -11,7 +11,7 @@
 #include <filesystem>
 #include <memory>
 
-#include "backend/FixedSizeVector.h"
+#include "backend/DynamicArray.h"
 #include "backend/vfs/NoidFile.h"
 #include "backend/vfs/unix/Inode.h"
 #include "backend/concurrent/IntentAwareMutex.h"
@@ -137,7 +137,7 @@ class UnixFile : public NoidFile<UnixFileLock<IntentAwareMutex>, UnixSharedFileL
      * @return The amount of bytes read.
      * @throws std::ios_base::failure if reading @p size bytes from the file fails.
      */
-    [[nodiscard]] std::size_t Read(FixedSizeVector<byte>& container, std::vector<byte>::iterator container_pos,
+    [[nodiscard]] std::size_t Read(DynamicArray<byte>& container, DynamicArray<byte>::iterator container_pos,
                                    Position start_position, std::size_t size) override;
 
     /**

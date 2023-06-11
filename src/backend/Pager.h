@@ -9,7 +9,7 @@
 #include <filesystem>
 #include <memory>
 
-#include "backend/FixedSizeVector.h"
+#include "backend/DynamicArray.h"
 #include "backend/concurrent/Concepts.h"
 #include "backend/page/Concepts.h"
 #include "backend/vfs/NoidFile.h"
@@ -153,7 +153,7 @@ class Pager {
       }
 
       Position file_pos = (location - 1) * this->page_size + DatabaseHeader::BYTE_SIZE;
-      auto data = FixedSizeVector<byte>(this->page_size);
+      auto data = DynamicArray<byte>(this->page_size);
 
       // TODO check WAL first
       NoidSharedLock shared_lock = this->file->SharedLock();

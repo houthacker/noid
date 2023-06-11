@@ -15,7 +15,7 @@
 #include <stdexcept>
 
 #include "backend/Types.h"
-#include "backend/FixedSizeVector.h"
+#include "backend/DynamicArray.h"
 #include "backend/concurrent/Concepts.h"
 
 namespace fs = std::filesystem;
@@ -67,7 +67,7 @@ class NoidFile {
      * @return The amount of bytes read.
      * @throws std::ios_base::failure if reading @p size bytes from the file fails.
      */
-    [[nodiscard]] virtual std::size_t Read(FixedSizeVector<byte>& container, FixedSizeVector<byte>::iterator container_pos,
+    [[nodiscard]] virtual std::size_t Read(DynamicArray<byte>& container, DynamicArray<byte>::iterator container_pos,
                                            Position start_position, std::size_t size) =0;
 
     // for arrays
@@ -128,7 +128,7 @@ class NoidFile {
      * @return The amount of bytes written.
      * @throws std::ios_base::failure if writing the vectors' content to the file fails.
      */
-    std::size_t WriteContainer(const FixedSizeVector<byte>& source, Position start_position) {
+    std::size_t WriteContainer(const DynamicArray<byte>& source, Position start_position) {
       return this->Write(source.data(), start_position, source.size());
     }
 
@@ -143,7 +143,7 @@ class NoidFile {
      * @throws std::out_of_range if the given parameters would lead to out-of-bound reads from the source vector.
      * @throws std::ios_base::failure if writing @p size bytes to the file fails.
      */
-    std::size_t WriteContainer(const FixedSizeVector<byte>& source, Position source_start, Position write_start, std::size_t size) {
+    std::size_t WriteContainer(const DynamicArray<byte>& source, Position source_start, Position write_start, std::size_t size) {
       if (source_start + size > source.size()) {
         throw std::out_of_range("Write would lead to reading outside of vector bounds.");
       }
@@ -209,7 +209,7 @@ class NoidFile {
      * @throws std::ios_base::failure if reading from the file fails.
      */
     [[nodiscard]]
-    std::size_t ReadContainer(FixedSizeVector<byte>& destination, Position file_pos, std::size_t size) {
+    std::size_t ReadContainer(DynamicArray<byte>& destination, Position file_pos, std::size_t size) {
       return this->Read(destination, destination.begin(), file_pos, size);
     }
 
@@ -231,7 +231,7 @@ class NoidFile {
      * @throws std::ios_base::failure if reading from the file fails.
      */
     [[nodiscard]]
-    std::size_t ReadContainer(FixedSizeVector<byte>& destination, Position destination_pos, Position file_pos, std::size_t size) {
+    std::size_t ReadContainer(DynamicArray<byte>& destination, Position destination_pos, Position file_pos, std::size_t size) {
       return this->Read(destination, destination.begin() + destination_pos, file_pos, size);
     }
 

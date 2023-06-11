@@ -7,7 +7,7 @@
 #include <atomic>
 #include <thread>
 
-#include "backend/FixedSizeVector.h"
+#include "backend/DynamicArray.h"
 #include "backend/vfs/unix/UnixFile.h"
 #include "backend/concurrent/Concepts.h"
 
@@ -18,7 +18,7 @@ using noid::backend::vfs::UnixFile;
 
 TEST_CASE("Can read and write a temporary UnixFile")
 {
-  FixedSizeVector<byte> data = {1, 3, 3, 7};
+  DynamicArray<byte> data = {1, 3, 3, 7};
 
   auto temp_file = UnixFile::CreateTempFile();
 
@@ -26,14 +26,14 @@ TEST_CASE("Can read and write a temporary UnixFile")
   REQUIRE(temp_file->WriteContainer(data, 0) == data.size());
   temp_file->Flush();
 
-  FixedSizeVector<byte> from_file(data.size());
+  DynamicArray<byte> from_file(data.size());
   REQUIRE(temp_file->ReadContainer(from_file, 0, data.size()) == data.size());
   REQUIRE(data == from_file);
 }
 
 TEST_CASE("Can read and write a regular UnixFile")
 {
-  FixedSizeVector<byte> data = {1, 3, 3, 7};
+  DynamicArray<byte> data = {1, 3, 3, 7};
 
   // Open a scoped file, so it gets deleted on exit or exception.
   auto regular_file = UnixFile::OpenScoped("noid_unixfile_test.ndb");
@@ -42,13 +42,13 @@ TEST_CASE("Can read and write a regular UnixFile")
   REQUIRE(regular_file->WriteContainer(data, 0) == data.size());
   regular_file->Flush();
 
-  FixedSizeVector<byte> from_file(data.size());
+  DynamicArray<byte> from_file(data.size());
   REQUIRE(regular_file->ReadContainer(from_file, 0, data.size()) == data.size());
   REQUIRE(data == from_file);
 }
 
 TEST_CASE("Can retrieve the file size of a UnixFile") {
-  FixedSizeVector<byte> data = {1, 3, 3, 7};
+  DynamicArray<byte> data = {1, 3, 3, 7};
 
   // Open a scoped file, so it gets deleted on exit or exception.
   auto regular_file = UnixFile::OpenScoped("noid_unixfile_test.ndb");

@@ -9,7 +9,7 @@
 #include <memory>
 
 #include "backend/Types.h"
-#include "backend/FixedSizeVector.h"
+#include "backend/DynamicArray.h"
 
 namespace noid::backend::page {
 
@@ -47,9 +47,9 @@ class Freelist {
     /**
      * @brief The list of free pages stored in this freelist.
      */
-    const FixedSizeVector<PageNumber> free_pages;
+    const DynamicArray<PageNumber> free_pages;
 
-    explicit Freelist(uint16_t page_size, PageNumber previous, PageNumber next, FixedSizeVector<PageNumber> free_pages);
+    explicit Freelist(uint16_t page_size, PageNumber previous, PageNumber next, DynamicArray<PageNumber> free_pages);
 
  public:
 
@@ -75,7 +75,7 @@ class Freelist {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given raw data do not represent a valid serialized @c Freelist.
      */
-    static std::unique_ptr<FreelistBuilder> NewBuilder(FixedSizeVector<byte> && base);
+    static std::unique_ptr<FreelistBuilder> NewBuilder(DynamicArray<byte> && base);
 
     /**
      * @brief Returns the page number of the previous freelist page. A @c PageNumber of zero means no previous page.
@@ -112,7 +112,7 @@ class Freelist {
      *
      * @return The serialized @c Freelist instance.
      */
-    [[nodiscard]] FixedSizeVector<byte> ToBytes() const;
+    [[nodiscard]] DynamicArray<byte> ToBytes() const;
 };
 
 class FreelistBuilder {
@@ -152,7 +152,7 @@ class FreelistBuilder {
 
     explicit FreelistBuilder();
     explicit FreelistBuilder(const Freelist & base);
-    explicit FreelistBuilder(FixedSizeVector<byte> && base);
+    explicit FreelistBuilder(DynamicArray<byte> && base);
 
  public:
 

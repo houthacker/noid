@@ -11,7 +11,7 @@
 #include <type_traits>
 
 #include "backend/Types.h"
-#include "backend/FixedSizeVector.h"
+#include "backend/DynamicArray.h"
 
 namespace noid::backend::page {
 
@@ -21,9 +21,9 @@ concept PageBuilder = requires(B builder) {
 };
 
 template<typename P, typename B>
-concept Page = PageBuilder<B, P> && requires(P, B, P page, FixedSizeVector<byte> && data) {
+concept Page = PageBuilder<B, P> && requires(P, B, P page, DynamicArray<byte> && data) {
   { P::NewBuilder(std::move(data)) } -> std::same_as<std::unique_ptr<B>>;
-  { page.ToBytes() } -> std::convertible_to<FixedSizeVector<byte>>;
+  { page.ToBytes() } -> std::convertible_to<DynamicArray<byte>>;
 };
 
 }

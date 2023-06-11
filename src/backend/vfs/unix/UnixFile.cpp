@@ -128,8 +128,8 @@ std::size_t UnixFile::Write(const byte* source, Position start_position, std::si
   return items_written * size;
 }
 
-std::size_t UnixFile::Read(FixedSizeVector<byte>& container,
-    FixedSizeVector<byte>::iterator container_pos,
+std::size_t UnixFile::Read(DynamicArray<byte>& container,
+    DynamicArray<byte>::iterator container_pos,
     Position start_position,
     const std::size_t size)
 {
