@@ -6,6 +6,7 @@
 
 #include "LeafNode.h"
 #include "Limits.h"
+#include "backend/Algorithm.h"
 #include "backend/Bits.h"
 #include "backend/NoidConfig.h"
 
@@ -104,6 +105,11 @@ const NodeRecord& LeafNode::RecordAt(uint16_t slot) const
   return const_cast<const NodeRecord&>(this->records.at(slot));
 }
 
+bool LeafNode::Contains(const SearchKey& key) const
+{
+  return BinarySearch<NodeRecord>(this->records, 0, this->records.size(), key) != this->records.size();
+}
+
 /*** LeafNodeBuilder ***/
 
 LeafNodeBuilder::LeafNodeBuilder()
@@ -115,7 +121,8 @@ LeafNodeBuilder::LeafNodeBuilder()
 
 LeafNodeBuilder::LeafNodeBuilder(const LeafNode& base)
     :page_size(NoidConfig::Get().vfs_page_size), max_slot(CalculateMaxRecords(page_size) - 1),
-     left_sibling(base.left_sibling), right_sibling(base.right_sibling), records(base.records.size()) {
+     left_sibling(base.left_sibling), right_sibling(base.right_sibling), records(base.records.size())
+{
   std::copy(base.records.begin(), base.records.end(), this->records.begin());
 }
 

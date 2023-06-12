@@ -22,12 +22,17 @@ struct NodeEntry {
     /**
      * @brief The entry key.
      */
-    std::array<byte, FIXED_KEY_SIZE> key;
+    SearchKey key;
 
     /**
      * @brief The number of the right child page.
      */
     PageNumber right_child;
+
+    /**
+     * @return The search key of this entry.
+     */
+    [[nodiscard]] const SearchKey& GetKey() const;
 
     /**
      * @brief Compares two @c NodeEntry instances for equality.
@@ -61,6 +66,8 @@ class InternalNode : public Node {
     explicit InternalNode(PageNumber leftmost_child, DynamicArray<NodeEntry>&& entries);
 
  public:
+
+    ~InternalNode() override =default;
 
     /**
      * @brief Creates a new builder for @c InternalNode instances, using an all-zeroes backing vector.
@@ -102,6 +109,12 @@ class InternalNode : public Node {
      * @throws std::out_of_range if @c slot is outside of the entry range.
      */
     [[nodiscard]] const NodeEntry& EntryAt(uint16_t slot) const;
+
+    /**
+     * @param key The search key.
+     * @return Whether this node contains the given key.
+     */
+    [[nodiscard]] bool Contains(const SearchKey& key) const override;
 };
 
 class InternalNodeBuilder {
@@ -162,7 +175,7 @@ class InternalNodeBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::overflow_error if the node is full (i.e. contains the maximum amount of entries).
      */
-    InternalNodeBuilder& WithEntry(std::array<byte, FIXED_KEY_SIZE> key, PageNumber right_child_page);
+    InternalNodeBuilder& WithEntry(SearchKey key, PageNumber right_child_page);
 
     /**
      * @brief Adds a new entry for the @c InternalNode, possibly overwriting a previously existing entry in
@@ -176,7 +189,7 @@ class InternalNodeBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::overflow_error if the node is full (i.e. contains the maximum amount of entries).
      */
-    InternalNodeBuilder& WithEntry(std::array<byte, FIXED_KEY_SIZE> key, PageNumber right_child_page,
+    InternalNodeBuilder& WithEntry(SearchKey key, PageNumber right_child_page,
         uint16_t slot_hint);
 };
 

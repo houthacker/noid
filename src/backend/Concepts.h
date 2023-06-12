@@ -8,6 +8,8 @@
 #include <concepts>
 #include <type_traits>
 
+namespace noid::backend {
+
 template<typename It>
 concept LegacyIterator = std::is_copy_constructible_v<It>
     and std::is_copy_assignable_v<It>
@@ -33,11 +35,14 @@ concept LegacyForwardIterator = LegacyInputIterator<It>
     and std::is_default_constructible_v<It>
     and (
         (std::is_same_v<typename std::iterator_traits<It>::reference, typename std::iterator_traits<It>::value_type&>
-          or std::is_same_v<typename std::iterator_traits<It>::reference, typename std::iterator_traits<It>::value_type&&>)
+            or std::is_same_v<typename std::iterator_traits<It>::reference,
+                              typename std::iterator_traits<It>::value_type&&>)
 
-        or
-        (std::is_same_v<typename std::iterator_traits<It>::reference, const typename std::iterator_traits<It>::value_type&>
-            or std::is_same_v<typename std::iterator_traits<It>::reference, const typename std::iterator_traits<It>::value_type&&>)
+            or
+                (std::is_same_v<typename std::iterator_traits<It>::reference,
+                                const typename std::iterator_traits<It>::value_type&>
+                    or std::is_same_v<typename std::iterator_traits<It>::reference,
+                                      const typename std::iterator_traits<It>::value_type&&>)
     )
     and requires(It iterator) {
       { iterator++ } -> std::same_as<It>;
@@ -53,6 +58,10 @@ concept Container = std::same_as<typename T::value_type, V>
     and std::same_as<typename T::difference_type, typename std::iterator_traits<typename T::iterator>::difference_type>
     and std::convertible_to<typename T::size_type, typename T::difference_type>
     and requires(T obj, std::size_t i) {
+      { obj.begin() } -> std::convertible_to<typename T::iterator>;
+      { obj.cbegin() } -> std::same_as<typename T::const_iterator>;
+      { obj.end() } -> std::convertible_to<typename T::iterator>;
+      { obj.cend() } -> std::same_as<typename T::const_iterator>;
       { obj.size() } -> std::same_as<typename T::size_type>;
       { obj.max_size() } -> std::same_as<typename T::size_type>;
       { obj.empty() } -> std::convertible_to<bool>;
@@ -64,5 +73,12 @@ template<typename T, typename V>
 concept DynamicallySizedContainer = Container<T, V> && requires(T obj, std::size_t i) {
   { obj.resize(i) } -> std::same_as<std::void_t<V>>;
 };
+
+template<typename T, typename K>
+concept KeyBearer = requires(T obj) {
+  { obj.GetKey() } -> std::convertible_to<const K&>;
+};
+
+}
 
 #endif //NOID_SRC_BACKEND_CONCEPTS_H_

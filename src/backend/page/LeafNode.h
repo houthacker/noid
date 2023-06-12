@@ -22,7 +22,7 @@ class LeafNodeBuilder;
  * @brief Data object for the node record which contains the actual data.
  * @note Since this is not a page type, it does not get its own translation unit.
  */
-class NodeRecord : public Node {
+class NodeRecord {
  public:
     static uint8_t const INLINE_PAYLOAD_SIZE = 7;
 
@@ -30,7 +30,7 @@ class NodeRecord : public Node {
     /**
      * @brief The search key that is associated with the payload.
      */
-    std::array<byte, FIXED_KEY_SIZE> key;
+    SearchKey key;
 
     /**
      * @brief Indicates if all payload data fits in this record.
@@ -53,7 +53,7 @@ class NodeRecord : public Node {
     /**
      * @brief Default constructor.
      */
-    NodeRecord() = default;
+    NodeRecord() : key({0}), inline_indicator(0), payload({0}) {};
 
     /**
      * @brief Creates a new @c NodeRecord with the given data.
@@ -64,12 +64,12 @@ class NodeRecord : public Node {
      * @param inline_indicator The size of the inline payload, or zero if the payload also resides in overflow pages.
      * @param payload The payload.
      */
-    NodeRecord(std::array<byte, FIXED_KEY_SIZE> key, byte inline_indicator, std::array<byte, INLINE_PAYLOAD_SIZE> payload);
+    NodeRecord(SearchKey key, byte inline_indicator, std::array<byte, INLINE_PAYLOAD_SIZE> payload);
 
     /**
      * @return The record key.
      */
-    [[nodiscard]] const std::array<byte, FIXED_KEY_SIZE>& GetKey() const;
+    [[nodiscard]] const SearchKey& GetKey() const;
 
     /**
      * @details Returns the byte size of the payload if the full payload fits in this record. If at least
@@ -101,7 +101,7 @@ class NodeRecord : public Node {
 /**
  * @brief Node type to contain the actual data.
  */
-class LeafNode {
+class LeafNode : public Node {
  private:
     friend class LeafNodeBuilder;
 
@@ -122,6 +122,8 @@ class LeafNode {
 
     LeafNode(PageNumber left_sibling, PageNumber right_sibling, DynamicArray<NodeRecord> && records);
  public:
+
+    ~LeafNode() override =default;
 
     /**
      * @brief Creates a new builder for @c LeafNode instances with all fields unset.
@@ -169,6 +171,12 @@ class LeafNode {
      * @throws std::out_of_range if @c slot is outside of the record range.
      */
     [[nodiscard]] const NodeRecord& RecordAt(uint16_t slot) const;
+
+    /**
+     * @param key The search key.
+     * @return Whether this node contains the given key.
+     */
+    [[nodiscard]] bool Contains(const SearchKey& key) const override;
 };
 
 class LeafNodeBuilder {

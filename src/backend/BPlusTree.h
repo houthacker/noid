@@ -14,6 +14,16 @@
 
 namespace noid::backend {
 
+/**
+ * @brief B+Tree implementation that allows for different types of storage.
+ *
+ * @tparam Lockable The Lockable used by the @c Pager for unique locking.
+ * @tparam SharedLockable The Lockable used by the @c Pager for shared locking.
+ *
+ * @see https://en.cppreference.com/w/cpp/named_req/Lockable
+ * @see https://en.cppreference.com/w/cpp/named_req/SharedLockable
+ * @author houthacker
+ */
 template<Lockable Lockable, SharedLockable SharedLockable>
 class BPlusTree {
  private:

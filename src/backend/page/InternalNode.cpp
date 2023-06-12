@@ -6,6 +6,7 @@
 
 #include "InternalNode.h"
 #include "Limits.h"
+#include "backend/Algorithm.h"
 #include "backend/Bits.h"
 #include "backend/NoidConfig.h"
 
@@ -32,6 +33,11 @@ static DynamicArray<byte>& Validate(DynamicArray<byte>& raw_data)
 static inline std::size_t SlotToIndex(uint16_t slot)
 {
   return ENTRY_LIST_OFFSET + slot * sizeof(PageNumber);
+}
+
+const SearchKey& NodeEntry::GetKey() const
+{
+  return this->key;
 }
 
 bool NodeEntry::operator==(const NodeEntry& other) const
@@ -72,6 +78,12 @@ const NodeEntry& InternalNode::EntryAt(uint16_t slot) const
   return const_cast<NodeEntry&>(this->entries.at(slot));
 }
 
+bool InternalNode::Contains(const SearchKey& key) const
+{
+  return BinarySearch<NodeEntry>(this->entries, 0, this->entries.size() - 1, key)
+      != this->entries.size();
+}
+
 /*** InternalNodeBuilder ***/
 
 InternalNodeBuilder::InternalNodeBuilder()
@@ -82,7 +94,8 @@ InternalNodeBuilder::InternalNodeBuilder()
 
 InternalNodeBuilder::InternalNodeBuilder(const InternalNode& base)
     :page_size(NoidConfig::Get().vfs_page_size), max_slot(CalculateMaxEntries(page_size) - 1),
-     leftmost_child(base.leftmost_child), entries(base.entries.size()) {
+     leftmost_child(base.leftmost_child), entries(base.entries.size())
+{
   std::copy(base.entries.begin(), base.entries.end(), this->entries.begin());
 }
 
@@ -96,7 +109,7 @@ InternalNodeBuilder::InternalNodeBuilder(DynamicArray<byte>&& base)
   for (auto slot = 0; slot < next_free_slot; slot++) {
     auto container_offset = SlotToIndex(slot);
     this->entries.push_back({
-        read_container<byte, std::array<byte, FIXED_KEY_SIZE>>(base, container_offset, FIXED_KEY_SIZE),
+        read_container<byte, SearchKey>(base, container_offset, FIXED_KEY_SIZE),
         read_le_uint32<byte>(base, container_offset + FIXED_KEY_SIZE)
     });
   }
@@ -122,7 +135,7 @@ InternalNodeBuilder& InternalNodeBuilder::WithLeftmostChild(PageNumber page_numb
   return *this;
 }
 
-InternalNodeBuilder& InternalNodeBuilder::WithEntry(std::array<byte, FIXED_KEY_SIZE> key, PageNumber right_child_page)
+InternalNodeBuilder& InternalNodeBuilder::WithEntry(SearchKey key, PageNumber right_child_page)
 {
   if (this->IsFull()) {
     throw std::overflow_error("Cannot add entry: node is full");
@@ -133,7 +146,7 @@ InternalNodeBuilder& InternalNodeBuilder::WithEntry(std::array<byte, FIXED_KEY_S
   return *this;
 }
 
-InternalNodeBuilder& InternalNodeBuilder::WithEntry(std::array<byte, FIXED_KEY_SIZE> key, PageNumber right_child_page,
+InternalNodeBuilder& InternalNodeBuilder::WithEntry(SearchKey key, PageNumber right_child_page,
     uint16_t slot_hint)
 {
   if (this->entries.size() > slot_hint) {

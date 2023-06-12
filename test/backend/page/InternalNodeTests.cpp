@@ -78,3 +78,17 @@ TEST_CASE("Try building an InternalNode that contains too many entries")
 
   CHECK_THROWS_AS(builder->WithEntry({1, 3, 3, 204}, 204), std::overflow_error);
 }
+
+TEST_CASE("Check that an InternalNode contains a given NodeEntry") {
+  auto node = InternalNode::NewBuilder()
+      ->WithLeftmostChild(1)
+      .WithEntry({1, 3, 3, 7}, 2)
+      .WithEntry({1, 3, 3, 8}, 3)
+      .WithEntry({1, 3, 3, 9}, 4)
+      .Build();
+
+  REQUIRE(node->Contains({1, 3, 3, 7}));
+  REQUIRE(node->Contains({1, 3, 3, 8}));
+  REQUIRE(node->Contains({1, 3, 3, 9}));
+  REQUIRE_FALSE(node->Contains({1, 3, 3, 10}));
+}
