@@ -7,7 +7,7 @@
 namespace noid::backend {
 
 template<Lockable Lockable, SharedLockable SharedLockable>
-BPlusTree<Lockable, SharedLockable>::BPlusTree(std::unique_ptr<Pager<Lockable, SharedLockable>> pager)
+BPlusTree<Lockable, SharedLockable>::BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager)
     :pager(std::move(pager)) { }
 
 template<Lockable Lockable, SharedLockable SharedLockable>

@@ -27,7 +27,7 @@ namespace noid::backend {
 template<Lockable Lockable, SharedLockable SharedLockable>
 class BPlusTree {
  private:
-    std::unique_ptr<Pager<Lockable, SharedLockable>> pager;
+    std::shared_ptr<Pager<Lockable, SharedLockable>> pager;
 
  public:
 
@@ -36,7 +36,7 @@ class BPlusTree {
      *
      * @param pager The pager to use.
      */
-    explicit BPlusTree(std::unique_ptr<Pager<Lockable, SharedLockable>> pager);
+    explicit BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager);
 
     /**
      * @brief Inserts the given key/value pair into this tree, overwriting any pre-existing value having
