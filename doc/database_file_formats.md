@@ -59,7 +59,8 @@ sacrificed so that all pages in a database file have a consistent size, allowing
 | 2      | 2            | `uint16_t` max entries in an internal node page (page size-24)/entry size |
 | 4      | 2            | `uint16_t` max records in a leaf node page (page size-24)/record size     |
 | 6      | 4            | LE `uint32_t` root node page number                                       |
-| 10     | 4086         | Reserved for later use (zeroed)                                           |
+| 10     | 4            | LE `uint32_t` amount of pages in this tree                                |
+| 14     | 4082         | Reserved for later use (zeroed)                                           |
 
 ## Internal Node Page
 

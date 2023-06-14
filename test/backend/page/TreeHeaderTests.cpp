@@ -18,10 +18,12 @@ TEST_CASE("Build a TreeHeader")
   auto tree_header = TreeHeader::NewBuilder()
       ->WithTreeType(TreeType::Table)
       .WithRootPageNumber(1337)
+      .WithPageCount(13)
       .Build();
 
   REQUIRE(tree_header->GetTreeType() == TreeType::Table);
   REQUIRE(tree_header->GetRoot() == 1337);
+  REQUIRE(tree_header->GetPageCount() == 13);
   REQUIRE(tree_header->GetMaxInternalEntries() == 203); // calculated default value
   REQUIRE(tree_header->GetMaxLeafRecords() == 169); // calculated default value
 }
@@ -93,15 +95,18 @@ TEST_CASE("Build a TreeHeader based on a std::vector<byte>")
   auto const max_entries = 203;
   auto const max_records = 169;
   auto const root_page = 1337;
+  auto const page_count = 13;
   auto base = DynamicArray<byte>(page_size);
   write_le_uint16<byte>(base, 0, (uint16_t) tree_type);
   write_le_uint16<byte>(base, sizeof(uint16_t), max_entries);
   write_le_uint16<byte>(base, sizeof(uint16_t) + sizeof(uint16_t), max_records);
-  write_le_uint16<byte>(base, sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t), root_page);
+  write_le_uint32<byte>(base, sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t), root_page);
+  write_le_uint32<byte>(base, sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t), page_count);
 
   auto tree_header = TreeHeader::NewBuilder(std::move(base))->Build();
   REQUIRE(tree_header->GetTreeType() == tree_type);
   REQUIRE(tree_header->GetRoot() == root_page);
   REQUIRE(tree_header->GetMaxInternalEntries() == max_entries);
   REQUIRE(tree_header->GetMaxLeafRecords() == max_records);
+  REQUIRE(tree_header->GetPageCount() == page_count);
 }

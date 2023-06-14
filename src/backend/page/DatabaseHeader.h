@@ -32,7 +32,7 @@ class DatabaseHeader {
     friend class DatabaseHeaderBuilder;
 
     /**
-     * The size in bytes of all database pages, except for the database header itself.
+     * The byte size of database pages, except for the database header itself, which has a size of @c DatabaseHeader::BYTE_SIZE.
      */
     const uint16_t page_size;
 

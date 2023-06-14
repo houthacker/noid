@@ -52,7 +52,7 @@ class TreeHeader {
     /**
      * @brief The type of tree this is the header of.
      */
-    TreeType tree_type;
+    const TreeType tree_type;
 
     /**
      * @brief The maximum amount of entries an @c InternalNode may contain.
@@ -60,7 +60,7 @@ class TreeHeader {
      * In a future release, this value might be removed from the file format, but currently it
      * is used when validating a subset of the page types when retrieved from persistent storage.
      */
-    uint16_t max_node_entries;
+    const uint16_t max_node_entries;
 
     /**
      * @brief The maximum amount of records a @c LeafNode may contain.
@@ -68,14 +68,20 @@ class TreeHeader {
      * In a future release, this value might be removed from the file format, but currently it
      * is used when validating a subset of the page types when retrieved from persistent storage.
      */
-    uint16_t max_node_records;
+    const uint16_t max_node_records;
 
     /**
      * The number of the page at which the root node is stored.
      */
-    PageNumber root;
+    const PageNumber root;
 
-    explicit TreeHeader(TreeType tree_type, uint16_t max_node_entries, uint16_t max_node_records, PageNumber root);
+    /**
+     * The number of pages contained in this b+tree. This includes this @c TreeHeader itself.
+     */
+    const uint32_t page_count;
+
+    explicit TreeHeader(TreeType tree_type, uint16_t max_node_entries, uint16_t max_node_records, PageNumber root,
+        uint32_t page_count);
 
  public:
 
@@ -128,6 +134,11 @@ class TreeHeader {
      * @return The page number of the root node in the database file.
      */
     [[nodiscard]] PageNumber GetRoot() const;
+
+    /**
+     * @return The number of pages contained in this b+tree, including this @c TreeHeader.
+     */
+    [[nodiscard]] uint32_t GetPageCount() const;
 };
 
 class TreeHeaderBuilder {
@@ -159,6 +170,11 @@ class TreeHeaderBuilder {
      */
     PageNumber root;
 
+    /**
+     * The number of pages contained in this b+tree. This includes this @c TreeHeader itself.
+     */
+    uint32_t page_count;
+
     explicit TreeHeaderBuilder();
     explicit TreeHeaderBuilder(const TreeHeader& base);
     explicit TreeHeaderBuilder(DynamicArray<byte>&& base);
@@ -189,6 +205,14 @@ class TreeHeaderBuilder {
      * @throws std::domain_error if the root page has been set already and differs from @p root_page.
      */
     TreeHeaderBuilder& WithRootPageNumber(PageNumber root_page);
+
+    /**
+     * @brief Sets the amount of pages in the containing b+tree (this header included).
+     * @param count The amount of pages.
+     * @return  A reference to this builder to support a fluent interface.
+     * @throws std::out_of_range if @p count is zero.
+     */
+    TreeHeaderBuilder& WithPageCount(uint32_t count);
 };
 
 }
