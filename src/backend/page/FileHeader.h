@@ -14,14 +14,14 @@
 
 namespace noid::backend::page {
 
-class DatabaseHeaderBuilder;
+class FileHeaderBuilder;
 
 /**
  * @brief The noid database header format.
  *
  * @author houthacker
  */
-class DatabaseHeader {
+class FileHeader {
  public:
     /**
      * @brief The size in bytes of a noid database header on disk.
@@ -29,10 +29,10 @@ class DatabaseHeader {
     static uint8_t const BYTE_SIZE = 100;
 
  private:
-    friend class DatabaseHeaderBuilder;
+    friend class FileHeaderBuilder;
 
     /**
-     * The byte size of database pages, except for the database header itself, which has a size of @c DatabaseHeader::BYTE_SIZE.
+     * The byte size of database pages, except for the database header itself, which has a size of @c FileHeader::BYTE_SIZE.
      */
     const uint16_t page_size;
 
@@ -57,43 +57,43 @@ class DatabaseHeader {
     const uint32_t checksum;
 
     /*
-     * Creates a new @c DatabaseHeader
+     * Creates a new @c FileHeader
      */
-    DatabaseHeader(uint16_t page_size, uint8_t key_size, PageNumber first_tree_header_page, PageNumber first_freelist_page, uint32_t checksum);
+    FileHeader(uint16_t page_size, uint8_t key_size, PageNumber first_tree_header_page, PageNumber first_freelist_page, uint32_t checksum);
 
  public:
 
     /**
-     * @brief Creates a new builder for @c DatabaseHeader instances, using default values.
+     * @brief Creates a new builder for @c FileHeader instances, using default values.
      *
      * @return The new builder instance.
      */
-    static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder();
+    static std::unique_ptr<FileHeaderBuilder> NewBuilder();
 
     /**
-     * @brief Creates a new builder for @c DatabaseHeader instances, using @p base as a starting point.
+     * @brief Creates a new builder for @c FileHeader instances, using @p base as a starting point.
      *
-     * @param base The @c DatabaseHeader to use as a basis for the new instance.
+     * @param base The @c FileHeader to use as a basis for the new instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(const DatabaseHeader& base);
+    static std::unique_ptr<FileHeaderBuilder> NewBuilder(const FileHeader& base);
 
     /**
-     * @brief Creates a new builder for @c DatabaseHeader instances, using the given raw array as a base.
+     * @brief Creates a new builder for @c FileHeader instances, using the given raw array as a base.
      * @details The data in this array is expanded to
      *
-     * @param base The raw bytes to use as a basis for the new @c DatabaseHeader instance.
+     * @param base The raw bytes to use as a basis for the new @c FileHeader instance.
      * @return The new builder instance.
-     * @throws std::invalid_argument if the given bytes do not represent a valid @c DatabaseHeader.
+     * @throws std::invalid_argument if the given bytes do not represent a valid @c FileHeader.
      */
-    static std::unique_ptr<DatabaseHeaderBuilder> NewBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> &base);
+    static std::unique_ptr<FileHeaderBuilder> NewBuilder(std::array<byte, FileHeader::BYTE_SIZE> &base);
 
     /**
      * @brief Creates a new array containing the serialized representation of this database header.
      *
      * @return The serialized database header.
      */
-    [[nodiscard]] std::array<byte, DatabaseHeader::BYTE_SIZE> ToBytes() const;
+    [[nodiscard]] std::array<byte, FileHeader::BYTE_SIZE> ToBytes() const;
 
     /**
      * @return The size of the database pages in bytes.
@@ -129,41 +129,41 @@ class DatabaseHeader {
     [[nodiscard]] uint32_t GetChecksum() const;
 
     /**
-     * @details Two instances of @c DatabaseHeader are considered equal if their serialized form contains the same
+     * @details Two instances of @c FileHeader are considered equal if their serialized form contains the same
      * bytes.
      *
      * @param other The instance to compare to.
-     * @return Whether this @c DatabaseHeader is considered equal to @p other.
+     * @return Whether this @c FileHeader is considered equal to @p other.
      */
-    [[nodiscard]] bool Equals(const DatabaseHeader& other) const;
+    [[nodiscard]] bool Equals(const FileHeader& other) const;
 };
 
-bool operator==(const DatabaseHeader& lhs, const DatabaseHeader& rhs);
-bool operator!=(const DatabaseHeader& lhs, const DatabaseHeader& rhs);
+bool operator==(const FileHeader& lhs, const FileHeader& rhs);
+bool operator!=(const FileHeader& lhs, const FileHeader& rhs);
 
 /**
- * @brief Builder for @c DatabaseHeader instances.
+ * @brief Builder for @c FileHeader instances.
  *
  * @author houthacker
  */
-class DatabaseHeaderBuilder {
+class FileHeaderBuilder {
  private:
-    friend class DatabaseHeader;
+    friend class FileHeader;
 
     uint16_t page_size;
     uint8_t key_size;
     PageNumber first_tree_header_page;
     PageNumber first_freelist_page;
 
-    explicit DatabaseHeaderBuilder();
-    explicit DatabaseHeaderBuilder(std::array<byte, DatabaseHeader::BYTE_SIZE> const & base);
+    explicit FileHeaderBuilder();
+    explicit FileHeaderBuilder(std::array<byte, FileHeader::BYTE_SIZE> const & base);
 
     /**
      * @brief Creates a new builder with default values.
      *
      * @return The new builder instance.
      */
-    static std::unique_ptr<DatabaseHeaderBuilder> Create();
+    static std::unique_ptr<FileHeaderBuilder> Create();
 
     /**
      * @brief Creates a new builder with a copy of the the given backing array.
@@ -172,7 +172,7 @@ class DatabaseHeaderBuilder {
      * @return The new builder instance.
      * @throws std::invalid_argument if the checksum verification fails.
      */
-    static std::unique_ptr<DatabaseHeaderBuilder> Create(std::array<byte, DatabaseHeader::BYTE_SIZE> const & base);
+    static std::unique_ptr<FileHeaderBuilder> Create(std::array<byte, FileHeader::BYTE_SIZE> const & base);
 
     /**
      * @brief Creates a new builder with a copy of the data in @p base.
@@ -180,15 +180,15 @@ class DatabaseHeaderBuilder {
      * @param base The header to use as a basis for the new header instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<DatabaseHeaderBuilder> Create(const DatabaseHeader& base);
+    static std::unique_ptr<FileHeaderBuilder> Create(const FileHeader& base);
  public:
 
     /**
-     * @brief Creates a new @c DatabaseHeader instance based on the provided data.
+     * @brief Creates a new @c FileHeader instance based on the provided data.
      *
-     * @return The new @c DatabaseHeader instance.
+     * @return The new @c FileHeader instance.
      */
-    [[nodiscard]] std::unique_ptr<const DatabaseHeader> Build() const;
+    [[nodiscard]] std::unique_ptr<const FileHeader> Build() const;
 
     /**
      * @brief Sets or overwrites the currently configured page size.
@@ -198,7 +198,7 @@ class DatabaseHeaderBuilder {
      * @param size The new page size.
      * @return A reference to this builder to support a fluent interface.
      */
-    DatabaseHeaderBuilder& WithPageSize(uint16_t size = DEFAULT_PAGE_SIZE);
+    FileHeaderBuilder& WithPageSize(uint16_t size = DEFAULT_PAGE_SIZE);
 
     /**
      * @brief Sets or overwrites the currently configured key size.
@@ -208,7 +208,7 @@ class DatabaseHeaderBuilder {
      * @param size The new key size.
      * @return A reference to this builder to support a fluent interface.
      */
-    DatabaseHeaderBuilder& WithKeySize(uint8_t size = FIXED_KEY_SIZE);
+    FileHeaderBuilder& WithKeySize(uint8_t size = FIXED_KEY_SIZE);
 
     /**
      * @brief Sets or overwrites the page number of the first tree header.
@@ -216,7 +216,7 @@ class DatabaseHeaderBuilder {
      * @param page_number The page number of the first tree header.
      * @return A reference to this builder to support a fluent interface.
      */
-    DatabaseHeaderBuilder& WithFirstTreeHeaderPage(PageNumber page_number);
+    FileHeaderBuilder& WithFirstTreeHeaderPage(PageNumber page_number);
 
     /**
      * @brief Sets or overwrites the page number of the first freelist page.
@@ -224,7 +224,7 @@ class DatabaseHeaderBuilder {
      * @param page_number The page number of the first freelist page.
      * @return A reference to this builder to support a fluent interface.
      */
-    DatabaseHeaderBuilder& WithFirstFreeListPage(PageNumber page_number);
+    FileHeaderBuilder& WithFirstFreeListPage(PageNumber page_number);
 };
 
 }

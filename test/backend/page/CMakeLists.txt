@@ -1,7 +1,7 @@
 project(noid_tests)
 
 set(SOURCE_FILES
-        DatabaseHeaderTests.cpp
+        FileHeaderTests.cpp
         FreelistTests.cpp
         TreeHeaderTests.cpp
         InternalNodeTests.cpp

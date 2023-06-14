@@ -13,7 +13,7 @@
 #include "backend/concurrent/Concepts.h"
 #include "backend/page/Concepts.h"
 #include "backend/vfs/NoidFile.h"
-#include "backend/page/DatabaseHeader.h"
+#include "backend/page/FileHeader.h"
 
 namespace fs = std::filesystem;
 using namespace noid::backend::page;
@@ -72,14 +72,14 @@ class Pager {
         NoidLock unique_lock = file->UniqueLock();
 
         // Only initialize the database file if it is empty. Otherwise, if its size
-        // is less (or greater) than page::DatabaseHeader::BYTE_SIZE, it could be that it is not a Noid database file at all.
+        // is less (or greater) than page::FileHeader::BYTE_SIZE, it could be that it is not a Noid database file at all.
         // In that case the @c Pager will throw after trying to read the header because it cannot read a valid header.
         // This leaves invalid database files intact.
         if (file->Size() == 0) {
-          auto header = DatabaseHeader::NewBuilder()->Build();
+          auto header = FileHeader::NewBuilder()->Build();
 
           // TODO Write to WAL, not file directly.
-          if (file->WriteContainer(header->ToBytes(), 0) != DatabaseHeader::BYTE_SIZE) {
+          if (file->WriteContainer(header->ToBytes(), 0) != FileHeader::BYTE_SIZE) {
             throw std::ios_base::failure("Cannot initialize database file.");
           }
 
@@ -91,15 +91,16 @@ class Pager {
       // If we end up here, the database file existed already, and we must read its page size to configure the @c Pager.
       // We could also do this in the @c else branch of the above @c if statement, but then we'd keep the unique lock
       // longer than absolutely necessary.
-      std::array<byte, DatabaseHeader::BYTE_SIZE> bytes = {0};
+      std::array<byte, FileHeader::BYTE_SIZE> bytes = {0};
       {
         NoidSharedLock shared_lock = file->SharedLock();
-        if (file->ReadContainer(bytes, 0) != DatabaseHeader::BYTE_SIZE) {
+        // TODO read from WAL, or catch-22?
+        if (file->ReadContainer(bytes, 0) != FileHeader::BYTE_SIZE) {
           throw std::ios_base::failure("Could not read database header.");
         }
       }
 
-      auto page_size = DatabaseHeader::NewBuilder(bytes)->Build()->GetPageSize();
+      auto page_size = FileHeader::NewBuilder(bytes)->Build()->GetPageSize();
       return std::unique_ptr<Pager<Lockable, SharedLockable>>(new Pager<Lockable, SharedLockable>(std::move(file), page_size));
     }
 
@@ -109,15 +110,15 @@ class Pager {
      * @return The database index page.
      * @throws std::filesystem::filesystem_error if the header cannot be read.
      */
-    std::shared_ptr<const DatabaseHeader> ReadFileHeader()
+    std::shared_ptr<const FileHeader> ReadFileHeader()
     {
-      std::array<byte, DatabaseHeader::BYTE_SIZE> bytes = {0};
+      std::array<byte, FileHeader::BYTE_SIZE> bytes = {0};
 
       // TODO check WAL, page cache
       NoidSharedLock shared_lock = this->file->SharedLock();
       for (auto i = this->max_io_retries; i > 0; i--) {
-        if (this->file->ReadContainer(bytes, 0) == DatabaseHeader::BYTE_SIZE) {
-          return DatabaseHeader::NewBuilder(bytes)->Build();
+        if (this->file->ReadContainer(bytes, 0) == FileHeader::BYTE_SIZE) {
+          return FileHeader::NewBuilder(bytes)->Build();
         }
       }
 
@@ -131,13 +132,13 @@ class Pager {
      * @param header The database index page.
      * @throws std::filesystem::filesystem_error if an i/o error occurs while writing the header.
      */
-    void WriteFileHeader(const DatabaseHeader& header)
+    void WriteFileHeader(const FileHeader& header)
     {
 
       // TODO write to WAL (, page cache?)
       NoidLock unique_lock = this->file->UniqueLock();
       for (auto i = this->max_io_retries; i > 0; i--) {
-        if (this->file->Write(header.ToBytes(), 0) == DatabaseHeader::BYTE_SIZE) {
+        if (this->file->Write(header.ToBytes(), 0) == FileHeader::BYTE_SIZE) {
           return;
         }
       }
@@ -152,7 +153,7 @@ class Pager {
         throw std::out_of_range("Given page location designates 'no page'.");
       }
 
-      Position file_pos = (location - 1) * this->page_size + DatabaseHeader::BYTE_SIZE;
+      Position file_pos = (location - 1) * this->page_size + FileHeader::BYTE_SIZE;
       auto data = DynamicArray<byte>(this->page_size);
 
       // TODO check WAL first
@@ -172,7 +173,7 @@ class Pager {
         throw std::out_of_range("Given page location designates 'no page'.");
       }
 
-      Position page_index = (location - 1) * this->page_size + DatabaseHeader::BYTE_SIZE;
+      Position page_index = (location - 1) * this->page_size + FileHeader::BYTE_SIZE;
 
       // TODO write to WAL only
       NoidLock unique_lock = this->file->UniqueLock();

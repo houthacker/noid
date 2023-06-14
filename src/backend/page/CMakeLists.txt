@@ -1,5 +1,5 @@
 set(SOURCE_FILES
-        DatabaseHeader.cpp
+        FileHeader.cpp
         Freelist.cpp
         TreeHeader.cpp
         InternalNode.cpp
