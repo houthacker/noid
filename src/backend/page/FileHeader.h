@@ -18,6 +18,9 @@ class FileHeaderBuilder;
 
 /**
  * @brief The noid database header format.
+ * @details The @c FileHeader is the only page in a noid database file that gets overwritten when updated. Otherwise,
+ * there would be no guarantee that this page always resides at index zero. Therefore, it also cannot exist in the
+ * freelist pages.
  *
  * @author houthacker
  */

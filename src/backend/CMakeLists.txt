@@ -14,7 +14,7 @@ set(SOURCE_FILES
         MD5.cpp
         UUID.cpp
         WAL.cpp
-        BPlusTree.cpp page/Limits.h)
+        page/Limits.h)
 
 add_library(noid_backend SHARED ${SOURCE_FILES} ${HEADER_FILES})
 
