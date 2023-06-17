@@ -7,29 +7,27 @@
 #include "backend/Bits.h"
 #include "backend/NoidConfig.h"
 
-static uint8_t TREE_HEADER_MAGIC_OFFSET = 0;
-static uint8_t MAX_ENTRIES_OFFSET = 2;
-static uint8_t MAX_RECORDS_OFFSET = 4;
-static uint8_t ROOT_NODE_PAGE_OFFSET = 6;
-static uint8_t PAGE_COUNT_OFFSET = 10;
+static const uint8_t TREE_HEADER_MAGIC_OFFSET = 0;
+static const uint8_t MAX_ENTRIES_OFFSET = 2;
+static const uint8_t MAX_RECORDS_OFFSET = 4;
+static const uint8_t ROOT_NODE_PAGE_OFFSET = 6;
+static const uint8_t PAGE_COUNT_OFFSET = 10;
 
 namespace noid::backend::page {
 
 static DynamicArray<byte>& Validate(DynamicArray<byte>& data)
 {
-  auto magic = read_le_uint16<byte>(data, TREE_HEADER_MAGIC_OFFSET);
-  if (magic != (uint16_t) TreeType::Index && magic != (uint16_t) TreeType::Table) {
+  if (auto magic = read_le_uint16<byte>(data, TREE_HEADER_MAGIC_OFFSET); magic != (uint16_t) TreeType::Index
+      && magic != (uint16_t) TreeType::Table) {
     throw std::invalid_argument("Invalid tree header page magic.");
   }
 
   auto page_size = NoidConfig::Get().vfs_page_size;
-  auto max_entries_configured = CalculateMaxEntries(page_size);
-  if (read_le_uint16<byte>(data, MAX_ENTRIES_OFFSET) != max_entries_configured) {
+  if (read_le_uint16<byte>(data, MAX_ENTRIES_OFFSET) != CalculateMaxEntries(page_size)) {
     throw std::invalid_argument("Unsupported max internal node entries");
   }
 
-  auto max_records_configured = CalculateMaxRecords(page_size);
-  if (read_le_uint16<byte>(data, MAX_RECORDS_OFFSET) != max_records_configured) {
+  if (read_le_uint16<byte>(data, MAX_RECORDS_OFFSET) != CalculateMaxRecords(page_size)) {
     throw std::invalid_argument("Unsupported max leaf node records");
   }
 
@@ -37,9 +35,9 @@ static DynamicArray<byte>& Validate(DynamicArray<byte>& data)
 }
 
 TreeHeader::TreeHeader(TreeType tree_type, uint16_t max_node_entries, uint16_t max_node_records, PageNumber root,
-    uint32_t page_count)
+    uint32_t page_count, uint16_t page_size)
     :tree_type(tree_type), max_node_entries(max_node_entries), max_node_records(max_node_records), root(root),
-     page_count(page_count) { }
+     page_count(page_count), page_size(page_size) { }
 
 std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder()
 {
@@ -81,6 +79,18 @@ uint32_t TreeHeader::GetPageCount() const
   return this->page_count;
 }
 
+DynamicArray<byte> TreeHeader::ToBytes() const
+{
+  auto bytes = DynamicArray<byte>(this->page_size);
+  write_le_uint16<byte>(bytes, TREE_HEADER_MAGIC_OFFSET, static_cast<uint16_t>(this->tree_type));
+  write_le_uint16<byte>(bytes, MAX_ENTRIES_OFFSET, this->max_node_entries);
+  write_le_uint16<byte>(bytes, MAX_RECORDS_OFFSET, this->max_node_records);
+  write_le_uint32<byte>(bytes, ROOT_NODE_PAGE_OFFSET, this->root);
+  write_le_uint32<byte>(bytes, PAGE_COUNT_OFFSET, this->page_count);
+
+  return bytes;
+}
+
 /*** TreeHeaderBuilder ***/
 
 TreeHeaderBuilder::TreeHeaderBuilder()
@@ -105,12 +115,10 @@ std::unique_ptr<const TreeHeader> TreeHeaderBuilder::Build()
   if (this->tree_type == TreeType::None) {
     throw std::domain_error("Tree type of TreeHeader not set.");
   }
-  else if (this->root == 0) {
-    throw std::domain_error("Root page not set.");
-  }
 
   return std::unique_ptr<const TreeHeader>(
-      new TreeHeader(this->tree_type, this->max_node_entries, this->max_node_records, this->root, this->page_count));
+      new TreeHeader(this->tree_type, this->max_node_entries, this->max_node_records, this->root, this->page_count,
+          this->page_size));
 }
 
 TreeHeaderBuilder& TreeHeaderBuilder::WithTreeType(TreeType type)

@@ -5,10 +5,12 @@
 #ifndef NOID_SRC_BACKEND_BPLUSTREE_H_
 #define NOID_SRC_BACKEND_BPLUSTREE_H_
 
+#include <functional>
 #include <memory>
 #include <optional>
 
 #include "backend/concurrent/Concepts.h"
+#include "backend/page/TreeHeader.h"
 #include "Pager.h"
 #include "Types.h"
 
@@ -39,30 +41,62 @@ class BPlusTree {
     /**
      * @brief The location of the @c TreeHeader page of this @c BPlusTree in (persistent) storage.
      */
-    PageNumber header_location;
+    std::unique_ptr<const page::TreeHeader> header;
 
     /**
-     * @brief Creates a new @c BPlusTree using the given @c Pager to read and write tree pages to storage.
+     * @brief Creates a @c BPlusTree using the given @c Pager and reads the header page from storage.
+     * @details This constructor assumes the tree and @p header_page already exist in storage.
+     * If a new tree must be created, use <code>BPlusTree(Pager, PageNumber, TreeType)</code>.
      *
      * @param pager The pager to use.
      * @param header The number of the header page for this @c BPlusTree.
      */
-    BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, PageNumber header)
-        :pager(std::move(pager)), header_location(header) { }
+    BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, PageNumber header_page)
+        :pager(std::move(pager))
+    {
+      this->header = this->pager->template ReadPage<page::TreeHeader, page::TreeHeaderBuilder>(header_page);
+    }
+
+    /**
+     * @brief Creates a new @c BPlusTree of the given type.
+     * @details This constructor assumes this is a completely new tree of the given type. Therefore it creates
+     * a new @c TreeHeader and instructs @p pager to store it.
+     *
+     * @param pager The pager to use.
+     * @param type The tree type.
+     */
+    BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type)
+        :pager(std::move(pager)), header(page::TreeHeader::NewBuilder()->WithTreeType(type).Build())
+    {
+      this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*this->header);
+    }
 
  public:
 
     /**
-     * @brief Creates a new @c BPlusTree instance using the given pager and header location.
+     * @brief Opens an existing @c BPlusTree instance using the given pager and header location.
      *
      * @param pager The @c Pager to use.
      * @param header The location of the associated tree header page.
-     * @return A managed pointer to the new @c BPlusTree instance.
+     * @return A managed pointer to the @c BPlusTree instance.
      */
-    static std::unique_ptr<BPlusTree<Lockable, SharedLockable>> Create(
+    static std::unique_ptr<BPlusTree<Lockable, SharedLockable>> Open(
         std::shared_ptr<Pager<Lockable, SharedLockable>> pager, PageNumber header)
     {
-      return std::unique_ptr(new BPlusTree(std::move(pager), header));
+      return std::unique_ptr(new BPlusTree<Lockable, SharedLockable>(std::move(pager), header));
+    }
+
+    /**
+     * @brief Creates and stores a new @c BPlusTree of type @p type using the given @p pager.
+     *
+     * @param pager The @c Pager to use.
+     * @param type The type of tree to create.
+     * @return A managed pointer to the @c BPlusTree instance.
+     */
+    static std::unique_ptr<BPlusTree<Lockable, SharedLockable>> Create(
+        std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type)
+    {
+      return std::unique_ptr<BPlusTree<Lockable, SharedLockable>>(new BPlusTree<Lockable, SharedLockable>(std::move(pager), type));
     }
 
     /**
@@ -73,9 +107,21 @@ class BPlusTree {
      * @param value The actual data to be stored.
      * @return The type of insert.
      */
-    InsertType Insert(const SearchKey& key, V& value)
+    InsertType Insert(SearchKey& key, V&& value)
     {
       return InsertType::Insert;
+    }
+
+    /**
+     * @brief Searches for the given key and returns a reference to the related value if it resides
+     * in this @c BPlusTree.
+     *
+     * @param key The search key.
+     * @return The associated value, or an empty optional if no such record exists.
+     */
+    std::optional<std::reference_wrapper<V>> Search(SearchKey& key)
+    {
+      return std::nullopt;
     }
 
     /**
@@ -84,7 +130,7 @@ class BPlusTree {
      * @param key The key to remove.
      * @return The associated value, or an empty optional if no such record exists.
      */
-    std::optional<V> Remove(const SearchKey& key)
+    std::optional<V> Remove(SearchKey& key)
     {
       return std::nullopt;
     }

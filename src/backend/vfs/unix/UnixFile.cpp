@@ -75,10 +75,10 @@ std::shared_ptr<UnixFile> UnixFile::OpenScoped(const fs::path& path)
           [path](auto p) {
             std::error_code code;
             if (!fs::remove(path, code)) {
-              NOID_LOG_ERROR(std::source_location::current(), "Could not delete file!");
+              NOID_LOG_ERROR(std::source_location::current(), "Could not delete file.");
             }
 
-            delete p;
+            delete p; //NOSONAR
           }};
 }
 

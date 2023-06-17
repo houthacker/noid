@@ -1,7 +1,8 @@
 project(noid_api)
 
 set(HEADER_FILES
-        Noid.h)
+        Noid.h
+        Error.h)
 
 set(SOURCE_FILES
         Noid.cpp)

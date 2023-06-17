@@ -16,10 +16,19 @@ using PageNumber = std::uint32_t;
 using Position = int64_t;
 
 /**
- * @brief Convenience shorthand definition for no page.
+ * @brief Shorthand for a 'null' @c PageNumber.
+ * @details This is also the location of the @c FileHeader page in a database file, and therefore it cannot be
+ * (over)written using the generic methods to write a page to a file.
+ *
+ * @see @c Pager::WritePage()
+ * @see @c Pager::WriteFileHeader()
+ *
  */
-constexpr PageNumber NO_PAGE = 0;
+constexpr PageNumber NULL_PAGE = 0;
 
+/**
+ * @brief The default 'no success' return code for c/c++ API calls.
+ */
 constexpr int8_t C_API_ERROR = -1;
 
 /**

@@ -80,8 +80,15 @@ class TreeHeader {
      */
     const uint32_t page_count;
 
-    explicit TreeHeader(TreeType tree_type, uint16_t max_node_entries, uint16_t max_node_records, PageNumber root,
-        uint32_t page_count);
+    /**
+     * The size in bytes of @c TreeHeader page. The page size is required when serializing a @c TreeHeader instance,
+     * but is itself not serialized into the @c TreeHeader. Instead, the page size is stored in the serialized
+     * @c FileHeader of a database.
+     */
+     const uint16_t page_size;
+
+    TreeHeader(TreeType tree_type, uint16_t max_node_entries, uint16_t max_node_records, PageNumber root,
+        uint32_t page_count, uint16_t page_size);
 
  public:
 
@@ -139,6 +146,13 @@ class TreeHeader {
      * @return The number of pages contained in this b+tree, including this @c TreeHeader.
      */
     [[nodiscard]] uint32_t GetPageCount() const;
+
+    /**
+     * @brief Serializes this instance to a dynamic byte array.
+     *
+     * @return The serialized @c TreeHeader.
+     */
+    [[nodiscard]] DynamicArray<byte> ToBytes() const;
 };
 
 class TreeHeaderBuilder {
