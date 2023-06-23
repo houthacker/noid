@@ -11,12 +11,15 @@
 #include <memory>
 #include <string>
 #include <sstream>
+#include <utility> // std::pair
 
+#include "backend/Concepts.h"
 #include "backend/DynamicArray.h"
 #include "backend/concurrent/Concepts.h"
 #include "backend/page/Concepts.h"
 #include "backend/vfs/NoidFile.h"
 #include "backend/page/FileHeader.h"
+#include "backend/page/LeafNode.h"
 #include "core/api/Error.h"
 
 namespace fs = std::filesystem;
@@ -75,13 +78,13 @@ class Pager {
         NoidLock unique_lock = file->UniqueLock();
 
         // Only initialize the database file if it is empty. Otherwise, if its size
-        // is less (or greater) than page::FileHeader::BYTE_SIZE, it could be that it is not a Noid database file at all.
+        // is less (or greater) than page::FileHeader::SIZE, it could be that it is not a Noid database file at all.
         // In that case the @c Pager will throw after trying to read the header because it cannot read a valid header.
         // This leaves invalid database files intact.
         if (file->Size() == 0) {
 
           // TODO Write to WAL, not file directly.
-          if (auto header = page::FileHeader::NewBuilder()->Build(); file->WriteContainer(header->ToBytes(), 0) != page::FileHeader::BYTE_SIZE) {
+          if (auto header = page::FileHeader::NewBuilder()->Build(); file->WriteContainer(header->ToBytes(), 0) != page::FileHeader::SIZE) {
             throw std::ios_base::failure("Cannot initialize database file.");
           }
 
@@ -94,11 +97,11 @@ class Pager {
       // If we end up here, the database file existed already, and we must read its page size to configure the @c Pager.
       // We could also do this in the @c else branch of the above @c if statement, but then we'd keep the unique lock
       // longer than absolutely necessary.
-      std::array<byte, page::FileHeader::BYTE_SIZE> bytes = {0};
+      std::array<byte, page::FileHeader::SIZE> bytes = {0};
       {
         NoidSharedLock shared_lock = file->SharedLock();
         // TODO read from WAL, or catch-22?
-        if (file->ReadContainer(bytes, 0) != page::FileHeader::BYTE_SIZE) {
+        if (file->ReadContainer(bytes, 0) != page::FileHeader::SIZE) {
           throw std::ios_base::failure("Could not read database header.");
         }
       }
@@ -109,6 +112,59 @@ class Pager {
     }
 
     /**
+     * @brief Calculates the amount of @c Overflow pages required to fit @p value.
+     *
+     * @param value The data to calculate the amount of required @c Overflow pages for.
+     * @return The amount of required @c Overflow pages.
+     */
+    uint32_t CalculateOverflow(const V& value)
+    {
+      return page::NodeRecord::CalculateOverflow(value, this->page_size);
+    }
+
+    /**
+     * @brief Lazily allocates new contiguous space for @p count pages.
+     * @details Since this method returns the page numbers assigned to the new allocated space, this method can be
+     * used to 'reserve' a range of page numbers to write to at a later time. This is useful for example when writing
+     * data to a leaf node which will overflow, because the required space can be calculated and then reserved to
+     * ensure contiguous storage of related data.<br />
+     * Allocating lazily means that the underlying file is grown so new page numbers can be assigned, but only actually
+     * written to when the pages are committed to the file. This can cause delayed errors if the device is full
+     * when writing.
+     *
+     * @see @c noid::backend::vfs::NoidFile::Grow(uint32_t)
+     *
+     * @param count The amount of pages to allocate.
+     * @return The page number range @c first (inclusive), @c last (exclusive).
+     * @throws std::domain_error if the database file is not aligned to @c Pager::page_size.
+     * @throws std::ios_base::failure if allocating the requested space fails.
+     */
+    std::pair<PageNumber, PageNumber> AllocateContiguous(uint32_t count)
+    {
+      if (count == 0) {
+        return std::make_pair(NULL_PAGE, NULL_PAGE);
+      }
+
+      NoidLock unique_lock = this->file->UniqueLock();
+      auto file_size = this->file->Size();
+
+      // Only return the page number range if the file size is aligned to full pages.
+      if (auto page_fraction = 1.0 * (file_size - page::FileHeader::SIZE) / this->page_size; page_fraction == std::floor(page_fraction)) {
+        auto allocation_range_start = static_cast<PageNumber>(page_fraction);
+        auto allocation_range_end = allocation_range_start + count;
+
+        // Now increase the file size
+        this->file->Grow(static_cast<uintmax_t>(count) * this->page_size);
+
+        return std::make_pair(allocation_range_start, allocation_range_end);
+      }
+
+      // Throwing this exception essentially prevents vacuuming (moving WAL-pages into the database file)
+      // since no new pages can be allocated.
+      throw std::domain_error("Page allocation failed: database file is not aligned to page size.");
+    }
+
+    /**
      * @brief Reads the first page (index 0) from the database file.
      *
      * @return The database index page.
@@ -116,12 +172,12 @@ class Pager {
      */
     std::shared_ptr<const page::FileHeader> ReadFileHeader()
     {
-      std::array<byte, page::FileHeader::BYTE_SIZE> bytes = {0};
+      std::array<byte, page::FileHeader::SIZE> bytes = {0};
 
       // TODO check WAL, page cache
       NoidSharedLock shared_lock = this->file->SharedLock();
       for (auto i = this->max_io_retries; i > 0; i--) {
-        if (this->file->ReadContainer(bytes, 0) == page::FileHeader::BYTE_SIZE) {
+        if (this->file->ReadContainer(bytes, 0) == page::FileHeader::SIZE) {
           return page::FileHeader::NewBuilder(bytes)->Build();
         }
       }
@@ -141,12 +197,25 @@ class Pager {
       // TODO write to WAL (, page cache?)
       NoidLock unique_lock = this->file->UniqueLock();
       for (auto i = this->max_io_retries; i > 0; i--) {
-        if (this->file->Write(header.ToBytes(), 0) == page::FileHeader::BYTE_SIZE) {
+        if (this->file->Write(header.ToBytes(), 0) == page::FileHeader::SIZE) {
           return this->file->Flush();
         }
       }
 
       throw std::ios_base::failure(std::string("Cannot write header; retries exhausted."));
+    }
+
+    /**
+     * @brief Creates a new builder for page type @c P and returns it with the page size set.
+     *
+     * @tparam B The builder type.
+     * @tparam P The page type.
+     * @return A unique pointer to the builder instance.
+     */
+    template<typename P, typename B> requires page::Page<P, B>
+    std::unique_ptr<B> NewBuilder()
+    {
+      return P::NewBuilder(this->page_size);
     }
 
     /**
@@ -169,7 +238,7 @@ class Pager {
         throw std::out_of_range("Given location references a null page.");
       }
 
-      Position file_pos = (location - 1) * this->page_size + page::FileHeader::BYTE_SIZE;
+      Position file_pos = (location - 1) * this->page_size + page::FileHeader::SIZE;
       auto data = DynamicArray<byte>(this->page_size);
 
       // TODO check WAL first
@@ -205,7 +274,7 @@ class Pager {
         throw std::out_of_range("Given location references a null page.");
       }
 
-      Position page_index = (location - 1) * this->page_size + page::FileHeader::BYTE_SIZE;
+      Position page_index = (location - 1) * this->page_size + page::FileHeader::SIZE;
       auto data = page.ToBytes();
 
       // TODO write to WAL only
@@ -246,7 +315,7 @@ class Pager {
       auto file_size = this->file->Size();
 
       // Check if the file size is aligned to this->page_size. If not, this is an indication of file corruption.
-      if (auto page_fraction = 1.0 * (file_size - page::FileHeader::BYTE_SIZE) / this->page_size; page_fraction == std::floor(page_fraction)) {
+      if (auto page_fraction = 1.0 * (file_size - page::FileHeader::SIZE) / this->page_size; page_fraction == std::floor(page_fraction)) {
         for (auto i = this->max_io_retries; i > 0; i--) {
           if (data.size() == this->page_size) {
             if (this->file->WriteContainer(data, static_cast<Position>(file_size)) == this->page_size) {

@@ -4,26 +4,24 @@
 
 #include <algorithm>
 #include <sstream>
-#include <string>
+#include <stdexcept>
 
 #include "Freelist.h"
 #include "backend/Bits.h"
-#include "backend/NoidConfig.h"
 
-static uint16_t FREELIST_MAGIC = 0x4c46; // 'FL' for Freelist
-static uint8_t MAGIC_OFFSET = 0;
-static uint8_t PREVIOUS_PAGE_OFFSET = 2;
-static uint8_t NEXT_PAGE_OFFSET = 6;
-static uint8_t NEXT_FREE_SLOT_OFFSET = 10;
-static uint8_t FREELIST_OFFSET = 12;
+static const uint16_t FREELIST_MAGIC = 0x4c46; // 'FL' for Freelist
+static const uint8_t MAGIC_OFFSET = 0;
+static const uint8_t PREVIOUS_PAGE_OFFSET = 2;
+static const uint8_t NEXT_PAGE_OFFSET = 6;
+static const uint8_t NEXT_FREE_SLOT_OFFSET = 10;
 
 namespace noid::backend::page {
 
-static DynamicArray<byte>& Validate(DynamicArray<byte>& data)
+static DynamicArray<byte>& Validate(DynamicArray<byte>& data, uint16_t page_size)
 {
-  if (data.size() != NoidConfig::Get().vfs_page_size) {
+  if (data.size() != page_size) {
     std::stringstream stream;
-    stream << "Invalid data size (expect " << NoidConfig::Get().vfs_page_size << ", but got " << +data.size() << ").";
+    stream << "Invalid data size (expect " << +page_size << ", but got " << +data.size() << ").";
 
     throw std::invalid_argument(stream.str());
   }
@@ -36,15 +34,16 @@ static DynamicArray<byte>& Validate(DynamicArray<byte>& data)
 
 static inline std::size_t SlotToIndex(uint16_t slot)
 {
-  return FREELIST_OFFSET + slot * sizeof(PageNumber);
+  return Freelist::HEADER_SIZE + slot * sizeof(PageNumber);
 }
 
-Freelist::Freelist(uint16_t page_size, PageNumber previous, PageNumber next, DynamicArray<PageNumber> free_pages)
-    :page_size(page_size), previous(previous), next(next), free_pages(std::move(free_pages)) { }
+Freelist::Freelist(uint16_t page_size, PageNumber previous, PageNumber next, DynamicArray<PageNumber> free_pages,
+    uint16_t next_free_slot)
+    :page_size(page_size), previous(previous), next(next), free_pages(std::move(free_pages)), next_free_slot(next_free_slot) { }
 
-std::unique_ptr<FreelistBuilder> Freelist::NewBuilder()
+std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(uint16_t page_size)
 {
-  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder());
+  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(page_size));
 }
 
 std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(const Freelist& base)
@@ -54,7 +53,7 @@ std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(const Freelist& base)
 
 std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(DynamicArray<byte>&& base)
 {
-  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(std::move(Validate(base))));
+  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(std::move(Validate(base, base.size()))));
 }
 
 PageNumber Freelist::Previous() const
@@ -69,12 +68,16 @@ PageNumber Freelist::Next() const
 
 uint16_t Freelist::Size() const
 {
-  return this->free_pages.size();
+  return this->next_free_slot;
 }
 
 PageNumber Freelist::FreePageAt(uint16_t pos) const
 {
-  return this->free_pages.at(pos);
+  if (pos >= this->next_free_slot) {
+    throw std::out_of_range("pos");
+  }
+
+  return this->free_pages[pos];
 }
 
 DynamicArray<byte> Freelist::ToBytes() const
@@ -83,41 +86,29 @@ DynamicArray<byte> Freelist::ToBytes() const
   write_le_uint32<byte>(serialized, MAGIC_OFFSET, FREELIST_MAGIC);
   write_le_uint32<byte>(serialized, PREVIOUS_PAGE_OFFSET, this->previous);
   write_le_uint32<byte>(serialized, NEXT_PAGE_OFFSET, this->next);
-  write_le_uint16<byte>(serialized, NEXT_FREE_SLOT_OFFSET, static_cast<uint16_t>(this->free_pages.size()));
-  write_contiguous_container<PageNumber>(serialized, FREELIST_OFFSET, this->free_pages);
+  write_le_uint16<byte>(serialized, NEXT_FREE_SLOT_OFFSET, this->next_free_slot);
+  write_contiguous_container<PageNumber>(serialized, Freelist::HEADER_SIZE, this->free_pages);
 
   return serialized;
 }
 
-FreelistBuilder::FreelistBuilder()
-    :
-    previous_freelist_entry(0),
-    next_freelist_entry(0),
-    page_size(NoidConfig::Get().vfs_page_size),
-    max_slot(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1),
-    cursor(0),
-    free_pages(0) { }
+FreelistBuilder::FreelistBuilder(uint16_t size)
+    :previous_freelist_entry(0), next_freelist_entry(0), page_size(size),
+     max_slot(((page_size - Freelist::HEADER_SIZE) / sizeof(PageNumber)) - 1), cursor(0), free_pages(0) { }
 
 FreelistBuilder::FreelistBuilder(const Freelist& base)
-    :
-    previous_freelist_entry(base.previous),
-    next_freelist_entry(base.next),
-    page_size(NoidConfig::Get().vfs_page_size),
-    max_slot(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1),
-    cursor(base.Size()),
-    free_pages(base.free_pages.size())
+    :previous_freelist_entry(base.previous), next_freelist_entry(base.next), page_size(base.page_size),
+     max_slot(((page_size - Freelist::HEADER_SIZE) / sizeof(PageNumber)) - 1), cursor(base.next_free_slot),
+     free_pages(base.next_free_slot)
 {
-  std::copy(base.free_pages.begin(), base.free_pages.end(), this->free_pages.begin());
+  std::ranges::copy(base.free_pages.begin(), base.free_pages.begin() + base.next_free_slot, this->free_pages.begin());
 }
 
 FreelistBuilder::FreelistBuilder(DynamicArray<byte>&& base)
-    :
-    previous_freelist_entry(read_le_uint32<byte>(base, PREVIOUS_PAGE_OFFSET)),
-    next_freelist_entry(read_le_uint32<byte>(base, NEXT_PAGE_OFFSET)),
-    page_size(NoidConfig::Get().vfs_page_size),
-    max_slot(((page_size - FREELIST_OFFSET) / sizeof(PageNumber)) - 1),
-    cursor(0),
-    free_pages(read_le_uint16<byte>(base, NEXT_FREE_SLOT_OFFSET))
+    :previous_freelist_entry(read_le_uint32<byte>(base, PREVIOUS_PAGE_OFFSET)),
+     next_freelist_entry(read_le_uint32<byte>(base, NEXT_PAGE_OFFSET)), page_size(safe_cast<uint16_t>(base.size())),
+     max_slot(((page_size - Freelist::HEADER_SIZE) / sizeof(PageNumber)) - 1), cursor(0),
+     free_pages(read_le_uint16<byte>(base, NEXT_FREE_SLOT_OFFSET))
 {
 
   for (; this->cursor < this->free_pages.size(); this->cursor++) {
@@ -127,14 +118,12 @@ FreelistBuilder::FreelistBuilder(DynamicArray<byte>&& base)
 
 std::unique_ptr<const Freelist> FreelistBuilder::Build() const
 {
-  auto free_list = DynamicArray<PageNumber>(this->free_pages.size());
-  std::copy(this->free_pages.begin(), this->free_pages.end(), free_list.begin());
+  auto free_list = DynamicArray<PageNumber>((this->page_size - Freelist::HEADER_SIZE) / sizeof(PageNumber));
+  std::ranges::copy(this->free_pages.begin(), this->free_pages.end(), free_list.begin());
 
-  return std::unique_ptr<const Freelist>(new Freelist(
-      this->page_size,
-      this->previous_freelist_entry,
-      this->next_freelist_entry,
-      std::move(free_list)));
+  return std::unique_ptr<const Freelist>(
+      new Freelist(this->page_size, this->previous_freelist_entry, this->next_freelist_entry, std::move(free_list),
+          this->free_pages.size()));
 }
 
 FreelistBuilder& FreelistBuilder::WithPrevious(PageNumber previous)

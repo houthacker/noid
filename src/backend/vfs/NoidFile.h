@@ -77,13 +77,25 @@ class NoidFile {
     virtual ~NoidFile() =default;
 
     /**
+     * @brief Grows the file by @p size bytes.
+     * @details Since @p size is a @c uint32_t, the file growth is limited to at most 4 GB per call. Growing the file
+     * by using this method is fast because it might create holes in the file, making it sparse. This also means that
+     * the underlying filesystem can become over-allocated after growing the file. If that happens, I/O errors will
+     * occur when trying to write actual data to this space at an arbitrary later time.
+     *
+     * @param size The amount of bytes to grow the file by.
+     * @throws std::ios_base::failure if the file cannot be grown the requested amount of bytes.
+     */
+    virtual void Grow(uintmax_t size) =0;
+
+    /**
      * @brief Returns the file size in bytes.
      * @details This method does not block. This allows callers to decide themselves about the blocking scope.
      *
      * @return The file size.
      * @throw std::ios_base::failure if the file size could not be retrieved.
      */
-    virtual std::uintmax_t Size() =0;
+    virtual uintmax_t Size() =0;
 
     /**
      * @brief Atomically writes the complete array contents to this file.

@@ -45,8 +45,16 @@ struct NodeEntry {
 };
 
 class InternalNode : public Node {
+ public:
+    static const uint8_t HEADER_SIZE = 24;
+
  private:
     friend class InternalNodeBuilder;
+
+    /**
+     * @brief The position of the next empty entry slot in this @c InternalNode.
+     */
+    const uint16_t next_entry_slot;
 
     /**
      * @brief The page number of the leftmost child page.
@@ -63,18 +71,28 @@ class InternalNode : public Node {
      */
     const DynamicArray<NodeEntry> entries;
 
-    explicit InternalNode(PageNumber leftmost_child, DynamicArray<NodeEntry>&& entries);
+    /**
+     * The size in bytes of @c InternalNode page. The page size is required when serializing a @c InternalNode instance,
+     * but is itself not serialized into the @c InternalNode. Instead, the page size is stored in the serialized
+     * @c FileHeader of a database.
+     */
+    const uint16_t page_size;
+
+    InternalNode(uint16_t next_entry_slot, PageNumber leftmost_child, DynamicArray<NodeEntry>&& entries,
+        uint16_t page_size);
 
  public:
 
-    ~InternalNode() override =default;
+    ~InternalNode() override = default;
 
     /**
-     * @brief Creates a new builder for @c InternalNode instances, using an all-zeroes backing vector.
+     * @brief Creates a new builder for @c InternalNode instances.
      *
+     * @param page_size The page size in bytes.
      * @return The new builder instance.
+     * @throws std::length_error if @p page_size is too small to contain a @c InternalNode.
      */
-    static std::unique_ptr<InternalNodeBuilder> NewBuilder();
+    static std::unique_ptr<InternalNodeBuilder> NewBuilder(uint16_t page_size);
 
     /**
      * @brief Creates a new builder for @c InternalNode instances, using @c base as a starting point.
@@ -115,6 +133,13 @@ class InternalNode : public Node {
      * @return Whether this node contains the given key.
      */
     [[nodiscard]] bool Contains(const SearchKey& key) const override;
+
+    /**
+     * @brief Serializes this instance to a dynamic byte array.
+     *
+     * @return The serialized @c InternalNode.
+     */
+    [[nodiscard]] DynamicArray<byte> ToBytes() const;
 };
 
 class InternalNodeBuilder {
@@ -129,7 +154,7 @@ class InternalNodeBuilder {
     /**
      * @brief The maximum @c NodeEntry slot, based on the page size.
      */
-    uint16_t max_slot;
+    uint16_t max_entry_slot;
 
     /**
      * The number of the leftmost child page.
@@ -141,11 +166,13 @@ class InternalNodeBuilder {
      */
     std::vector<NodeEntry> entries;
 
-    explicit InternalNodeBuilder();
+    explicit InternalNodeBuilder(uint16_t page_size);
     explicit InternalNodeBuilder(const InternalNode& base);
     explicit InternalNodeBuilder(DynamicArray<byte>&& base);
 
  public:
+
+    InternalNodeBuilder() = delete;
 
     /**
      * @brief Creates a new @c InternalNode based on the provided data.
@@ -157,7 +184,7 @@ class InternalNodeBuilder {
     /**
      * @return Whether the node-to-be contains the maximum amount of entries.
      */
-    bool IsFull();
+    bool IsFull() const;
 
     /**
      * @brief Sets the leftmost child page for the @c InternalNode
@@ -189,8 +216,7 @@ class InternalNodeBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::overflow_error if the node is full (i.e. contains the maximum amount of entries).
      */
-    InternalNodeBuilder& WithEntry(SearchKey key, PageNumber right_child_page,
-        uint16_t slot_hint);
+    InternalNodeBuilder& WithEntry(SearchKey key, PageNumber right_child_page, uint16_t slot_hint);
 };
 
 }

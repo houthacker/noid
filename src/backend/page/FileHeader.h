@@ -29,13 +29,13 @@ class FileHeader {
     /**
      * @brief The size in bytes of a noid database header on disk.
      */
-    static uint8_t const BYTE_SIZE = 100;
+    static uint8_t const SIZE = 100;
 
  private:
     friend class FileHeaderBuilder;
 
     /**
-     * The byte size of database pages, except for the database header itself, which has a size of @c FileHeader::BYTE_SIZE.
+     * The byte size of database pages, except for the database header itself, which has a size of @c FileHeader::SIZE.
      */
     const uint16_t page_size;
 
@@ -89,14 +89,14 @@ class FileHeader {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given bytes do not represent a valid @c FileHeader.
      */
-    static std::unique_ptr<FileHeaderBuilder> NewBuilder(std::array<byte, FileHeader::BYTE_SIZE> &base);
+    static std::unique_ptr<FileHeaderBuilder> NewBuilder(std::array<byte, FileHeader::SIZE> &base);
 
     /**
      * @brief Creates a new array containing the serialized representation of this database header.
      *
      * @return The serialized database header.
      */
-    [[nodiscard]] std::array<byte, FileHeader::BYTE_SIZE> ToBytes() const;
+    [[nodiscard]] std::array<byte, FileHeader::SIZE> ToBytes() const;
 
     /**
      * @return The size of the database pages in bytes.
@@ -159,7 +159,7 @@ class FileHeaderBuilder {
     PageNumber first_freelist_page;
 
     explicit FileHeaderBuilder();
-    explicit FileHeaderBuilder(std::array<byte, FileHeader::BYTE_SIZE> const & base);
+    explicit FileHeaderBuilder(std::array<byte, FileHeader::SIZE> const & base);
 
     /**
      * @brief Creates a new builder with default values.
@@ -175,7 +175,7 @@ class FileHeaderBuilder {
      * @return The new builder instance.
      * @throws std::invalid_argument if the checksum verification fails.
      */
-    static std::unique_ptr<FileHeaderBuilder> Create(std::array<byte, FileHeader::BYTE_SIZE> const & base);
+    static std::unique_ptr<FileHeaderBuilder> Create(std::array<byte, FileHeader::SIZE> const & base);
 
     /**
      * @brief Creates a new builder with a copy of the data in @p base.

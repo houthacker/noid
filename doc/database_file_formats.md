@@ -26,7 +26,7 @@ This allows for reconstruction of the database without requiring the noid main d
 |--------|--------------|----------------------------------------------------------|
 | 0      | 8            | Header string `"noid v1\0"`                              |
 | 8      | 2            | LE `uint16_t` page size in bytes (min 512, default 4096) |
-| 10     | 1            | `uint8_t` key size in bytes (multiple of 8, default 16)  |
+| 10     | 1            | `uint8_t` key size in bytes (multiple of 8, fixed at 16) |
 | 11     | 4            | LE `uint32_t` first tree header page number              |
 | 15     | 4            | LE `uint32_t` first freelist page number                 |
 | 19     | 4            | LE `uint32_t` checksum (fnv-1a of all preceding bytes)   |
@@ -72,18 +72,18 @@ With a page size of 4096 bytes, this value is 204.
 |--------|------------------------|------------------------------------------|
 | 0      | 2                      | `'IN'` (internal node)                   |
 | 2      | 2                      | LE `uint16_t` next free entry slot       |
-| 8      | 4                      | LE `uint32_t` leftmost child page number |
-| 12     | 12                     | Padding (zeroed)                         |
+| 4      | 4                      | LE `uint32_t` leftmost child page number |
+| 8      | 16                     | Padding (zeroed)                         |
 | 24     | key count * entry size | The node entries                         |
 
 ## Internal Node Entry
 
 This is the format of the entries in an internal node.
 
-| offset   | size (bytes)  | description                         |
-|----------|---------------|-------------------------------------|
-| 0        | Node key size | The key                             |
-| key size | 4             | LE uint32_t right child page number |
+| offset | size (bytes) | description                           |
+|--------|--------------|---------------------------------------|
+| 0      | 16           | The key                               |
+| 16     | 4            | LE `uint32_t` right child page number |
 
 ## Leaf Node Page
 
@@ -91,11 +91,11 @@ The leaf node pages contain the records that contain the actual data.
 
 | offset | size (bytes)               | description                             |
 |--------|----------------------------|-----------------------------------------|
-| 0      | 1                          | `'LN'` (leaf node)                      |
+| 0      | 2                          | `'LN'` (leaf node)                      |
 | 2      | 2                          | `uint16_t` record count                 |
-| 5      | 4                          | LE `uint32_t` left sibling page number  |
-| 9      | 4                          | LE `uint32_t` right sibling page number |
-| 13     | 11                         | Padding (zeroed)                        |
+| 4      | 4                          | LE `uint32_t` left sibling page number  |
+| 8      | 4                          | LE `uint32_t` right sibling page number |
+| 12     | 12                         | Padding (zeroed)                        |
 | 24     | record count * record size | The node records                        |
 
 ## Leaf Node Record
@@ -105,12 +105,12 @@ at most 7 bytes, the inline indicator is set to the payload size.
 Otherwise, the inline indicator is set to zero and the last 4 bytes of the record contain the first overflow
 page number.
 
-| offset   | size (bytes)  | description                                                  |
-|----------|---------------|--------------------------------------------------------------|
-| 0        | Node key size | The key                                                      |
-| key sz   | 1             | `uint8_t` inline indicator                                   |
-| key sz+1 | 3             | LE `uint32_t` 1st 3 bytes of payload                         |
-| key sz+5 | 4             | LE `uint32_t` 2nd 4 bytes of payload or overflow page number |
+| offset | size (bytes) | description                                                  |
+|--------|--------------|--------------------------------------------------------------|
+| 0      | 16           | The key                                                      |
+| 16     | 1            | `uint8_t` inline indicator                                   |
+| 17     | 3            | 3x `uint8_t` 1st 3 bytes of payload                          |
+| 20     | 4            | LE `uint32_t` 2nd 4 bytes of payload or overflow page number |
 
 ## Overflow Page
 

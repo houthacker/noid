@@ -9,10 +9,19 @@
 #include <memory>
 #include <optional>
 
-#include "backend/concurrent/Concepts.h"
-#include "backend/page/TreeHeader.h"
+#include "Bits.h"
+
+#define NOID_INTERNAL_API
+#include "BPlusTreeHelper.h"
+#undef NOID_INTERNAL_API
+
 #include "Pager.h"
 #include "Types.h"
+#include "backend/concurrent/Concepts.h"
+#include "backend/page/TreeHeader.h"
+#include "backend/page/InternalNode.h"
+#include "backend/page/LeafNode.h"
+#include "backend/page/Overflow.h"
 
 namespace noid::backend {
 
@@ -66,7 +75,7 @@ class BPlusTree {
      * @param type The tree type.
      */
     BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type)
-        :pager(std::move(pager)), header(page::TreeHeader::NewBuilder()->WithTreeType(type).Build())
+        :pager(pager), header(this->pager->template NewBuilder<page::TreeHeader, page::TreeHeaderBuilder>()->WithTreeType(type).Build())
     {
       this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*this->header);
     }
@@ -96,7 +105,8 @@ class BPlusTree {
     static std::unique_ptr<BPlusTree<Lockable, SharedLockable>> Create(
         std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type)
     {
-      return std::unique_ptr<BPlusTree<Lockable, SharedLockable>>(new BPlusTree<Lockable, SharedLockable>(std::move(pager), type));
+      return std::unique_ptr<BPlusTree<Lockable, SharedLockable>>(
+          new BPlusTree<Lockable, SharedLockable>(std::move(pager), type));
     }
 
     /**
@@ -107,9 +117,27 @@ class BPlusTree {
      * @param value The actual data to be stored.
      * @return The type of insert.
      */
-    InsertType Insert(SearchKey& key, V&& value)
+    InsertType Insert(SearchKey& key, const V& value)
     {
-      return InsertType::Insert;
+
+      // Store possible overflow pages first, so we don't have to insert nodes if this fails.
+      auto page_range = this->pager->AllocateContiguous(this->pager->CalculateOverflow(value));
+      details::WriteOverflow(value, page_range, this->pager);
+
+      const auto self = this;
+      auto type = InsertType::Insert;
+      if (self->header->GetRoot() == NULL_PAGE) {
+        std::unique_ptr<page::NodeRecordBuilder> record_builder = details::CreateNodeRecordBuilder(key, value,
+            page_range.first);
+
+        auto root = this->pager->template NewBuilder<page::LeafNode, page::LeafNodeBuilder>()->WithRecord(record_builder->Build()).Build();
+        auto root_page = this->pager->template WritePage<page::LeafNode, page::LeafNodeBuilder>(*root);
+
+        auto header_builder = page::TreeHeader::NewBuilder(*this->header);
+        this->header = header_builder->WithRootPageNumber(root_page).Build();
+      }
+
+      return type;
     }
 
     /**

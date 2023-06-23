@@ -73,8 +73,7 @@ std::shared_ptr<UnixFile> UnixFile::OpenScoped(const fs::path& path)
 {
   return {new UnixFile(GetValidFile(std::fopen(path.c_str(), "a+"))),
           [path](auto p) {
-            std::error_code code;
-            if (!fs::remove(path, code)) {
+            if (std::error_code code; !fs::remove(path, code)) {
               NOID_LOG_ERROR(std::source_location::current(), "Could not delete file.");
             }
 
@@ -94,10 +93,16 @@ int UnixFile::GetFileDescriptor() const
 }
 #endif
 
+void UnixFile::Grow(uintmax_t size)
+{
+  if (fseeko(this->file, size, SEEK_END) == C_API_ERROR) {
+    throw std::ios_base::failure(core::api::GetErrorText(errno), std::make_error_code(std::errc::io_error));
+  }
+}
+
 std::uintmax_t UnixFile::Size()
 {
-  struct stat info = {0};
-  if (fstat(fd, &info) == 0) {
+  if (struct stat info = {0}; fstat(fd, &info) == 0) {
     return info.st_size;
   }
 
@@ -106,7 +111,7 @@ std::uintmax_t UnixFile::Size()
 
 std::size_t UnixFile::Write(const byte* source, Position start_position, std::size_t size)
 {
-  if (fseeko64(this->file, start_position, SEEK_SET) == C_API_ERROR) {
+  if (fseeko(this->file, start_position, SEEK_SET) == C_API_ERROR) {
     throw std::ios_base::failure(core::api::GetErrorText(errno),
         std::make_error_code(std::errc::io_error));
   }
@@ -133,7 +138,7 @@ std::size_t UnixFile::Read(DynamicArray<byte>& container,
     Position start_position,
     const std::size_t size)
 {
-  if (fseeko64(this->file, start_position, SEEK_SET) == C_API_ERROR) {
+  if (fseeko(this->file, start_position, SEEK_SET) == C_API_ERROR) {
     throw std::ios_base::failure(core::api::GetErrorText(errno),
         std::make_error_code(std::errc::io_error));
   }
@@ -192,7 +197,7 @@ std::size_t UnixFile::Read(DynamicArray<byte>& container,
 
 std::size_t UnixFile::Read(byte* destination, Position start_position, std::size_t size)
 {
-  if (fseeko64(this->file, start_position, SEEK_SET) == C_API_ERROR) {
+  if (fseek(this->file, start_position, SEEK_SET) == C_API_ERROR) {
     throw std::ios_base::failure(core::api::GetErrorText(errno),
         std::make_error_code(std::errc::io_error));
   }

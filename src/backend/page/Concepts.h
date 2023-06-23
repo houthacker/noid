@@ -21,7 +21,8 @@ concept PageBuilder = requires(B builder) {
 };
 
 template<typename P, typename B>
-concept Page = PageBuilder<B, P> && requires(P, B, P page, DynamicArray<byte> && data) {
+concept Page = PageBuilder<B, P> && requires(P, B, P page, uint16_t page_size, DynamicArray<byte> && data) {
+  { P::NewBuilder(page_size) } -> std::same_as<std::unique_ptr<B>>;
   { P::NewBuilder(std::move(data)) } -> std::same_as<std::unique_ptr<B>>;
   { page.ToBytes() } -> std::convertible_to<DynamicArray<byte>>;
 };

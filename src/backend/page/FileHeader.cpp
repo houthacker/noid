@@ -20,8 +20,8 @@ static uint8_t FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET = 11;
 static uint8_t FIRST_FREELIST_PAGE_NUMBER_OFFSET = 15;
 static uint8_t CHECKSUM_OFFSET = 19;
 
-static std::array<byte, FileHeader::BYTE_SIZE> const& Validate(
-    std::array<byte, FileHeader::BYTE_SIZE> const& data)
+static std::array<byte, FileHeader::SIZE> const& Validate(
+    std::array<byte, FileHeader::SIZE> const& data)
 {
   auto expected_checksum = fnv1a<byte>(data, 0, CHECKSUM_OFFSET);
   auto actual_checksum = read_le_uint32<byte>(data, CHECKSUM_OFFSET);
@@ -49,14 +49,14 @@ std::unique_ptr<FileHeaderBuilder> FileHeader::NewBuilder(const FileHeader& base
   return FileHeaderBuilder::Create(base);
 }
 
-std::unique_ptr<FileHeaderBuilder> FileHeader::NewBuilder(std::array<byte, FileHeader::BYTE_SIZE>& base)
+std::unique_ptr<FileHeaderBuilder> FileHeader::NewBuilder(std::array<byte, FileHeader::SIZE>& base)
 {
   return FileHeaderBuilder::Create(base);
 }
 
-std::array<byte, FileHeader::BYTE_SIZE> FileHeader::ToBytes() const
+std::array<byte, FileHeader::SIZE> FileHeader::ToBytes() const
 {
-  std::array<byte, FileHeader::BYTE_SIZE> bytes = {0};
+  std::array<byte, FileHeader::SIZE> bytes = {0};
   write_le_uint64<byte>(bytes, MAGIC_OFFSET, NOID_DATABASE_HEADER_MAGIC);
   write_le_uint16<byte>(bytes, PAGE_SIZE_OFFSET, this->page_size);
   write_uint8<byte>(bytes, KEY_SIZE_OFFSET, this->key_size);
@@ -114,7 +114,7 @@ bool operator!=(const FileHeader& lhs, const FileHeader& rhs)
 FileHeaderBuilder::FileHeaderBuilder()
     :page_size(DEFAULT_PAGE_SIZE), key_size(FIXED_KEY_SIZE), first_tree_header_page(0), first_freelist_page(0) { }
 
-FileHeaderBuilder::FileHeaderBuilder(std::array<byte, FileHeader::BYTE_SIZE> const& base)
+FileHeaderBuilder::FileHeaderBuilder(std::array<byte, FileHeader::SIZE> const& base)
 {
   this->page_size = read_le_uint16<byte>(base, PAGE_SIZE_OFFSET);
   this->key_size = read_uint8<byte>(base, KEY_SIZE_OFFSET);
@@ -128,7 +128,7 @@ std::unique_ptr<FileHeaderBuilder> FileHeaderBuilder::Create()
 }
 
 std::unique_ptr<FileHeaderBuilder> FileHeaderBuilder::Create(
-    std::array<byte, FileHeader::BYTE_SIZE> const& base)
+    std::array<byte, FileHeader::SIZE> const& base)
 {
   return std::unique_ptr<FileHeaderBuilder>(new FileHeaderBuilder(Validate(base)));
 }

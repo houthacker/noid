@@ -57,7 +57,9 @@ class DynamicArray {
         throw std::bad_array_new_length();
       }
 
-      return reinterpret_cast<T*>(new char[n * sizeof(T)](/* Initialize to zero */));
+      auto data = new char[n * sizeof(T)]();
+
+      return reinterpret_cast<T*>(data);
     }
 
     void dealloc() noexcept {

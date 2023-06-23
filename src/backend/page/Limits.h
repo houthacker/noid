@@ -7,6 +7,9 @@
 
 #include <cstdint>
 
+#include "backend/page/LeafNode.h"
+#include "backend/page/NodeRecord.h"
+
 namespace noid::backend::page {
 
 /**
@@ -18,16 +21,6 @@ const uint8_t INTERNAL_NODE_HEADER_SIZE = 24;
  * @brief The size in bytes of a @c NodeEntry within an @c InternalNode
  */
 const uint8_t INTERNAL_NODE_ENTRY_SIZE = 20;
-
-/**
- * @brief The size in bytes of the @c LeafNode header.
- */
-const uint8_t LEAF_NODE_HEADER_SIZE = 24;
-
-/**
- * @brief The size in bytes of a @c NodeRecord within a @c LeafNode.
- */
-const uint8_t LEAF_NODE_RECORD_SIZE = 24;
 
 /**
  * @brief The size in bytes of a @c Freelist header.
@@ -46,7 +39,7 @@ const uint8_t FREELIST_ENTRY_SIZE = sizeof(PageNumber);
  * @param page_size The page size in bytes.
  * @return The maximum amount of entries for the given page size.
  */
-inline constexpr uint16_t CalculateMaxEntries(uint16_t page_size)
+inline uint16_t CalculateMaxEntries(uint16_t page_size)
 {
   return (uint16_t) ((page_size - INTERNAL_NODE_HEADER_SIZE) / INTERNAL_NODE_ENTRY_SIZE);
 }
@@ -58,9 +51,9 @@ inline constexpr uint16_t CalculateMaxEntries(uint16_t page_size)
  * @param page_size The page size in bytes.
  * @return The maximum amount of records for the given page size.
  */
-inline constexpr uint16_t CalculateMaxRecords(uint16_t page_size)
+inline uint16_t CalculateMaxRecords(uint16_t page_size)
 {
-  return (uint16_t) ((page_size - LEAF_NODE_HEADER_SIZE) / LEAF_NODE_RECORD_SIZE);
+  return (uint16_t) ((page_size - page::LeafNode::HEADER_SIZE) / page::NodeRecord::SIZE);
 }
 
 /**
@@ -70,7 +63,7 @@ inline constexpr uint16_t CalculateMaxRecords(uint16_t page_size)
  * @param page_size The page size in bytes.
  * @return The maximum amount of entries for the given page size.
  */
-inline constexpr uint16_t CalculateMaxFreelistEntries(uint16_t page_size)
+inline uint16_t CalculateMaxFreelistEntries(uint16_t page_size)
 {
   return (uint16_t) ((page_size - FREELIST_HEADER_SIZE) / FREELIST_ENTRY_SIZE);
 }

@@ -26,6 +26,9 @@ class FreelistBuilder;
  * @author houthacker
  */
 class Freelist {
+ public:
+    static const uint8_t HEADER_SIZE = 12;
+
  private:
     friend class FreelistBuilder;
 
@@ -49,16 +52,24 @@ class Freelist {
      */
     const DynamicArray<PageNumber> free_pages;
 
-    explicit Freelist(uint16_t page_size, PageNumber previous, PageNumber next, DynamicArray<PageNumber> free_pages);
+    /**
+     * @brief The position of the next free slot in this @c Freelist.
+     */
+    const uint16_t next_free_slot;
+
+    explicit Freelist(uint16_t page_size, PageNumber previous, PageNumber next, DynamicArray<PageNumber> free_pages,
+        uint16_t next_free_slot);
 
  public:
 
     /**
      * @brief Creates a new builder for @c Freelist instances, using an all-zeroes backing vector.
      *
+     * @param page_size The page size in bytes.
      * @return The new builder instance.
+     * @throws std::length_error if @p page_size is too small to contain the freelist header.
      */
-    static std::unique_ptr<FreelistBuilder> NewBuilder();
+    static std::unique_ptr<FreelistBuilder> NewBuilder(uint16_t page_size);
 
     /**
      * @brief Creates a new builder for @c Freelist instances, using @c base as a starting point.
@@ -75,7 +86,7 @@ class Freelist {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given raw data do not represent a valid serialized @c Freelist.
      */
-    static std::unique_ptr<FreelistBuilder> NewBuilder(DynamicArray<byte> && base);
+    static std::unique_ptr<FreelistBuilder> NewBuilder(DynamicArray<byte>&& base);
 
     /**
      * @brief Returns the page number of the previous freelist page. A @c PageNumber of zero means no previous page.
@@ -138,23 +149,25 @@ class FreelistBuilder {
     /**
      * @brief The max page position value. Defaults to 1021: (page_size - FREELIST_OFFSET) / sizeof(PageNumber)
      */
-    std::vector<byte>::size_type max_slot;
+    uint16_t max_slot;
 
     /**
      * @brief The current insert slot.
      */
-    std::vector<byte>::size_type cursor;
+    uint16_t cursor;
 
     /**
      * @brief The list of free pages
      */
     std::vector<PageNumber> free_pages;
 
-    explicit FreelistBuilder();
-    explicit FreelistBuilder(const Freelist & base);
-    explicit FreelistBuilder(DynamicArray<byte> && base);
+    explicit FreelistBuilder(uint16_t page_size);
+    explicit FreelistBuilder(const Freelist& base);
+    explicit FreelistBuilder(DynamicArray<byte>&& base);
 
  public:
+
+    FreelistBuilder() = delete;
 
     /**
      * @brief Creates a new @c Freelist based on the provided data.

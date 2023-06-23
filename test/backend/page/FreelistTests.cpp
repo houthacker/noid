@@ -4,9 +4,11 @@
 
 #include <catch2/catch.hpp>
 
+#include <cstdint>
 #include <stdexcept>
 
 #include "backend/DynamicArray.h"
+#include "backend/Types.h"
 #include "backend/page/Freelist.h"
 
 using namespace noid::backend;
@@ -14,7 +16,7 @@ using namespace noid::backend::page;
 
 TEST_CASE("Build a Freelist")
 {
-  auto freelist = Freelist::NewBuilder()->WithPrevious(0)
+  auto freelist = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(0)
       .WithNext(0)
       .WithFreePage(1337)
       .WithFreePage(1338)
@@ -29,7 +31,7 @@ TEST_CASE("Build a Freelist")
 
 TEST_CASE("Build a Freelist with default values")
 {
-  auto freelist = Freelist::NewBuilder()->Build();
+  auto freelist = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->Build();
 
   REQUIRE(freelist->Previous() == 0);
   REQUIRE(freelist->Next() == 0);
@@ -40,7 +42,7 @@ TEST_CASE("Build a Freelist with default values")
 
 TEST_CASE("Build a Freelist based on another Freelist")
 {
-  auto base = Freelist::NewBuilder()->WithPrevious(0)
+  auto base = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(0)
       .WithNext(0)
       .WithFreePage(1337)
       .Build();
@@ -62,7 +64,7 @@ TEST_CASE("Build a Freelist from an invalid raw byte vector")
 TEST_CASE("Build a Freelist that contains exactly the maximum amount of pages")
 {
   auto default_max_pages = 1021;
-  auto builder = Freelist::NewBuilder();
+  auto builder = Freelist::NewBuilder(DEFAULT_PAGE_SIZE);
 
   for (auto i = 0; i < default_max_pages; i++) {
     CHECK_NOTHROW(builder->WithFreePage(i + 1));
@@ -74,7 +76,7 @@ TEST_CASE("Build a Freelist that contains exactly the maximum amount of pages")
 TEST_CASE("Try building a Freelist that contains too many pages")
 {
   auto default_max_pages = 1021;
-  auto builder = Freelist::NewBuilder();
+  auto builder = Freelist::NewBuilder(DEFAULT_PAGE_SIZE);
 
   for (auto i = 0; i < default_max_pages; i++) {
     builder->WithFreePage(i + 1);
@@ -85,7 +87,7 @@ TEST_CASE("Try building a Freelist that contains too many pages")
 
 TEST_CASE("Build a Freelist based on another and overwrite some free page numbers")
 {
-  auto base = Freelist::NewBuilder()->WithPrevious(0)
+  auto base = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(0)
       .WithNext(0)
       .WithFreePage(1337)
       .WithFreePage(1338)
@@ -100,7 +102,7 @@ TEST_CASE("Build a Freelist based on another and overwrite some free page number
 }
 
 TEST_CASE("Freelist::ToBytes() cycle") {
-  auto original = Freelist::NewBuilder()->WithPrevious(1)
+  auto original = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(1)
       .WithNext(3)
       .WithFreePage(1337)
       .WithFreePage(1338)

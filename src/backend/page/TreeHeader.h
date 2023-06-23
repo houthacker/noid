@@ -46,6 +46,9 @@ enum class TreeType {
  * @author houthacker
  */
 class TreeHeader {
+ public:
+    static const uint8_t HEADER_SIZE = 14;
+
  private:
     friend class TreeHeaderBuilder;
 
@@ -93,11 +96,13 @@ class TreeHeader {
  public:
 
     /**
-     * @brief Creates a new builder for @c TreeHeader instances, using an all-zeroes backing vector.
+     * @brief Creates a new builder for @c TreeHeader instances.
      *
+     * @param page_size The page size in bytes.
      * @return The new builder instance.
+     * @throws std::length_error if @p page_size is too small to contain a @c TreeHeader.
      */
-    static std::unique_ptr<TreeHeaderBuilder> NewBuilder();
+    static std::unique_ptr<TreeHeaderBuilder> NewBuilder(uint16_t page_size);
 
     /**
      * @brief Creates a new builder for @c TreeHeader instances, using @c base as a starting point.
@@ -113,6 +118,8 @@ class TreeHeader {
      * @param base The raw bytes to use as a basis for the new instance.
      * @return The new builder instance.
      * @throws std::invalid_argument if the given raw data do not represent a valid @c TreeHeader.
+     * @throws std::length_error if the raw data is a valid @c TreeHeader, but the maximum node entries or maximum
+     * node records are not supported using the page size used by the current @c Pager.
      */
     static std::unique_ptr<TreeHeaderBuilder> NewBuilder(DynamicArray<byte>&& base);
 
@@ -189,11 +196,13 @@ class TreeHeaderBuilder {
      */
     uint32_t page_count;
 
-    explicit TreeHeaderBuilder();
+    explicit TreeHeaderBuilder(uint16_t size);
     explicit TreeHeaderBuilder(const TreeHeader& base);
     explicit TreeHeaderBuilder(DynamicArray<byte>&& base);
 
  public:
+
+    TreeHeaderBuilder() =delete;
 
     /**
      * @brief Creates a new @c TreeHeader based on the provided data.
@@ -205,7 +214,8 @@ class TreeHeaderBuilder {
 
     /**
      * @brief Sets the type of b+tree this header is for.
-     * @param type
+     *
+     * @param type The tree type.
      * @return A reference to this builder to support a fluent interface.
      * @throws std::domain_error if the tree type has been set before and is different than @p type.
      */
@@ -222,6 +232,7 @@ class TreeHeaderBuilder {
 
     /**
      * @brief Sets the amount of pages in the containing b+tree (this header included).
+     *
      * @param count The amount of pages.
      * @return  A reference to this builder to support a fluent interface.
      * @throws std::out_of_range if @p count is zero.

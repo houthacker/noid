@@ -13,6 +13,7 @@
 #include <cstring> // memcpy
 #include <limits>
 #include <stdexcept>
+#include <sstream>
 #include <vector>
 
 #include "Types.h"
@@ -23,6 +24,18 @@ namespace noid::backend {
 static constexpr uint8_t uint8_max = std::numeric_limits<uint8_t>::max();
 
 static constexpr uint16_t uint16_max_p2 = 32768; // 2^15
+
+template<NumericType To, NumericType From>
+To safe_cast(From from)
+{
+  if (from > std::numeric_limits<To>::max()) {
+    throw std::overflow_error("Invalid cast: value will overflow");
+  } else if (from < std::numeric_limits<To>::min()) {
+    throw std::underflow_error("Invalid cast: value will underflow");
+  }
+
+  return from;
+}
 
 /**
  * Rounds @p value to the next power of two with an upper bound of 2^15.
@@ -58,8 +71,7 @@ inline uint8_t safe_next_multiple_of_8(uint8_t value)
     return 8;
   }
 
-  uint8_t remainder = value % 8;
-  if (remainder > 0) {
+  if (uint8_t remainder = value % 8; remainder > 0) {
     uint8_t to_add = 8 - remainder;
 
     uint16_t result = value + to_add;
@@ -101,21 +113,16 @@ inline uint8_t read_uint8(Container const& haystack, typename Container::size_ty
  * @throws std::out_of_range If writing to the given index causes a write outside of the array bounds.
  */
 template<typename T, Container<T> Container>
-inline Container& write_uint8(Container & haystack, typename Container::size_type
-write_idx,
-uint8_t value
-) {
-if (write_idx >= haystack.
-size()
-) {
-throw std::out_of_range("write_idx too large");
-}
+inline Container& write_uint8(Container& haystack, typename Container::size_type write_idx, uint8_t value)
+{
+  if (write_idx >= haystack.size()) {
+    throw std::out_of_range("write_idx too large");
+  }
 
-haystack[write_idx] = (byte)
-value;
+  haystack[write_idx] = value;
 
-return
-haystack;
+  return
+      haystack;
 }
 
 /**
@@ -136,7 +143,7 @@ inline Container& write_uint8(Container& haystack, typename Container::size_type
     haystack.resize(write_idx = sizeof(uint8_t));
   }
 
-  haystack[write_idx] = (byte) value;
+  haystack[write_idx] = value;
 
   return haystack;
 }
@@ -164,7 +171,7 @@ uint16_t read_le_uint16(Container const& haystack, typename Container::size_type
   } u = {{haystack[read_idx], haystack[read_idx + 1]}};
 
   if constexpr (std::endian::native == std::endian::big) {
-    std::reverse(std::begin(u.b), std::end(u.b));
+    std::ranges::reverse(std::begin(u.b), std::end(u.b));
   }
 
   return u.i;
@@ -194,7 +201,7 @@ Container& write_le_uint16(Container& haystack, typename Container::size_type wr
   } u = {value};
 
   if constexpr (std::endian::native == std::endian::big) {
-    std::reverse(std::begin(u.b), std::end(u.b));
+    std::ranges::reverse(std::begin(u.b), std::end(u.b));
   }
 
   haystack[write_idx] = u.b[0];
@@ -227,7 +234,7 @@ Container& write_le_uint16(Container& haystack, typename Container::size_type wr
   } u = {value};
 
   if constexpr (std::endian::native == std::endian::big) {
-    std::reverse(std::begin(u.b), std::end(u.b));
+    std::ranges::reverse(std::begin(u.b), std::end(u.b));
   }
 
   haystack[write_idx] = u.b[0];
@@ -259,7 +266,7 @@ inline uint32_t read_le_uint32(Container const& haystack, typename Container::si
   } u = {{haystack[read_idx], haystack[read_idx + 1], haystack[read_idx + 2], haystack[read_idx + 3]}};
 
   if constexpr (std::endian::native == std::endian::big) {
-    std::reverse(std::begin(u.b), std::end(u.b));
+    std::ranges::reverse(std::begin(u.b), std::end(u.b));
   }
 
   return u.i;
@@ -289,7 +296,7 @@ Container& write_le_uint32(Container& haystack, typename Container::size_type wr
   } u = {value};
 
   if constexpr (std::endian::native == std::endian::big) {
-    std::reverse(std::begin(u.b), std::end(u.b));
+    std::ranges::reverse(std::begin(u.b), std::end(u.b));
   }
 
   haystack[write_idx] = u.b[0];
@@ -324,7 +331,7 @@ Container& write_le_uint32(Container& haystack, typename Container::size_type wr
   } u = {value};
 
   if constexpr (std::endian::native == std::endian::big) {
-    std::reverse(std::begin(u.b), std::end(u.b));
+    std::ranges::reverse(std::begin(u.b), std::end(u.b));
   }
 
   haystack[write_idx] = u.b[0];
@@ -359,7 +366,7 @@ uint64_t read_le_uint64(Container const& haystack, typename Container::size_type
           haystack[read_idx + 4], haystack[read_idx + 5], haystack[read_idx + 6], haystack[read_idx + 7]}};
 
   if constexpr (std::endian::native == std::endian::big) {
-    std::reverse(std::begin(u.b), std::end(u.b));
+    std::ranges::reverse(std::begin(u.b), std::end(u.b));
   }
 
   return u.i;
@@ -389,7 +396,7 @@ Container& write_le_uint64(Container& haystack, typename Container::size_type wr
   } u = {value};
 
   if constexpr (std::endian::native == std::endian::big) {
-    std::reverse(std::begin(u.b), std::end(u.b));
+    std::ranges::reverse(std::begin(u.b), std::end(u.b));
   }
 
   haystack[write_idx] = u.b[0];
@@ -428,7 +435,7 @@ Container& write_le_uint64(Container& haystack, typename Container::size_type wr
   } u = {value};
 
   if constexpr (std::endian::native == std::endian::big) {
-    std::reverse(std::begin(u.b), std::end(u.b));
+    std::ranges::reverse(std::begin(u.b), std::end(u.b));
   }
 
   haystack[write_idx] = u.b[0];
@@ -459,12 +466,11 @@ template<typename T, Container<T> Destination, Container<T> Source>
 Destination read_container(const Source& source, typename Source::size_type read_idx, typename Source::size_type count)
 {
   Destination destination;
-  if (read_idx + (count * sizeof(T)) >= source.size()) {
+  if (read_idx + count > source.size()) {
     throw std::out_of_range("reading count elements starting at read_idx causes a read outside of the source bounds.");
   }
 
-  std::copy(std::begin(source) + read_idx, std::begin(source) + read_idx + (count * sizeof(T)),
-      std::begin(destination));
+  std::ranges::copy(std::begin(source) + read_idx, std::begin(source) + read_idx + count, std::begin(destination));
   return destination;
 }
 
@@ -487,7 +493,7 @@ Destination& write_container(Destination& destination, typename Destination::siz
     throw std::out_of_range("Cannot fit source into destination");
   }
 
-  std::copy(std::begin(source), std::end(source), std::begin(destination) + write_idx);
+  std::ranges::copy(std::begin(source), std::end(source), std::begin(destination) + write_idx);
 
   return destination;
 }
@@ -499,19 +505,92 @@ Destination& write_container(Destination& destination, typename Destination::siz
  * @tparam Destination The destination container type.
  * @tparam Source The source container type.
  * @param destination The destination byte container.
- * @param write_idx The index withing destination to start writing at.
+ * @param write_idx The index at which to start writing to @p destination.
  * @param source The source container.
  * @return A reference to the destination container.
  * @throws std::out_of_range if source doesn't fit into destination using the given @p write_idx.
  */
 template<typename T, Container<byte> Destination, Container<T> Source>
-Destination& write_contiguous_container(Destination& destination, typename Destination::size_type write_idx, const Source& source) {
-  auto required_destination_size = write_idx + (source.size() * sizeof(T));
-  if (destination.size() < required_destination_size) {
+Destination& write_contiguous_container(Destination& destination, typename Destination::size_type write_idx,
+    const Source& source)
+{
+  if (auto required_destination_size = write_idx + (std::size(source) * sizeof(T)); std::size(destination)
+      < required_destination_size) {
     throw std::out_of_range("Cannot fit source into destination");
   }
 
-  std::memcpy(destination.data() + write_idx, source.data(), source.size() * sizeof(T));
+  std::memcpy(std::data(destination) + write_idx, std::data(source), std::size(source) * sizeof(T));
+
+  return destination;
+}
+
+/**
+ * @brief Writes all entries from @c source[read_idx] into @p destination, starting at @c destination[write_idx].
+ *
+ * @tparam T The source element type.
+ * @tparam Destination The destination container type.
+ * @tparam Source The source container type.
+ * @param destination The destination byte container.
+ * @param write_idx The index at which to start writing to @p destination.
+ * @param source The source container.
+ * @param read_idx The index at which to start reading from @p source.
+ * @return A reference to the destination container.
+ * @throws std::out_of_range if all elements from @c source[read_idx] don't fit into @p destination
+ */
+template<typename T, Container<byte> Destination, Container<T> Source>
+Destination& write_contiguous_container(Destination& destination, typename Destination::size_type write_idx,
+    const Source& source, typename Source::size_type read_idx)
+{
+  // Does source[read_idx] exist?
+  if (read_idx >= std::size(source)) {
+    throw std::out_of_range("read_idx out of source bounds");
+  }
+
+  // Will source[read_idx, ...] fit into destination[write_idx, ...]?
+  auto destination_required = (std::size(source) - read_idx) * sizeof(T);
+  if (auto destination_available = std::size(destination) - write_idx; destination_available < destination_required) {
+    std::stringstream stream;
+    stream << "Cannot read " << +destination_required << " source elements in destination without resizing.";
+    throw std::out_of_range(stream.str());
+  }
+
+  std::memcpy(std::data(destination) + write_idx, std::data(source) + read_idx, destination_required);
+
+  return destination;
+}
+
+/**
+ * @brief Writes @p count elements from @c source[read_idx] into @p destination, starting at @c destination[write_idx].
+ *
+ * @tparam T The source element type.
+ * @tparam Destination The destination container type.
+ * @tparam Source The source container type.
+ * @param destination The destination byte container.
+ * @param write_idx The index at which to start writing to @p destination.
+ * @param source The source container.
+ * @param read_idx The index at which to start reading from @p source.
+ * @param count The amount of @p source elements to write to @p destination.
+ * @return A reference to the destination container.
+ * @throws std::out_of_range if @c count elements from @c source[read_idx] don't fit into @p destination.
+ */
+template<typename T, Container<byte> Destination, Container<T> Source>
+Destination& write_contiguous_container(Destination& destination, typename Destination::size_type write_idx,
+    const Source& source, typename Source::size_type read_idx, typename Source::size_type count)
+{
+  // Can we read count elements starting from source[read_idx]?
+  if (read_idx > std::size(source) - count) {
+    throw std::out_of_range("read_idx out of source bounds");
+  }
+
+  // Will source[read_idx, ...] fit into destination[write_idx, ...]?
+  auto destination_required = count * sizeof(T);
+  if (auto destination_available = std::size(destination) - write_idx; destination_available < destination_required) {
+    std::stringstream stream;
+    stream << "Cannot read " << +destination_required << " source elements in destination without resizing.";
+    throw std::out_of_range(stream.str());
+  }
+
+  std::memcpy(std::data(destination) + write_idx, std::data(source) + read_idx, destination_required);
 
   return destination;
 }
@@ -549,10 +628,9 @@ class FNV1a {
     static const uint32_t FNV_OFFSET_BASIS = 2166136261;
     static const uint32_t FNV_PRIME = 16777619;
 
-    uint32_t state;
+    uint32_t state = FNV1a::FNV_OFFSET_BASIS;
 
-    FNV1a()
-        :state(FNV1a::FNV_OFFSET_BASIS) { }
+    FNV1a() = default;
  public:
 
     FNV1a(const FNV1a&) = delete;

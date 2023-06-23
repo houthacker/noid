@@ -38,7 +38,7 @@ TEST_CASE("WritePage-ReadPage cycle") {
   auto pager = UnixPager::Open(std::move(file));
   PageNumber page_location = 2;
 
-  auto freelist = page::Freelist::NewBuilder()->WithPrevious(1)
+  auto freelist = pager->NewBuilder<page::Freelist, page::FreelistBuilder>()->WithPrevious(1)
       .WithNext(3)
       .WithFreePage(1337)
       .WithFreePage(1338)
@@ -59,7 +59,7 @@ TEST_CASE("Store some pages at end of file") {
   auto file =  vfs->CreateTempFile();
   auto pager = UnixPager::Open(std::move(file));
 
-  auto freelist = page::Freelist::NewBuilder()->WithPrevious(1)
+  auto freelist = pager->NewBuilder<page::Freelist, page::FreelistBuilder>()->WithPrevious(1)
       .WithNext(3)
       .WithFreePage(1337)
       .WithFreePage(1338)

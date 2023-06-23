@@ -5,7 +5,6 @@
 #include "TreeHeader.h"
 #include "Limits.h"
 #include "backend/Bits.h"
-#include "backend/NoidConfig.h"
 
 static const uint8_t TREE_HEADER_MAGIC_OFFSET = 0;
 static const uint8_t MAX_ENTRIES_OFFSET = 2;
@@ -15,20 +14,19 @@ static const uint8_t PAGE_COUNT_OFFSET = 10;
 
 namespace noid::backend::page {
 
-static DynamicArray<byte>& Validate(DynamicArray<byte>& data)
+static DynamicArray<byte>& Validate(DynamicArray<byte>& data, uint16_t page_size)
 {
   if (auto magic = read_le_uint16<byte>(data, TREE_HEADER_MAGIC_OFFSET); magic != (uint16_t) TreeType::Index
       && magic != (uint16_t) TreeType::Table) {
     throw std::invalid_argument("Invalid tree header page magic.");
   }
 
-  auto page_size = NoidConfig::Get().vfs_page_size;
   if (read_le_uint16<byte>(data, MAX_ENTRIES_OFFSET) != CalculateMaxEntries(page_size)) {
-    throw std::invalid_argument("Unsupported max internal node entries");
+    throw std::length_error("Unsupported max internal node entries");
   }
 
   if (read_le_uint16<byte>(data, MAX_RECORDS_OFFSET) != CalculateMaxRecords(page_size)) {
-    throw std::invalid_argument("Unsupported max leaf node records");
+    throw std::length_error("Unsupported max leaf node records");
   }
 
   return data;
@@ -39,9 +37,12 @@ TreeHeader::TreeHeader(TreeType tree_type, uint16_t max_node_entries, uint16_t m
     :tree_type(tree_type), max_node_entries(max_node_entries), max_node_records(max_node_records), root(root),
      page_count(page_count), page_size(page_size) { }
 
-std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder()
+std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(uint16_t page_size)
 {
-  return std::unique_ptr<TreeHeaderBuilder>(new TreeHeaderBuilder());
+  if (page_size < TreeHeader::HEADER_SIZE) {
+    throw std::length_error("Page size too small to contain a TreeHeader page.");
+  }
+  return std::unique_ptr<TreeHeaderBuilder>(new TreeHeaderBuilder(page_size));
 }
 
 std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(const TreeHeader& base)
@@ -51,7 +52,8 @@ std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(const TreeHeader& base
 
 std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(DynamicArray<byte>&& base)
 {
-  return std::unique_ptr<TreeHeaderBuilder>(new TreeHeaderBuilder(std::move(Validate(base))));
+  return std::unique_ptr<TreeHeaderBuilder>(
+      new TreeHeaderBuilder(std::move(Validate(base, safe_cast<uint16_t>(base.size())))));
 }
 
 TreeType TreeHeader::GetTreeType() const
@@ -93,17 +95,17 @@ DynamicArray<byte> TreeHeader::ToBytes() const
 
 /*** TreeHeaderBuilder ***/
 
-TreeHeaderBuilder::TreeHeaderBuilder()
-    :page_size(NoidConfig::Get().vfs_page_size), tree_type(TreeType::None),
+TreeHeaderBuilder::TreeHeaderBuilder(uint16_t size)
+    :page_size(size), tree_type(TreeType::None),
      max_node_entries(CalculateMaxEntries(this->page_size)), max_node_records(CalculateMaxRecords(this->page_size)),
      root(0), page_count(0) { }
 
 TreeHeaderBuilder::TreeHeaderBuilder(const TreeHeader& base)
-    :page_size(NoidConfig::Get().vfs_page_size), tree_type(base.tree_type), max_node_entries(base.max_node_entries),
+    :page_size(base.page_size), tree_type(base.tree_type), max_node_entries(base.max_node_entries),
      max_node_records(base.max_node_records), root(base.root), page_count(base.page_count) { }
 
 TreeHeaderBuilder::TreeHeaderBuilder(DynamicArray<byte>&& base)
-    :page_size(NoidConfig::Get().vfs_page_size),
+    :page_size(safe_cast<uint16_t>(base.size())),
      tree_type(static_cast<TreeType>(read_le_uint16<byte>(base, TREE_HEADER_MAGIC_OFFSET))),
      max_node_entries(read_le_uint16<byte>(base, MAX_ENTRIES_OFFSET)),
      max_node_records(read_le_uint16<byte>(base, MAX_RECORDS_OFFSET)),
@@ -133,12 +135,8 @@ TreeHeaderBuilder& TreeHeaderBuilder::WithTreeType(TreeType type)
 
 TreeHeaderBuilder& TreeHeaderBuilder::WithRootPageNumber(PageNumber root_page)
 {
-  if (this->root == 0 || this->root == root_page) {
-    this->root = root_page;
-    return *this;
-  }
-
-  throw std::domain_error("Update of root page not allowed once it has been set.");
+  this->root = root_page;
+  return *this;
 }
 
 TreeHeaderBuilder& TreeHeaderBuilder::WithPageCount(uint32_t count)
