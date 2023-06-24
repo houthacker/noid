@@ -13,10 +13,10 @@ TEST_CASE("Build a FileHeader")
 {
   auto header = FileHeader::NewBuilder()
       ->WithFirstTreeHeaderPage(1)
-      .WithFirstFreeListPage(2)
-      .WithKeySize(23)    // is rounded up to the next multiple of 8
-      .WithPageSize(1023) // is rounded up to the next power of two
-      .Build();
+      ->WithFirstFreeListPage(2)
+      ->WithKeySize(23)    // is rounded up to the next multiple of 8
+      ->WithPageSize(1023) // is rounded up to the next power of two
+      ->Build();
 
   REQUIRE(header->GetPageSize() == 1024);
   REQUIRE(header->GetKeySize() == 24);
@@ -52,7 +52,7 @@ TEST_CASE("Compare DatabaseHeaders by using FileHeader::Equals()")
 {
   auto base = FileHeader::NewBuilder()->Build();
   auto expect_equal = FileHeader::NewBuilder(*base)->Build();
-  auto expect_not_equal = FileHeader::NewBuilder(*base)->WithFirstTreeHeaderPage(1).Build();
+  auto expect_not_equal = FileHeader::NewBuilder(*base)->WithFirstTreeHeaderPage(1)->Build();
 
   REQUIRE(base->Equals(*expect_equal));
   REQUIRE_FALSE(base->Equals(*expect_not_equal));

@@ -11,14 +11,13 @@
 
 namespace noid::backend::page {
 
-static uint64_t NOID_DATABASE_HEADER_MAGIC = std::endian::native == std::endian::little ?
-                                             0x0031762064696f6e : 0x6e6f696420763100;
-static uint8_t MAGIC_OFFSET = 0;
-static uint8_t PAGE_SIZE_OFFSET = 8;
-static uint8_t KEY_SIZE_OFFSET = 10;
-static uint8_t FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET = 11;
-static uint8_t FIRST_FREELIST_PAGE_NUMBER_OFFSET = 15;
-static uint8_t CHECKSUM_OFFSET = 19;
+static const uint64_t NOID_DATABASE_HEADER_MAGIC = 0x0031762064696f6e;
+static const uint8_t MAGIC_OFFSET = 0;
+static const uint8_t PAGE_SIZE_OFFSET = 8;
+static const uint8_t KEY_SIZE_OFFSET = 10;
+static const uint8_t FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET = 11;
+static const uint8_t FIRST_FREELIST_PAGE_NUMBER_OFFSET = 15;
+static const uint8_t CHECKSUM_OFFSET = 19;
 
 static std::array<byte, FileHeader::SIZE> const& Validate(
     std::array<byte, FileHeader::SIZE> const& data)
@@ -39,19 +38,19 @@ FileHeader::FileHeader(uint16_t page_size, uint8_t key_size, PageNumber first_tr
     page_size(page_size), key_size(key_size), first_tree_header_page(first_tree_header_page),
     first_freelist_page(first_freelist_page), checksum(checksum) { }
 
-std::unique_ptr<FileHeaderBuilder> FileHeader::NewBuilder()
+std::shared_ptr<FileHeaderBuilder> FileHeader::NewBuilder()
 {
-  return FileHeaderBuilder::Create();
+  return std::shared_ptr<FileHeaderBuilder>(new FileHeaderBuilder());
 }
 
-std::unique_ptr<FileHeaderBuilder> FileHeader::NewBuilder(const FileHeader& base)
+std::shared_ptr<FileHeaderBuilder> FileHeader::NewBuilder(const FileHeader& base)
 {
-  return FileHeaderBuilder::Create(base);
+  return std::shared_ptr<FileHeaderBuilder>(new FileHeaderBuilder(base));
 }
 
-std::unique_ptr<FileHeaderBuilder> FileHeader::NewBuilder(std::array<byte, FileHeader::SIZE>& base)
+std::shared_ptr<FileHeaderBuilder> FileHeader::NewBuilder(std::array<byte, FileHeader::SIZE>& base)
 {
-  return FileHeaderBuilder::Create(base);
+  return std::shared_ptr<FileHeaderBuilder>(new FileHeaderBuilder(Validate(base)));
 }
 
 std::array<byte, FileHeader::SIZE> FileHeader::ToBytes() const
@@ -111,32 +110,14 @@ bool operator!=(const FileHeader& lhs, const FileHeader& rhs)
 
 /*** FileHeaderBuilder ***/
 
-FileHeaderBuilder::FileHeaderBuilder()
-    :page_size(DEFAULT_PAGE_SIZE), key_size(FIXED_KEY_SIZE), first_tree_header_page(0), first_freelist_page(0) { }
+FileHeaderBuilder::FileHeaderBuilder(const noid::backend::page::FileHeader& base)
+    :page_size(base.page_size), key_size(base.key_size), first_tree_header_page(base.first_tree_header_page),
+     first_freelist_page(base.first_freelist_page) { }
 
 FileHeaderBuilder::FileHeaderBuilder(std::array<byte, FileHeader::SIZE> const& base)
-{
-  this->page_size = read_le_uint16<byte>(base, PAGE_SIZE_OFFSET);
-  this->key_size = read_uint8<byte>(base, KEY_SIZE_OFFSET);
-  this->first_tree_header_page = read_le_uint32<byte>(base, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET);
-  this->first_freelist_page = read_le_uint32<byte>(base, FIRST_FREELIST_PAGE_NUMBER_OFFSET);
-}
-
-std::unique_ptr<FileHeaderBuilder> FileHeaderBuilder::Create()
-{
-  return std::unique_ptr<FileHeaderBuilder>(new FileHeaderBuilder());
-}
-
-std::unique_ptr<FileHeaderBuilder> FileHeaderBuilder::Create(
-    std::array<byte, FileHeader::SIZE> const& base)
-{
-  return std::unique_ptr<FileHeaderBuilder>(new FileHeaderBuilder(Validate(base)));
-}
-
-std::unique_ptr<FileHeaderBuilder> FileHeaderBuilder::Create(const FileHeader& base)
-{
-  return std::unique_ptr<FileHeaderBuilder>(new FileHeaderBuilder(base.ToBytes()));
-}
+    :page_size(read_le_uint16<byte>(base, PAGE_SIZE_OFFSET)), key_size(read_uint8<byte>(base, KEY_SIZE_OFFSET)),
+     first_tree_header_page(read_le_uint32<byte>(base, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET)),
+     first_freelist_page(read_le_uint32<byte>(base, FIRST_FREELIST_PAGE_NUMBER_OFFSET)) { }
 
 std::unique_ptr<const FileHeader> FileHeaderBuilder::Build() const
 {
@@ -152,33 +133,33 @@ std::unique_ptr<const FileHeader> FileHeaderBuilder::Build() const
       this->page_size, this->key_size, this->first_tree_header_page, this->first_freelist_page, checksum));
 }
 
-FileHeaderBuilder& FileHeaderBuilder::WithPageSize(uint16_t size)
+std::shared_ptr<FileHeaderBuilder> FileHeaderBuilder::WithPageSize(uint16_t size)
 {
   auto p2 = safe_round_to_next_power_of_2(size);
   this->page_size = p2 < 512 ? 512 : p2;
 
-  return *this;
+  return this->shared_from_this();
 }
 
-FileHeaderBuilder& FileHeaderBuilder::WithKeySize(uint8_t size)
+std::shared_ptr<FileHeaderBuilder> FileHeaderBuilder::WithKeySize(uint8_t size)
 {
   this->key_size = safe_next_multiple_of_8(size);
 
-  return *this;
+  return this->shared_from_this();
 }
 
-FileHeaderBuilder& FileHeaderBuilder::WithFirstTreeHeaderPage(PageNumber page_number)
+std::shared_ptr<FileHeaderBuilder> FileHeaderBuilder::WithFirstTreeHeaderPage(PageNumber page_number)
 {
   this->first_tree_header_page = page_number;
 
-  return *this;
+  return this->shared_from_this();
 }
 
-FileHeaderBuilder& FileHeaderBuilder::WithFirstFreeListPage(PageNumber page_number)
+std::shared_ptr<FileHeaderBuilder> FileHeaderBuilder::WithFirstFreeListPage(PageNumber page_number)
 {
   this->first_freelist_page = page_number;
 
-  return *this;
+  return this->shared_from_this();
 }
 
 }

@@ -71,7 +71,7 @@ class FileHeader {
      *
      * @return The new builder instance.
      */
-    static std::unique_ptr<FileHeaderBuilder> NewBuilder();
+    static std::shared_ptr<FileHeaderBuilder> NewBuilder();
 
     /**
      * @brief Creates a new builder for @c FileHeader instances, using @p base as a starting point.
@@ -79,7 +79,7 @@ class FileHeader {
      * @param base The @c FileHeader to use as a basis for the new instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<FileHeaderBuilder> NewBuilder(const FileHeader& base);
+    static std::shared_ptr<FileHeaderBuilder> NewBuilder(const FileHeader& base);
 
     /**
      * @brief Creates a new builder for @c FileHeader instances, using the given raw array as a base.
@@ -89,7 +89,7 @@ class FileHeader {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given bytes do not represent a valid @c FileHeader.
      */
-    static std::unique_ptr<FileHeaderBuilder> NewBuilder(std::array<byte, FileHeader::SIZE> &base);
+    static std::shared_ptr<FileHeaderBuilder> NewBuilder(std::array<byte, FileHeader::SIZE> &base);
 
     /**
      * @brief Creates a new array containing the serialized representation of this database header.
@@ -149,41 +149,19 @@ bool operator!=(const FileHeader& lhs, const FileHeader& rhs);
  *
  * @author houthacker
  */
-class FileHeaderBuilder {
+ class FileHeaderBuilder : public std::enable_shared_from_this<FileHeaderBuilder> {
  private:
     friend class FileHeader;
 
-    uint16_t page_size;
-    uint8_t key_size;
-    PageNumber first_tree_header_page;
-    PageNumber first_freelist_page;
+    uint16_t page_size                  = DEFAULT_PAGE_SIZE;
+    uint8_t key_size                    = FIXED_KEY_SIZE;
+    PageNumber first_tree_header_page   = NULL_PAGE;
+    PageNumber first_freelist_page      = NULL_PAGE;
 
-    explicit FileHeaderBuilder();
+    FileHeaderBuilder() =default;
+    explicit FileHeaderBuilder(const FileHeader& base);
     explicit FileHeaderBuilder(std::array<byte, FileHeader::SIZE> const & base);
 
-    /**
-     * @brief Creates a new builder with default values.
-     *
-     * @return The new builder instance.
-     */
-    static std::unique_ptr<FileHeaderBuilder> Create();
-
-    /**
-     * @brief Creates a new builder with a copy of the the given backing array.
-     *
-     * @param base The backing array to use as a basis for the new header instance.
-     * @return The new builder instance.
-     * @throws std::invalid_argument if the checksum verification fails.
-     */
-    static std::unique_ptr<FileHeaderBuilder> Create(std::array<byte, FileHeader::SIZE> const & base);
-
-    /**
-     * @brief Creates a new builder with a copy of the data in @p base.
-     *
-     * @param base The header to use as a basis for the new header instance.
-     * @return The new builder instance.
-     */
-    static std::unique_ptr<FileHeaderBuilder> Create(const FileHeader& base);
  public:
 
     /**
@@ -201,7 +179,7 @@ class FileHeaderBuilder {
      * @param size The new page size.
      * @return A reference to this builder to support a fluent interface.
      */
-    FileHeaderBuilder& WithPageSize(uint16_t size = DEFAULT_PAGE_SIZE);
+    std::shared_ptr<FileHeaderBuilder> WithPageSize(uint16_t size = DEFAULT_PAGE_SIZE);
 
     /**
      * @brief Sets or overwrites the currently configured key size.
@@ -211,7 +189,7 @@ class FileHeaderBuilder {
      * @param size The new key size.
      * @return A reference to this builder to support a fluent interface.
      */
-    FileHeaderBuilder& WithKeySize(uint8_t size = FIXED_KEY_SIZE);
+    std::shared_ptr<FileHeaderBuilder> WithKeySize(uint8_t size = FIXED_KEY_SIZE);
 
     /**
      * @brief Sets or overwrites the page number of the first tree header.
@@ -219,7 +197,7 @@ class FileHeaderBuilder {
      * @param page_number The page number of the first tree header.
      * @return A reference to this builder to support a fluent interface.
      */
-    FileHeaderBuilder& WithFirstTreeHeaderPage(PageNumber page_number);
+    std::shared_ptr<FileHeaderBuilder> WithFirstTreeHeaderPage(PageNumber page_number);
 
     /**
      * @brief Sets or overwrites the page number of the first freelist page.
@@ -227,7 +205,7 @@ class FileHeaderBuilder {
      * @param page_number The page number of the first freelist page.
      * @return A reference to this builder to support a fluent interface.
      */
-    FileHeaderBuilder& WithFirstFreeListPage(PageNumber page_number);
+    std::shared_ptr<FileHeaderBuilder> WithFirstFreeListPage(PageNumber page_number);
 };
 
 }

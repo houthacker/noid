@@ -35,7 +35,7 @@ TEST_CASE("Build a LeafNode with an inline payload")
   REQUIRE(record.GetPayload() == std::array<byte, NodeRecord::INLINE_PAYLOAD_SIZE>{1, 3, 3, 7});
 
   // No overflow page, so trying to retrieve it throws an exception
-  CHECK_THROWS_AS(record.GetOverflowPage(), std::domain_error);
+  REQUIRE(record.GetOverflowPage() == NULL_PAGE);
 }
 
 TEST_CASE("Build a LeafNode with an overflowing NodeRecord")
@@ -94,7 +94,7 @@ TEST_CASE("Build a LeafNode based on another and overwrite a record")
   REQUIRE(record.GetKey() == SearchKey{1});
   REQUIRE(record.GetInlineIndicator() == 5);
   REQUIRE(record.GetPayload() == std::array<byte, NodeRecord::INLINE_PAYLOAD_SIZE>{3, 1, 4, 1, 5});
-  CHECK_THROWS_AS(record.GetOverflowPage(), std::domain_error);
+  REQUIRE(record.GetOverflowPage() == NULL_PAGE);
 }
 
 TEST_CASE("Try building a LeafNode from an invalid raw byte vector")
