@@ -17,9 +17,9 @@ TEST_CASE("Build a TreeHeader")
 {
   auto tree_header = TreeHeader::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithTreeType(TreeType::Table)
-      .WithRootPageNumber(1337)
-      .WithPageCount(13)
-      .Build();
+      ->WithRootPageNumber(1337)
+      ->WithPageCount(13)
+      ->Build();
 
   REQUIRE(tree_header->GetTreeType() == TreeType::Table);
   REQUIRE(tree_header->GetRoot() == 1337);
@@ -37,8 +37,8 @@ TEST_CASE("Build a TreeHeader based on another TreeHeader")
 {
   auto base = TreeHeader::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithTreeType(TreeType::Index)
-      .WithRootPageNumber(1338)
-      .Build();
+      ->WithRootPageNumber(1338)
+      ->Build();
 
   auto tree_header = TreeHeader::NewBuilder(*base)
       ->Build();
@@ -52,35 +52,35 @@ TEST_CASE("Build a TreeHeader based on another and update the root page")
 {
   auto base = TreeHeader::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithTreeType(TreeType::Index)
-      .WithRootPageNumber(1338)
-      .Build();
+      ->WithRootPageNumber(1338)
+      ->Build();
 
-  CHECK_NOTHROW(TreeHeader::NewBuilder(*base)->WithRootPageNumber(base->GetRoot() - 1).Build());
+  CHECK_NOTHROW(TreeHeader::NewBuilder(*base)->WithRootPageNumber(base->GetRoot() - 1)->Build());
 }
 
 TEST_CASE("Build a TreeHeader based on another and try to change the tree type")
 {
   auto base = TreeHeader::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithTreeType(TreeType::Index)
-      .WithRootPageNumber(1338)
-      .Build();
+      ->WithRootPageNumber(1338)
+      ->Build();
 
-  CHECK_THROWS_AS(TreeHeader::NewBuilder(*base)->WithTreeType(TreeType::Table).Build(), std::domain_error);
+  CHECK_THROWS_AS(TreeHeader::NewBuilder(*base)->WithTreeType(TreeType::Table)->Build(), std::domain_error);
 }
 
 TEST_CASE("Build a TreeHeader and try to leave the tree type at its default value of TreeType::None")
 {
-  CHECK_THROWS_AS(TreeHeader::NewBuilder(DEFAULT_PAGE_SIZE)->WithRootPageNumber(1337).Build(), std::domain_error);
+  CHECK_THROWS_AS(TreeHeader::NewBuilder(DEFAULT_PAGE_SIZE)->WithRootPageNumber(1337)->Build(), std::domain_error);
 }
 
 TEST_CASE("Build a TreeHeader based on another TreeHeader and try to change the TreeType")
 {
   auto base = TreeHeader::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithTreeType(TreeType::Index)
-      .WithRootPageNumber(1338)
-      .Build();
+      ->WithRootPageNumber(1338)
+      ->Build();
 
-  CHECK_THROWS_AS(TreeHeader::NewBuilder(*base)->WithTreeType(TreeType::Table).Build(), std::domain_error);
+  CHECK_THROWS_AS(TreeHeader::NewBuilder(*base)->WithTreeType(TreeType::Table)->Build(), std::domain_error);
 }
 
 TEST_CASE("Build a TreeHeader based on a std::vector<byte>")

@@ -92,7 +92,7 @@ class InternalNode : public Node {
      * @return The new builder instance.
      * @throws std::length_error if @p page_size is too small to contain a @c InternalNode.
      */
-    static std::unique_ptr<InternalNodeBuilder> NewBuilder(uint16_t page_size);
+    static std::shared_ptr<InternalNodeBuilder> NewBuilder(uint16_t page_size);
 
     /**
      * @brief Creates a new builder for @c InternalNode instances, using @c base as a starting point.
@@ -100,7 +100,7 @@ class InternalNode : public Node {
      * @param base The @c InternalNode to use as a basis for the new instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<InternalNodeBuilder> NewBuilder(const InternalNode& base);
+    static std::shared_ptr<InternalNodeBuilder> NewBuilder(const InternalNode& base);
 
     /**
      * @brief Creates a new builder for @c InternalNode instances, using @c base as a starting point.
@@ -109,7 +109,7 @@ class InternalNode : public Node {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given raw bytes are not a valid @c InternalNode.
      */
-    static std::unique_ptr<InternalNodeBuilder> NewBuilder(DynamicArray<byte>&& base);
+    static std::shared_ptr<InternalNodeBuilder> NewBuilder(DynamicArray<byte>&& base);
 
     /**
      * @return The amount of entries contained in this @c InternalNode
@@ -142,7 +142,7 @@ class InternalNode : public Node {
     [[nodiscard]] DynamicArray<byte> ToBytes() const;
 };
 
-class InternalNodeBuilder {
+ class InternalNodeBuilder : public std::enable_shared_from_this<InternalNodeBuilder> {
  private:
     friend class InternalNode;
 
@@ -192,7 +192,7 @@ class InternalNodeBuilder {
      * @param page_number The page number of the child page.
      * @return A reference to this builder to support a fluent interface.
      */
-    InternalNodeBuilder& WithLeftmostChild(PageNumber page_number);
+    std::shared_ptr<InternalNodeBuilder> WithLeftmostChild(PageNumber page_number);
 
     /**
      * @brief Adds a new entry for the @c InternalNode
@@ -202,7 +202,7 @@ class InternalNodeBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::overflow_error if the node is full (i.e. contains the maximum amount of entries).
      */
-    InternalNodeBuilder& WithEntry(SearchKey key, PageNumber right_child_page);
+    std::shared_ptr<InternalNodeBuilder> WithEntry(SearchKey key, PageNumber right_child_page);
 
     /**
      * @brief Adds a new entry for the @c InternalNode, possibly overwriting a previously existing entry in
@@ -216,7 +216,7 @@ class InternalNodeBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::overflow_error if the node is full (i.e. contains the maximum amount of entries).
      */
-    InternalNodeBuilder& WithEntry(SearchKey key, PageNumber right_child_page, uint16_t slot_hint);
+    std::shared_ptr<InternalNodeBuilder> WithEntry(SearchKey key, PageNumber right_child_page, uint16_t slot_hint);
 };
 
 }

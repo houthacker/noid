@@ -6,8 +6,6 @@
 #include <stdexcept>
 
 #include "backend/page/InternalNode.h"
-#include "backend/NoidConfig.h"
-#include "backend/Bits.h"
 #include "backend/DynamicArray.h"
 #include "backend/Types.h"
 
@@ -18,8 +16,8 @@ TEST_CASE("Build an InternalNode")
 {
   auto internal_node = InternalNode::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithLeftmostChild(1)
-      .WithEntry({1, 3, 3, 7}, 2)
-      .Build();
+      ->WithEntry({1, 3, 3, 7}, 2)
+      ->Build();
 
   REQUIRE(internal_node->Size() == 1);
   REQUIRE(internal_node->GetLeftmostChild() == 1);
@@ -31,12 +29,12 @@ TEST_CASE("Build an InternalNode based on another")
 {
   auto base = InternalNode::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithLeftmostChild(1)
-      .WithEntry({1, 3, 3, 7}, 2)
-      .Build();
+      ->WithEntry({1, 3, 3, 7}, 2)
+      ->Build();
 
   auto internal_node = InternalNode::NewBuilder(*base)
       ->WithEntry({1, 3, 3, 8}, 3)
-      .Build();
+      ->Build();
   REQUIRE(internal_node->Size() == 2);
   REQUIRE(internal_node->GetLeftmostChild() == 1);
   REQUIRE(internal_node->EntryAt(0) == base->EntryAt(0));
@@ -47,14 +45,14 @@ TEST_CASE("Build an InternalNode based on another and overwrite some entries")
 {
   auto base_builder = InternalNode::NewBuilder(DEFAULT_PAGE_SIZE);
   auto base = base_builder->WithLeftmostChild(1)
-      .WithEntry({1, 3, 3, 7}, 2)
-      .WithEntry({1, 3, 3, 8}, 3)
-      .Build();
+      ->WithEntry({1, 3, 3, 7}, 2)
+      ->WithEntry({1, 3, 3, 8}, 3)
+      ->Build();
 
   auto internal_node_builder = InternalNode::NewBuilder(*base);
   auto internal_node = internal_node_builder->WithLeftmostChild(4)
-      .WithEntry({1, 3, 3, 9}, 3, 1)
-      .Build();
+      ->WithEntry({1, 3, 3, 9}, 3, 1)
+      ->Build();
 
   REQUIRE(internal_node->Size() == 2);
   REQUIRE(internal_node->GetLeftmostChild() == 4);
@@ -83,10 +81,10 @@ TEST_CASE("Try building an InternalNode that contains too many entries")
 TEST_CASE("Check that an InternalNode contains a given NodeEntry") {
   auto node = InternalNode::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithLeftmostChild(1)
-      .WithEntry({1, 3, 3, 7}, 2)
-      .WithEntry({1, 3, 3, 8}, 3)
-      .WithEntry({1, 3, 3, 9}, 4)
-      .Build();
+      ->WithEntry({1, 3, 3, 7}, 2)
+      ->WithEntry({1, 3, 3, 8}, 3)
+      ->WithEntry({1, 3, 3, 9}, 4)
+      ->Build();
 
   REQUIRE(node->Contains({1, 3, 3, 7}));
   REQUIRE(node->Contains({1, 3, 3, 8}));

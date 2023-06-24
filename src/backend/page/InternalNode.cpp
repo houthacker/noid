@@ -48,19 +48,19 @@ InternalNode::InternalNode(uint16_t next_entry_slot, PageNumber leftmost_child, 
     :next_entry_slot(next_entry_slot), leftmost_child(leftmost_child), entries(std::move(entries)),
      page_size(page_size) { }
 
-std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(uint16_t page_size)
+std::shared_ptr<InternalNodeBuilder> InternalNode::NewBuilder(uint16_t page_size)
 {
-  return std::unique_ptr<InternalNodeBuilder>(new InternalNodeBuilder(page_size));
+  return std::shared_ptr<InternalNodeBuilder>(new InternalNodeBuilder(page_size));
 }
 
-std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(const InternalNode& base)
+std::shared_ptr<InternalNodeBuilder> InternalNode::NewBuilder(const InternalNode& base)
 {
-  return std::unique_ptr<InternalNodeBuilder>(new InternalNodeBuilder(base));
+  return std::shared_ptr<InternalNodeBuilder>(new InternalNodeBuilder(base));
 }
 
-std::unique_ptr<InternalNodeBuilder> InternalNode::NewBuilder(DynamicArray<byte>&& base)
+std::shared_ptr<InternalNodeBuilder> InternalNode::NewBuilder(DynamicArray<byte>&& base)
 {
-  return std::unique_ptr<InternalNodeBuilder>(new InternalNodeBuilder(std::move(Validate(base, base.size()))));
+  return std::shared_ptr<InternalNodeBuilder>(new InternalNodeBuilder(std::move(Validate(base, base.size()))));
 }
 
 uint16_t InternalNode::Size() const
@@ -145,14 +145,14 @@ bool InternalNodeBuilder::IsFull() const
   return this->entries.size() - 1 == this->max_entry_slot;
 }
 
-InternalNodeBuilder& InternalNodeBuilder::WithLeftmostChild(PageNumber page_number)
+std::shared_ptr<InternalNodeBuilder> InternalNodeBuilder::WithLeftmostChild(PageNumber page_number)
 {
   this->leftmost_child = page_number;
 
-  return *this;
+  return this->shared_from_this();
 }
 
-InternalNodeBuilder& InternalNodeBuilder::WithEntry(SearchKey key, PageNumber right_child_page)
+std::shared_ptr<InternalNodeBuilder> InternalNodeBuilder::WithEntry(SearchKey key, PageNumber right_child_page)
 {
   if (this->IsFull()) {
     throw std::overflow_error("Cannot add entry: node is full");
@@ -160,16 +160,16 @@ InternalNodeBuilder& InternalNodeBuilder::WithEntry(SearchKey key, PageNumber ri
 
   this->entries.push_back({key, right_child_page});
 
-  return *this;
+  return this->shared_from_this();
 }
 
-InternalNodeBuilder& InternalNodeBuilder::WithEntry(SearchKey key, PageNumber right_child_page,
+std::shared_ptr<InternalNodeBuilder> InternalNodeBuilder::WithEntry(SearchKey key, PageNumber right_child_page,
     uint16_t slot_hint)
 {
   if (this->entries.size() > slot_hint) {
     // slot_hint refers to an occupied slot, so replace it.
     this->entries[slot_hint] = {key, right_child_page};
-    return *this;
+    return this->shared_from_this();
   }
 
   // otherwise, append the entry to the end of the list.

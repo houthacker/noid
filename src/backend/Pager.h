@@ -213,7 +213,7 @@ class Pager {
      * @return A unique pointer to the builder instance.
      */
     template<typename P, typename B> requires page::Page<P, B>
-    std::unique_ptr<B> NewBuilder()
+    std::shared_ptr<B> NewBuilder()
     {
       return P::NewBuilder(this->page_size);
     }

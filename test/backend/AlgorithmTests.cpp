@@ -20,8 +20,8 @@ TEST_CASE("BinarySearch on a DynamicArray<NodeEntry>") {
     {{5}, 14}
   };
 
-  REQUIRE(BinarySearch<NodeEntry>(data, 0, data.size(), {0}) == data.size());
-  REQUIRE(BinarySearch<NodeEntry>(data, 0, data.size(), {6}) == data.size());
+  REQUIRE(BinarySearch<NodeEntry>(data, 0, data.size() - 1, {0}) == data.size());
+  REQUIRE(BinarySearch<NodeEntry>(data, 0, data.size() - 1, {6}) == data.size());
 
   for (decltype(data.size()) i = 0; i < data.size(); i++) {
     REQUIRE(BinarySearch<NodeEntry>(data, 0, data.size(), data[i].key) == i);

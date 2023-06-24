@@ -75,7 +75,7 @@ class BPlusTree {
      * @param type The tree type.
      */
     BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type)
-        :pager(pager), header(this->pager->template NewBuilder<page::TreeHeader, page::TreeHeaderBuilder>()->WithTreeType(type).Build())
+        :pager(pager), header(this->pager->template NewBuilder<page::TreeHeader, page::TreeHeaderBuilder>()->WithTreeType(type)->Build())
     {
       this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*this->header);
     }
@@ -127,14 +127,13 @@ class BPlusTree {
       const auto self = this;
       auto type = InsertType::Insert;
       if (self->header->GetRoot() == NULL_PAGE) {
-        std::unique_ptr<page::NodeRecordBuilder> record_builder = details::CreateNodeRecordBuilder(key, value,
+        std::shared_ptr<page::NodeRecordBuilder> record_builder = details::CreateNodeRecordBuilder(key, value,
             page_range.first);
 
-        auto root = this->pager->template NewBuilder<page::LeafNode, page::LeafNodeBuilder>()->WithRecord(record_builder->Build()).Build();
+        auto root = this->pager->template NewBuilder<page::LeafNode, page::LeafNodeBuilder>()->WithRecord(record_builder->Build())->Build();
         auto root_page = this->pager->template WritePage<page::LeafNode, page::LeafNodeBuilder>(*root);
 
-        auto header_builder = page::TreeHeader::NewBuilder(*this->header);
-        this->header = header_builder->WithRootPageNumber(root_page).Build();
+        this->header = page::TreeHeader::NewBuilder(*this->header)->WithRootPageNumber(root_page)->Build();
       }
 
       return type;

@@ -37,22 +37,22 @@ TreeHeader::TreeHeader(TreeType tree_type, uint16_t max_node_entries, uint16_t m
     :tree_type(tree_type), max_node_entries(max_node_entries), max_node_records(max_node_records), root(root),
      page_count(page_count), page_size(page_size) { }
 
-std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(uint16_t page_size)
+std::shared_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(uint16_t page_size)
 {
   if (page_size < TreeHeader::HEADER_SIZE) {
     throw std::length_error("Page size too small to contain a TreeHeader page.");
   }
-  return std::unique_ptr<TreeHeaderBuilder>(new TreeHeaderBuilder(page_size));
+  return std::shared_ptr<TreeHeaderBuilder>(new TreeHeaderBuilder(page_size));
 }
 
-std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(const TreeHeader& base)
+std::shared_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(const TreeHeader& base)
 {
-  return std::unique_ptr<TreeHeaderBuilder>(new TreeHeaderBuilder(base));
+  return std::shared_ptr<TreeHeaderBuilder>(new TreeHeaderBuilder(base));
 }
 
-std::unique_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(DynamicArray<byte>&& base)
+std::shared_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(DynamicArray<byte>&& base)
 {
-  return std::unique_ptr<TreeHeaderBuilder>(
+  return std::shared_ptr<TreeHeaderBuilder>(
       new TreeHeaderBuilder(std::move(Validate(base, safe_cast<uint16_t>(base.size())))));
 }
 
@@ -123,27 +123,27 @@ std::unique_ptr<const TreeHeader> TreeHeaderBuilder::Build()
           this->page_size));
 }
 
-TreeHeaderBuilder& TreeHeaderBuilder::WithTreeType(TreeType type)
+std::shared_ptr<TreeHeaderBuilder> TreeHeaderBuilder::WithTreeType(TreeType type)
 {
   if (this->tree_type == TreeType::None || this->tree_type == type) {
     this->tree_type = type;
-    return *this;
+    return this->shared_from_this();
   }
 
   throw std::domain_error("Update of tree type not allowed once it has been set.");
 }
 
-TreeHeaderBuilder& TreeHeaderBuilder::WithRootPageNumber(PageNumber root_page)
+std::shared_ptr<TreeHeaderBuilder> TreeHeaderBuilder::WithRootPageNumber(PageNumber root_page)
 {
   this->root = root_page;
-  return *this;
+  return this->shared_from_this();
 }
 
-TreeHeaderBuilder& TreeHeaderBuilder::WithPageCount(uint32_t count)
+std::shared_ptr<TreeHeaderBuilder> TreeHeaderBuilder::WithPageCount(uint32_t count)
 {
   this->page_count = count;
 
-  return *this;
+  return this->shared_from_this();
 }
 
 }

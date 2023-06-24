@@ -40,19 +40,19 @@ LeafNode::LeafNode(uint16_t next_record_slot, PageNumber left_sibling, PageNumbe
     :next_record_slot(next_record_slot), left_sibling(left_sibling), right_sibling(right_sibling),
      records(std::move(records)), page_size(page_size) { }
 
-std::unique_ptr<LeafNodeBuilder> LeafNode::NewBuilder(uint16_t page_size)
+std::shared_ptr<LeafNodeBuilder> LeafNode::NewBuilder(uint16_t page_size)
 {
-  return std::unique_ptr<LeafNodeBuilder>(new LeafNodeBuilder(page_size));
+  return std::shared_ptr<LeafNodeBuilder>(new LeafNodeBuilder(page_size));
 }
 
-std::unique_ptr<LeafNodeBuilder> LeafNode::NewBuilder(const LeafNode& base)
+std::shared_ptr<LeafNodeBuilder> LeafNode::NewBuilder(const LeafNode& base)
 {
-  return std::unique_ptr<LeafNodeBuilder>(new LeafNodeBuilder(base));
+  return std::shared_ptr<LeafNodeBuilder>(new LeafNodeBuilder(base));
 }
 
-std::unique_ptr<LeafNodeBuilder> LeafNode::NewBuilder(DynamicArray<byte>&& base)
+std::shared_ptr<LeafNodeBuilder> LeafNode::NewBuilder(DynamicArray<byte>&& base)
 {
-  return std::unique_ptr<LeafNodeBuilder>(new LeafNodeBuilder(std::move(Validate(base, base.size()))));
+  return std::shared_ptr<LeafNodeBuilder>(new LeafNodeBuilder(std::move(Validate(base, base.size()))));
 }
 
 uint16_t LeafNode::Size() const
@@ -132,21 +132,21 @@ bool LeafNodeBuilder::IsFull() const
   return this->records.size() == safe_cast<decltype(max_record_slot)>(max_record_slot + 1);
 }
 
-LeafNodeBuilder& LeafNodeBuilder::WithLeftSibling(PageNumber sibling)
+std::shared_ptr<LeafNodeBuilder> LeafNodeBuilder::WithLeftSibling(PageNumber sibling)
 {
   this->left_sibling = sibling;
 
-  return *this;
+  return this->shared_from_this();
 }
 
-LeafNodeBuilder& LeafNodeBuilder::WithRightSibling(PageNumber sibling)
+std::shared_ptr<LeafNodeBuilder> LeafNodeBuilder::WithRightSibling(PageNumber sibling)
 {
   this->right_sibling = sibling;
 
-  return *this;
+  return this->shared_from_this();
 }
 
-LeafNodeBuilder& LeafNodeBuilder::WithRecord(NodeRecord record)
+std::shared_ptr<LeafNodeBuilder> LeafNodeBuilder::WithRecord(NodeRecord record)
 {
   if (this->IsFull()) {
     throw std::overflow_error("Cannot add record: node is full");
@@ -154,14 +154,14 @@ LeafNodeBuilder& LeafNodeBuilder::WithRecord(NodeRecord record)
 
   this->records.push_back(record);
 
-  return *this;
+  return this->shared_from_this();
 }
 
-LeafNodeBuilder& LeafNodeBuilder::WithRecord(NodeRecord record, uint16_t slot_hint)
+std::shared_ptr<LeafNodeBuilder> LeafNodeBuilder::WithRecord(NodeRecord record, uint16_t slot_hint)
 {
   if (this->records.size() > slot_hint) {
     this->records[slot_hint] = record;
-    return *this;
+    return this->shared_from_this();
   }
 
   return this->WithRecord(record);

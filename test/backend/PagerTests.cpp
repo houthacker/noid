@@ -39,10 +39,10 @@ TEST_CASE("WritePage-ReadPage cycle") {
   PageNumber page_location = 2;
 
   auto freelist = pager->NewBuilder<page::Freelist, page::FreelistBuilder>()->WithPrevious(1)
-      .WithNext(3)
-      .WithFreePage(1337)
-      .WithFreePage(1338)
-      .Build();
+      ->WithNext(3)
+      ->WithFreePage(1337)
+      ->WithFreePage(1338)
+      ->Build();
 
   pager->WritePage<page::Freelist, page::FreelistBuilder>(*freelist, page_location);
   auto retrieved = pager->ReadPage<page::Freelist, page::FreelistBuilder>(page_location);
@@ -60,10 +60,10 @@ TEST_CASE("Store some pages at end of file") {
   auto pager = UnixPager::Open(std::move(file));
 
   auto freelist = pager->NewBuilder<page::Freelist, page::FreelistBuilder>()->WithPrevious(1)
-      .WithNext(3)
-      .WithFreePage(1337)
-      .WithFreePage(1338)
-      .Build();
+      ->WithNext(3)
+      ->WithFreePage(1337)
+      ->WithFreePage(1338)
+      ->Build();
 
   for (PageNumber p = 1; p <= 3; p++) {
     REQUIRE(pager->WritePage<page::Freelist, page::FreelistBuilder>(*freelist) == p);

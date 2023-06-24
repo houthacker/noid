@@ -42,7 +42,7 @@ namespace noid::backend::details {
  * @param first_overflow_page The page number of the first value overflow page, or @c NULL_PAGE if no such page is required.
  * @return The new @c NodeRecordBuilder.
  */
-std::unique_ptr<page::NodeRecordBuilder> CreateNodeRecordBuilder(SearchKey& key, const V& value,
+std::shared_ptr<page::NodeRecordBuilder> CreateNodeRecordBuilder(SearchKey& key, const V& value,
     PageNumber first_overflow_page)
 {
   auto record_builder = page::NodeRecord::NewBuilder();
@@ -88,7 +88,7 @@ void WriteOverflow(const V& value, std::pair<PageNumber, PageNumber> page_range,
 
   // Set up all pages and write them using the Pager.
   for (PageNumber current_page = page_range.first; current_page < page_range.second; current_page++) {
-    std::unique_ptr<page::OverflowBuilder> overflow_builder = pager->template NewBuilder<page::Overflow,
+    std::shared_ptr<page::OverflowBuilder> overflow_builder = pager->template NewBuilder<page::Overflow,
                                                                                          page::OverflowBuilder>();
 
     // Always create a payload of maximum data size, since this keeps the page size on storage consistent.
@@ -103,7 +103,7 @@ void WriteOverflow(const V& value, std::pair<PageNumber, PageNumber> page_range,
     write_contiguous_container<byte>(payload, 0, value, value_cursor, write_size);
 
     // And create & write the overflow page
-    auto overflow_page = overflow_builder->WithPayloadSize(write_size).WithData(std::move(payload)).Build();
+    auto overflow_page = overflow_builder->WithPayloadSize(write_size)->WithData(std::move(payload))->Build();
     pager->template WritePage<page::Overflow, page::OverflowBuilder>(*overflow_page, current_page);
 
     value_cursor += write_size;

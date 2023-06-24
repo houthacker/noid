@@ -79,7 +79,7 @@ class NodeRecord {
      *
      * @return The new builder instance.
      */
-    static std::unique_ptr<NodeRecordBuilder> NewBuilder();
+    static std::shared_ptr<NodeRecordBuilder> NewBuilder();
 
     /**
      *
@@ -87,7 +87,7 @@ class NodeRecord {
      * @param range
      * @return
      */
-    static std::unique_ptr<NodeRecordBuilder> NewBuilder(const DynamicArray<byte>& container,
+    static std::shared_ptr<NodeRecordBuilder> NewBuilder(const DynamicArray<byte>& container,
         DynamicArray<byte>::size_type read_idx);
 
     /**
@@ -129,7 +129,7 @@ class NodeRecord {
     bool operator==(const NodeRecord& other) const = default;
 };
 
-class NodeRecordBuilder {
+ class NodeRecordBuilder : public std::enable_shared_from_this<NodeRecordBuilder> {
  private:
     friend class NodeRecord;
 
@@ -166,7 +166,7 @@ class NodeRecordBuilder {
      * @param search_key The search key.
      * @return A reference to this builder to support a fluent interface.
      */
-    NodeRecordBuilder& WithSearchKey(SearchKey search_key);
+    std::shared_ptr<NodeRecordBuilder> WithSearchKey(SearchKey search_key);
 
     /**
      * @brief Sets the inline payload size and writes @p data to the payload.
@@ -175,7 +175,7 @@ class NodeRecordBuilder {
      * @param data_size The amount of bytes in the payload. All bytes after this are assumed to be garbage.
      * @return A reference to this builder to support a fluent interface.
      */
-    NodeRecordBuilder& WithInlinePayload(std::array<byte, NodeRecord::INLINE_PAYLOAD_SIZE> data,
+    std::shared_ptr<NodeRecordBuilder> WithInlinePayload(std::array<byte, NodeRecord::INLINE_PAYLOAD_SIZE> data,
         uint8_t data_size);
 
     /**
@@ -185,7 +185,7 @@ class NodeRecordBuilder {
      * @param first_overflow_page The page number of the first overflow page.
      * @return A reference to this builder to support a fluent interface.
      */
-    NodeRecordBuilder& WithOverflowPayload(std::array<byte, NodeRecord::OVERFLOW_PAYLOAD_SIZE> data,
+    std::shared_ptr<NodeRecordBuilder> WithOverflowPayload(std::array<byte, NodeRecord::OVERFLOW_PAYLOAD_SIZE> data,
         PageNumber first_overflow_page);
 
     /**

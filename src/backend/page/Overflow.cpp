@@ -28,19 +28,19 @@ static DynamicArray<byte>& Validate(DynamicArray<byte>& data, uint16_t page_size
 Overflow::Overflow(uint16_t payload_size, PageNumber next, DynamicArray<byte>&& data, uint16_t page_size)
     :payload_size(payload_size), next(next), data(std::move(data)), page_size(page_size) { }
 
-std::unique_ptr<OverflowBuilder> Overflow::NewBuilder(uint16_t page_size)
+std::shared_ptr<OverflowBuilder> Overflow::NewBuilder(uint16_t page_size)
 {
-  return std::unique_ptr<OverflowBuilder>(new OverflowBuilder(page_size));
+  return std::shared_ptr<OverflowBuilder>(new OverflowBuilder(page_size));
 }
 
-std::unique_ptr<OverflowBuilder> Overflow::NewBuilder(const Overflow& base)
+std::shared_ptr<OverflowBuilder> Overflow::NewBuilder(const Overflow& base)
 {
-  return std::unique_ptr<OverflowBuilder>(new OverflowBuilder(base));
+  return std::shared_ptr<OverflowBuilder>(new OverflowBuilder(base));
 }
 
-std::unique_ptr<OverflowBuilder> Overflow::NewBuilder(DynamicArray<byte>&& base)
+std::shared_ptr<OverflowBuilder> Overflow::NewBuilder(DynamicArray<byte>&& base)
 {
-  return std::unique_ptr<OverflowBuilder>(
+  return std::shared_ptr<OverflowBuilder>(
       new OverflowBuilder(std::move(Validate(base, safe_cast<uint16_t>(base.size())))));
 }
 
@@ -109,7 +109,7 @@ DynamicArray<byte>::size_type OverflowBuilder::MaxDataSize() const
   return this->page_size - Overflow::HEADER_SIZE;
 }
 
-OverflowBuilder& OverflowBuilder::WithPayloadSize(uint16_t size)
+std::shared_ptr<OverflowBuilder> OverflowBuilder::WithPayloadSize(uint16_t size)
 {
   if (size > this->page_size - PAYLOAD_OFFSET) {
     std::stringstream stream;
@@ -118,16 +118,16 @@ OverflowBuilder& OverflowBuilder::WithPayloadSize(uint16_t size)
   }
 
   this->payload_size = size;
-  return *this;
+  return this->shared_from_this();
 }
 
-OverflowBuilder& OverflowBuilder::WithNext(PageNumber page_number)
+std::shared_ptr<OverflowBuilder> OverflowBuilder::WithNext(PageNumber page_number)
 {
   this->next = page_number;
-  return *this;
+  return this->shared_from_this();
 }
 
-OverflowBuilder& OverflowBuilder::WithData(DynamicArray<byte>&& payload)
+std::shared_ptr<OverflowBuilder> OverflowBuilder::WithData(DynamicArray<byte>&& payload)
 {
   if (payload.size() > this->MaxDataSize()) {
     std::stringstream stream;
@@ -136,7 +136,7 @@ OverflowBuilder& OverflowBuilder::WithData(DynamicArray<byte>&& payload)
   }
 
   this->data = std::move(payload);
-  return *this;
+  return this->shared_from_this();
 }
 
 }

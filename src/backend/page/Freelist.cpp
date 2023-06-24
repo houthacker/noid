@@ -41,19 +41,19 @@ Freelist::Freelist(uint16_t page_size, PageNumber previous, PageNumber next, Dyn
     uint16_t next_free_slot)
     :page_size(page_size), previous(previous), next(next), free_pages(std::move(free_pages)), next_free_slot(next_free_slot) { }
 
-std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(uint16_t page_size)
+std::shared_ptr<FreelistBuilder> Freelist::NewBuilder(uint16_t page_size)
 {
-  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(page_size));
+  return std::shared_ptr<FreelistBuilder>(new FreelistBuilder(page_size));
 }
 
-std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(const Freelist& base)
+std::shared_ptr<FreelistBuilder> Freelist::NewBuilder(const Freelist& base)
 {
-  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(base));
+  return std::shared_ptr<FreelistBuilder>(new FreelistBuilder(base));
 }
 
-std::unique_ptr<FreelistBuilder> Freelist::NewBuilder(DynamicArray<byte>&& base)
+std::shared_ptr<FreelistBuilder> Freelist::NewBuilder(DynamicArray<byte>&& base)
 {
-  return std::unique_ptr<FreelistBuilder>(new FreelistBuilder(std::move(Validate(base, base.size()))));
+  return std::shared_ptr<FreelistBuilder>(new FreelistBuilder(std::move(Validate(base, base.size()))));
 }
 
 PageNumber Freelist::Previous() const
@@ -126,21 +126,21 @@ std::unique_ptr<const Freelist> FreelistBuilder::Build() const
           this->free_pages.size()));
 }
 
-FreelistBuilder& FreelistBuilder::WithPrevious(PageNumber previous)
+std::shared_ptr<FreelistBuilder> FreelistBuilder::WithPrevious(PageNumber previous)
 {
   this->previous_freelist_entry = previous;
 
-  return *this;
+  return this->shared_from_this();
 }
 
-FreelistBuilder& FreelistBuilder::WithNext(PageNumber next)
+std::shared_ptr<FreelistBuilder> FreelistBuilder::WithNext(PageNumber next)
 {
   this->next_freelist_entry = next;
 
-  return *this;
+  return this->shared_from_this();
 }
 
-FreelistBuilder& FreelistBuilder::WithFreePage(PageNumber free_page)
+std::shared_ptr<FreelistBuilder> FreelistBuilder::WithFreePage(PageNumber free_page)
 {
   if (this->cursor - 1 == this->max_slot) {
     throw std::overflow_error("Freelist overflow.");
@@ -148,14 +148,14 @@ FreelistBuilder& FreelistBuilder::WithFreePage(PageNumber free_page)
 
   this->free_pages.push_back(free_page);
   this->cursor++;
-  return *this;
+  return this->shared_from_this();
 }
 
-FreelistBuilder& FreelistBuilder::WithFreePage(PageNumber free_page, std::size_t slot_hint)
+std::shared_ptr<FreelistBuilder> FreelistBuilder::WithFreePage(PageNumber free_page, std::size_t slot_hint)
 {
   if (slot_hint <= this->cursor) {
     this->free_pages[slot_hint] = free_page;
-    return *this;
+    return this->shared_from_this();
   }
 
   return this->WithFreePage(free_page);

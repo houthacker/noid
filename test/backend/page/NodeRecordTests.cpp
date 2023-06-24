@@ -24,8 +24,8 @@ TEST_CASE("A NodeRecord with inline data")
 {
   auto record = NodeRecord::NewBuilder()
       ->WithSearchKey({1})
-      .WithInlinePayload({1, 2, 3, 4, 5}, 5)
-      .Build();
+      ->WithInlinePayload({1, 2, 3, 4, 5}, 5)
+      ->Build();
 
   REQUIRE(record.GetKey() == SearchKey{1});
   REQUIRE(record.GetOverflowPage() == NULL_PAGE);

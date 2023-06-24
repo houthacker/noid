@@ -72,7 +72,7 @@ class Overflow {
      * @return The new builder instance.
      * @throws std::length_error if @p page_size is too small to contain a @c Overflow page.
      */
-    static std::unique_ptr<OverflowBuilder> NewBuilder(uint16_t page_size);
+    static std::shared_ptr<OverflowBuilder> NewBuilder(uint16_t page_size);
 
     /**
      * @brief Creates a new builder for @c Overflow instances, using @c base as a starting point.
@@ -80,7 +80,7 @@ class Overflow {
      * @param base The @c Overflow to use as a basis for the new instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<OverflowBuilder> NewBuilder(const Overflow& base);
+    static std::shared_ptr<OverflowBuilder> NewBuilder(const Overflow& base);
 
     /**
      * @brief Creates a new builder for @c Overflow instances, using @c base as a starting point.
@@ -90,7 +90,7 @@ class Overflow {
      * @return The new builder instance.
      * @throw std::invalid_argument if base is empty.
      */
-    static std::unique_ptr<OverflowBuilder> NewBuilder(DynamicArray<byte> && base);
+    static std::shared_ptr<OverflowBuilder> NewBuilder(DynamicArray<byte> && base);
 
     /**
      * @return The size in bytes of the payload contained in this @c Overflow page.
@@ -118,7 +118,7 @@ class Overflow {
     [[nodiscard]] DynamicArray<byte> ToBytes() const;
 };
 
-class OverflowBuilder {
+ class OverflowBuilder : public std::enable_shared_from_this<OverflowBuilder> {
  private:
     friend class Overflow;
 
@@ -173,7 +173,7 @@ class OverflowBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::length_error if the size is too large to fit in the current @c page_size.
      */
-    OverflowBuilder& WithPayloadSize(uint16_t size);
+    std::shared_ptr<OverflowBuilder> WithPayloadSize(uint16_t size);
 
     /**
      * @brief Sets the location of the page_number @c Overflow page.
@@ -181,7 +181,7 @@ class OverflowBuilder {
      * @param page_number The number of the page_number @c Overflow page.
      * @return A reference to this builder to support a fluent interface.
      */
-    OverflowBuilder& WithNext(PageNumber page_number);
+    std::shared_ptr<OverflowBuilder> WithNext(PageNumber page_number);
 
     /**
      * @brief Sets the payload payload of the @c Overflow page.
@@ -190,7 +190,7 @@ class OverflowBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::length_error of the payload size is too large to fit in the current @c page_size.
      */
-    OverflowBuilder& WithData(DynamicArray<byte> && payload);
+    std::shared_ptr<OverflowBuilder> WithData(DynamicArray<byte> && payload);
 };
 
 }

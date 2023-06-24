@@ -17,10 +17,10 @@ using namespace noid::backend::page;
 TEST_CASE("Build a Freelist")
 {
   auto freelist = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(0)
-      .WithNext(0)
-      .WithFreePage(1337)
-      .WithFreePage(1338)
-      .Build();
+      ->WithNext(0)
+      ->WithFreePage(1337)
+      ->WithFreePage(1338)
+      ->Build();
 
   REQUIRE(freelist->Previous() == 0);
   REQUIRE(freelist->Next() == 0);
@@ -43,11 +43,11 @@ TEST_CASE("Build a Freelist with default values")
 TEST_CASE("Build a Freelist based on another Freelist")
 {
   auto base = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(0)
-      .WithNext(0)
-      .WithFreePage(1337)
-      .Build();
+      ->WithNext(0)
+      ->WithFreePage(1337)
+      ->Build();
 
-  auto freelist = Freelist::NewBuilder(*base)->WithFreePage(1338).Build();
+  auto freelist = Freelist::NewBuilder(*base)->WithFreePage(1338)->Build();
   REQUIRE(freelist->Previous() == 0);
   REQUIRE(freelist->Next() == 0);
   REQUIRE(freelist->FreePageAt(0) == 1337);
@@ -88,12 +88,12 @@ TEST_CASE("Try building a Freelist that contains too many pages")
 TEST_CASE("Build a Freelist based on another and overwrite some free page numbers")
 {
   auto base = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(0)
-      .WithNext(0)
-      .WithFreePage(1337)
-      .WithFreePage(1338)
-      .Build();
+      ->WithNext(0)
+      ->WithFreePage(1337)
+      ->WithFreePage(1338)
+      ->Build();
 
-  auto freelist = Freelist::NewBuilder(*base)->WithFreePage(1339, 0).Build();
+  auto freelist = Freelist::NewBuilder(*base)->WithFreePage(1339, 0)->Build();
   REQUIRE(freelist->Previous() == 0);
   REQUIRE(freelist->Next() == 0);
   REQUIRE(freelist->FreePageAt(0) == 1339);
@@ -103,10 +103,10 @@ TEST_CASE("Build a Freelist based on another and overwrite some free page number
 
 TEST_CASE("Freelist::ToBytes() cycle") {
   auto original = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(1)
-      .WithNext(3)
-      .WithFreePage(1337)
-      .WithFreePage(1338)
-      .Build();
+      ->WithNext(3)
+      ->WithFreePage(1337)
+      ->WithFreePage(1338)
+      ->Build();
 
   auto from_bytes = Freelist::NewBuilder(original->ToBytes())->Build();
   REQUIRE(from_bytes->Previous() == original->Previous());

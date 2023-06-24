@@ -69,7 +69,7 @@ class Freelist {
      * @return The new builder instance.
      * @throws std::length_error if @p page_size is too small to contain the freelist header.
      */
-    static std::unique_ptr<FreelistBuilder> NewBuilder(uint16_t page_size);
+    static std::shared_ptr<FreelistBuilder> NewBuilder(uint16_t page_size);
 
     /**
      * @brief Creates a new builder for @c Freelist instances, using @c base as a starting point.
@@ -77,7 +77,7 @@ class Freelist {
      * @param base The @c Freelist to use as a basis for the new instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<FreelistBuilder> NewBuilder(const Freelist& base);
+    static std::shared_ptr<FreelistBuilder> NewBuilder(const Freelist& base);
 
     /**
      * @brief Creates a new builder for @c Freelist instances, using @c base as a starting point.
@@ -86,7 +86,7 @@ class Freelist {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given raw data do not represent a valid serialized @c Freelist.
      */
-    static std::unique_ptr<FreelistBuilder> NewBuilder(DynamicArray<byte>&& base);
+    static std::shared_ptr<FreelistBuilder> NewBuilder(DynamicArray<byte>&& base);
 
     /**
      * @brief Returns the page number of the previous freelist page. A @c PageNumber of zero means no previous page.
@@ -126,7 +126,7 @@ class Freelist {
     [[nodiscard]] DynamicArray<byte> ToBytes() const;
 };
 
-class FreelistBuilder {
+ class FreelistBuilder : public std::enable_shared_from_this<FreelistBuilder> {
  private:
 
     friend class Freelist;
@@ -182,7 +182,7 @@ class FreelistBuilder {
      * @param previous The previous freelist page number.
      * @return A reference to this builder to support a fluent interface.
      */
-    FreelistBuilder& WithPrevious(PageNumber previous);
+    std::shared_ptr<FreelistBuilder> WithPrevious(PageNumber previous);
 
     /**
      * @brief Sets the next freelist page number to the provided value.
@@ -190,7 +190,7 @@ class FreelistBuilder {
      * @param next The next freelist page number.
      * @return A reference to this builder to support a fluent interface.
      */
-    FreelistBuilder& WithNext(PageNumber next);
+    std::shared_ptr<FreelistBuilder> WithNext(PageNumber next);
 
     /**
      * @brief Designates the given @c PageNumber as reusable and stores it directly after the
@@ -200,7 +200,7 @@ class FreelistBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::overflow_error if the @c Freelist is full before adding the given @p free_page
      */
-    FreelistBuilder& WithFreePage(PageNumber free_page);
+    std::shared_ptr<FreelistBuilder> WithFreePage(PageNumber free_page);
 
     /**
      * @brief Designates the given @c PageNumber as reusable and stores it at the given index.
@@ -215,7 +215,7 @@ class FreelistBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::overflow_error if the @c Freelist is full before adding the given @p free_page
      */
-    FreelistBuilder& WithFreePage(PageNumber free_page, std::size_t slot_hint);
+    std::shared_ptr<FreelistBuilder> WithFreePage(PageNumber free_page, std::size_t slot_hint);
 };
 
 }

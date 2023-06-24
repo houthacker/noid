@@ -18,12 +18,12 @@ TEST_CASE("Build a LeafNode with an inline payload")
 {
   auto leaf_node = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithLeftSibling(1)
-      .WithRightSibling(3)
-      .WithRecord(NodeRecord::NewBuilder()
+      ->WithRightSibling(3)
+      ->WithRecord(NodeRecord::NewBuilder()
           ->WithSearchKey({0})
-          .WithInlinePayload({1, 3, 3, 7}, 4)
-          .Build())
-      .Build();
+          ->WithInlinePayload({1, 3, 3, 7}, 4)
+          ->Build())
+      ->Build();
 
   REQUIRE(leaf_node->GetLeftSibling() == 1);
   REQUIRE(leaf_node->GetRightSibling() == 3);
@@ -42,8 +42,8 @@ TEST_CASE("Build a LeafNode with an overflowing NodeRecord")
 {
   auto leaf_node = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithRecord(NodeRecord::NewBuilder()
-          ->WithSearchKey({0}).WithOverflowPayload({5, 0, 0}, 1337).Build())
-      .Build();
+          ->WithSearchKey({0})->WithOverflowPayload({5, 0, 0}, 1337)->Build())
+      ->Build();
 
   REQUIRE(leaf_node->GetLeftSibling() == 0);
   REQUIRE(leaf_node->GetRightSibling() == 0);
@@ -65,13 +65,13 @@ TEST_CASE("Build a LeafNode and overflow it")
     std::array<byte, FIXED_KEY_SIZE> key = {0};
     write_le_uint16<byte>(key, 0, i);
 
-    builder->WithRecord(NodeRecord::NewBuilder()->WithSearchKey(key).WithInlinePayload({1, 3, 3, 7}, 4).Build());
+    builder->WithRecord(NodeRecord::NewBuilder()->WithSearchKey(key)->WithInlinePayload({1, 3, 3, 7}, 4)->Build());
   }
 
   // Write one more record after the builder indicates it is full. This must cause an exception.
   std::array<byte, FIXED_KEY_SIZE> key = {1};
   CHECK_THROWS_AS(
-      builder->WithRecord(NodeRecord::NewBuilder()->WithSearchKey(key).WithInlinePayload({1, 3, 3, 8}, 4).Build()),
+      builder->WithRecord(NodeRecord::NewBuilder()->WithSearchKey(key)->WithInlinePayload({1, 3, 3, 8}, 4)->Build()),
       std::overflow_error);
 }
 
@@ -79,13 +79,13 @@ TEST_CASE("Build a LeafNode based on another and overwrite a record")
 {
   auto base = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithLeftSibling(1)
-      .WithRightSibling(3)
-      .WithRecord(NodeRecord::NewBuilder()->WithSearchKey({0}).WithInlinePayload({1, 3, 3, 7}, 4).Build())
-      .Build();
+      ->WithRightSibling(3)
+      ->WithRecord(NodeRecord::NewBuilder()->WithSearchKey({0})->WithInlinePayload({1, 3, 3, 7}, 4)->Build())
+      ->Build();
 
   auto leaf_node = LeafNode::NewBuilder(*base)
-      ->WithRecord(NodeRecord::NewBuilder()->WithSearchKey({1}).WithInlinePayload({3, 1, 4, 1, 5}, 5).Build(), 0)
-      .Build();
+      ->WithRecord(NodeRecord::NewBuilder()->WithSearchKey({1})->WithInlinePayload({3, 1, 4, 1, 5}, 5)->Build(), 0)
+      ->Build();
   REQUIRE(leaf_node->GetLeftSibling() == base->GetLeftSibling());
   REQUIRE(leaf_node->GetRightSibling() == base->GetRightSibling());
   REQUIRE_FALSE(leaf_node->RecordAt(0) == base->RecordAt(0));
@@ -106,11 +106,11 @@ TEST_CASE("Check that a LeafNode contains a given NodeRecord")
 {
   auto node = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE)
       ->WithLeftSibling(1)
-      .WithRightSibling(3)
-      .WithRecord(NodeRecord::NewBuilder()->WithSearchKey({0}).WithInlinePayload({1, 3, 3, 7}, 4).Build())
-      .WithRecord(NodeRecord::NewBuilder()->WithSearchKey({1}).WithInlinePayload({1, 3, 3, 8}, 4).Build())
-      .WithRecord(NodeRecord::NewBuilder()->WithSearchKey({2}).WithInlinePayload({1, 3, 3, 9}, 4).Build())
-      .Build();
+      ->WithRightSibling(3)
+      ->WithRecord(NodeRecord::NewBuilder()->WithSearchKey({0})->WithInlinePayload({1, 3, 3, 7}, 4)->Build())
+      ->WithRecord(NodeRecord::NewBuilder()->WithSearchKey({1})->WithInlinePayload({1, 3, 3, 8}, 4)->Build())
+      ->WithRecord(NodeRecord::NewBuilder()->WithSearchKey({2})->WithInlinePayload({1, 3, 3, 9}, 4)->Build())
+      ->Build();
 
   REQUIRE(node->Contains({0}));
   REQUIRE(node->Contains({1}));

@@ -102,7 +102,7 @@ class TreeHeader {
      * @return The new builder instance.
      * @throws std::length_error if @p page_size is too small to contain a @c TreeHeader.
      */
-    static std::unique_ptr<TreeHeaderBuilder> NewBuilder(uint16_t page_size);
+    static std::shared_ptr<TreeHeaderBuilder> NewBuilder(uint16_t page_size);
 
     /**
      * @brief Creates a new builder for @c TreeHeader instances, using @c base as a starting point.
@@ -110,7 +110,7 @@ class TreeHeader {
      * @param base The @c TreeHeader to use as a basis for the new instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<TreeHeaderBuilder> NewBuilder(const TreeHeader& base);
+    static std::shared_ptr<TreeHeaderBuilder> NewBuilder(const TreeHeader& base);
 
     /**
      * @brief Creates a new builder for @c TreeHeader instances, using @c base as a starting point.
@@ -121,7 +121,7 @@ class TreeHeader {
      * @throws std::length_error if the raw data is a valid @c TreeHeader, but the maximum node entries or maximum
      * node records are not supported using the page size used by the current @c Pager.
      */
-    static std::unique_ptr<TreeHeaderBuilder> NewBuilder(DynamicArray<byte>&& base);
+    static std::shared_ptr<TreeHeaderBuilder> NewBuilder(DynamicArray<byte>&& base);
 
     /**
      * @return The type of b+tree this is the header for.
@@ -162,7 +162,7 @@ class TreeHeader {
     [[nodiscard]] DynamicArray<byte> ToBytes() const;
 };
 
-class TreeHeaderBuilder {
+ class TreeHeaderBuilder : public std::enable_shared_from_this<TreeHeaderBuilder> {
  private:
     friend class TreeHeader;
 
@@ -219,7 +219,7 @@ class TreeHeaderBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::domain_error if the tree type has been set before and is different than @p type.
      */
-    TreeHeaderBuilder& WithTreeType(TreeType type);
+    std::shared_ptr<TreeHeaderBuilder> WithTreeType(TreeType type);
 
     /**
      * @brief Sets the page number of the root node of this tree. If not set, it defaults to 0 (meaning no page).
@@ -228,7 +228,7 @@ class TreeHeaderBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::domain_error if the root page has been set already and differs from @p root_page.
      */
-    TreeHeaderBuilder& WithRootPageNumber(PageNumber root_page);
+    std::shared_ptr<TreeHeaderBuilder> WithRootPageNumber(PageNumber root_page);
 
     /**
      * @brief Sets the amount of pages in the containing b+tree (this header included).
@@ -237,7 +237,7 @@ class TreeHeaderBuilder {
      * @return  A reference to this builder to support a fluent interface.
      * @throws std::out_of_range if @p count is zero.
      */
-    TreeHeaderBuilder& WithPageCount(uint32_t count);
+    std::shared_ptr<TreeHeaderBuilder> WithPageCount(uint32_t count);
 };
 
 }

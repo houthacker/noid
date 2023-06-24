@@ -15,12 +15,12 @@ NodeRecord::NodeRecord(std::array<byte, FIXED_KEY_SIZE> key, uint8_t inline_indi
     std::array<byte, INLINE_PAYLOAD_SIZE> payload)
     :key(key), inline_indicator(inline_indicator), payload(payload) { }
 
-std::unique_ptr<NodeRecordBuilder> NodeRecord::NewBuilder()
+std::shared_ptr<NodeRecordBuilder> NodeRecord::NewBuilder()
 {
-  return std::unique_ptr<NodeRecordBuilder>(new NodeRecordBuilder());
+  return std::shared_ptr<NodeRecordBuilder>(new NodeRecordBuilder());
 }
 
-std::unique_ptr<NodeRecordBuilder> NodeRecord::NewBuilder(const DynamicArray<byte>& container, DynamicArray<byte>::size_type read_idx)
+std::shared_ptr<NodeRecordBuilder> NodeRecord::NewBuilder(const DynamicArray<byte>& container, DynamicArray<byte>::size_type read_idx)
 {
   if (read_idx + NodeRecord::SIZE >= container.size()) {
     throw std::domain_error("Cannot read sizeof(NodeRecord) bytes from container[read_idx].");
@@ -71,29 +71,29 @@ PageNumber NodeRecord::GetOverflowPage() const
 
 /**** NodeRecordBuilder ****/
 
-NodeRecordBuilder& NodeRecordBuilder::WithSearchKey(SearchKey search_key)
+std::shared_ptr<NodeRecordBuilder> NodeRecordBuilder::WithSearchKey(SearchKey search_key)
 {
   this->key = search_key;
-  return *this;
+  return this->shared_from_this();
 }
 
-NodeRecordBuilder& NodeRecordBuilder::WithInlinePayload(std::array<byte, NodeRecord::INLINE_PAYLOAD_SIZE> data,
+std::shared_ptr<NodeRecordBuilder> NodeRecordBuilder::WithInlinePayload(std::array<byte, NodeRecord::INLINE_PAYLOAD_SIZE> data,
     uint8_t data_size)
 {
   this->inline_payload_size = data_size;
   this->payload = data;
 
-  return *this;
+  return this->shared_from_this();
 }
 
-NodeRecordBuilder& NodeRecordBuilder::WithOverflowPayload(std::array<byte, NodeRecord::OVERFLOW_PAYLOAD_SIZE> data,
+std::shared_ptr<NodeRecordBuilder> NodeRecordBuilder::WithOverflowPayload(std::array<byte, NodeRecord::OVERFLOW_PAYLOAD_SIZE> data,
     PageNumber first_overflow_page)
 {
   this->inline_payload_size = 0;
   write_container<byte>(this->payload, 0, data);
   write_le_uint32<byte>(this->payload, data.size(), first_overflow_page);
 
-  return *this;
+  return this->shared_from_this();
 }
 
 NodeRecord NodeRecordBuilder::Build() const noexcept

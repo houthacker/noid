@@ -69,7 +69,7 @@ class LeafNode : public Node {
      * @return The new builder instance.
      * @throws std::length_error if @p page_size is too small to contain a @c LeafNode.
      */
-    static std::unique_ptr<LeafNodeBuilder> NewBuilder(uint16_t page_size);
+    static std::shared_ptr<LeafNodeBuilder> NewBuilder(uint16_t page_size);
 
     /**
      * @brief Creates a new builder for @c LeafNode instances, using @c base as a starting point.
@@ -77,7 +77,7 @@ class LeafNode : public Node {
      * @param base The @c LeafNode to use as a basis for the new instance.
      * @return The new builder instance.
      */
-    static std::unique_ptr<LeafNodeBuilder> NewBuilder(const LeafNode& base);
+    static std::shared_ptr<LeafNodeBuilder> NewBuilder(const LeafNode& base);
 
     /**
      * @brief Creates a new builder for @c LeafNode instances, using @c base as a starting point.
@@ -86,7 +86,7 @@ class LeafNode : public Node {
      * @return The new builder instance.
      * @throws std::invalid_argument if the given raw bytes do not represent a valid @c LeafNode.
      */
-    static std::unique_ptr<LeafNodeBuilder> NewBuilder(DynamicArray<byte> && base);
+    static std::shared_ptr<LeafNodeBuilder> NewBuilder(DynamicArray<byte> && base);
 
     /**
      * @return The amount of records in this @c LeafNode.
@@ -125,7 +125,7 @@ class LeafNode : public Node {
     [[nodiscard]] DynamicArray<byte> ToBytes() const;
 };
 
-class LeafNodeBuilder {
+ class LeafNodeBuilder : public std::enable_shared_from_this<LeafNodeBuilder> {
  private:
     friend class LeafNode;
 
@@ -180,14 +180,14 @@ class LeafNodeBuilder {
      * @param sibling The page number of the left sibling.
      * @return A reference to this builder to support a fluent interface.
      */
-    LeafNodeBuilder& WithLeftSibling(PageNumber sibling);
+    std::shared_ptr<LeafNodeBuilder> WithLeftSibling(PageNumber sibling);
 
     /**
      * @brief Sets the right sibling for the @c LeafNode.
      * @param sibling The page number of the left sibling.
      * @return A reference to this builder to support a fluent interface.
      */
-    LeafNodeBuilder& WithRightSibling(PageNumber sibling);
+    std::shared_ptr<LeafNodeBuilder> WithRightSibling(PageNumber sibling);
 
     /**
      * @brief Adds the given record to the list of records for the new @c LeafNode.
@@ -196,7 +196,7 @@ class LeafNodeBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::overflow_error if the node is full (i.e. contains the maximum amount of records).
      */
-    LeafNodeBuilder& WithRecord(NodeRecord record);
+    std::shared_ptr<LeafNodeBuilder> WithRecord(NodeRecord record);
 
     /**
      * @brief Adds the given record to the list of records for the new @c LeafNode, overwriting any pre-existing
@@ -209,7 +209,7 @@ class LeafNodeBuilder {
      * @return A reference to this builder to support a fluent interface.
      * @throws std::overflow_error if the node is full (i.e. contains the maximum amount of records).
      */
-    LeafNodeBuilder& WithRecord(NodeRecord record, uint16_t slot_hint);
+    std::shared_ptr<LeafNodeBuilder> WithRecord(NodeRecord record, uint16_t slot_hint);
 };
 
 }
