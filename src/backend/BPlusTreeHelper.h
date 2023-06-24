@@ -103,7 +103,7 @@ void WriteOverflow(const V& value, std::pair<PageNumber, PageNumber> page_range,
     write_contiguous_container<byte>(payload, 0, value, value_cursor, write_size);
 
     // And create & write the overflow page
-    auto overflow_page = overflow_builder->WithPayloadSize(write_size)->WithData(std::move(payload))->Build();
+    auto overflow_page = overflow_builder->WithData(std::move(payload), write_size)->Build();
     pager->template WritePage<page::Overflow, page::OverflowBuilder>(*overflow_page, current_page);
 
     value_cursor += write_size;

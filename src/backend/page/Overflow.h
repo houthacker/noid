@@ -36,7 +36,7 @@ class Overflow {
     /**
      * @brief The payload size in this page.
      */
-    const uint16_t payload_size;
+    const uint16_t data_size;
 
     /**
      * @brief The next overflow page, or zero if there is no such page.
@@ -47,7 +47,7 @@ class Overflow {
      * @brief The payload data, including possible zeroed padding.
      * @details Since all pages in a database file are of the same size, @c Overflow pages are aligned
      * to this page size, which can incur padding in the payload data. To read the correct amount of bytes
-     * from this page, use @c Overflow::payload_size instead of @c Overflow::data.size() to determine
+     * from this page, use @c Overflow::data_size instead of @c Overflow::data.size() to determine
      * the amount of payload bytes.
      */
     const DynamicArray<byte> data;
@@ -66,7 +66,7 @@ class Overflow {
     ~Overflow() =default;
 
     /**
-     * @brief Creates a new builder for @c Overflow pages with default page size. All fields are set to zero.
+     * @brief Creates a new builder for @c Overflow pages with the given page size. All fields are set to zero.
      *
      * @param page_size The page size in bytes.
      * @return The new builder instance.
@@ -95,7 +95,7 @@ class Overflow {
     /**
      * @return The size in bytes of the payload contained in this @c Overflow page.
      */
-    [[nodiscard]] uint16_t GetPayloadSize() const;
+    [[nodiscard]] uint16_t GetDataSize() const;
 
     /**
      * @return The location of the next @c Overflow page, or zero if no such page exists.
@@ -103,7 +103,7 @@ class Overflow {
     [[nodiscard]] PageNumber GetNext() const;
 
     /**
-     * @brief Returns the payload data including possible padding. Use @c Overflow::GetPayloadSize() to
+     * @brief Returns the payload data including possible padding. Use @c Overflow::GetDataSize() to
      * determine the amount of bytes to read from the returned data.
      *
      * @return The payload data.
@@ -130,7 +130,7 @@ class Overflow {
     /**
      * @brief The size in bytes of the payload contained in the @c Overflow page being built.
      */
-    uint16_t payload_size = 0;
+    uint16_t data_size = 0;
 
     /**
      * @brief The next overflow page number, or zero if no such page exists.
@@ -151,29 +151,19 @@ class Overflow {
     OverflowBuilder() =delete;
 
     /**
+     * @brief Calculates the maximum data size assuming that @c page_size has been set.
+     *
+     * @return The maximum data size, or zero if @c page_size is too small to allow for data.
+     */
+     uint16_t MaxDataSize() const;
+
+    /**
      * @brief Creates a new @c Overflow page based on the provided data.
      *
      * @return The new @c Overflow page instance.
-     * @throws std::domain_error if @c page_size or @c payload_size is zero.
+     * @throws std::length_error if @c page_size or @c data_size is zero, or if @c page_size is too small to fit any data.
      */
     [[nodiscard]] std::unique_ptr<const Overflow> Build();
-
-    /**
-     * @brief Returns the maximum size of the payload in bytes. If a payload is provided with a larger size,
-     * an exception is thrown.
-     *
-     * @return The maximum accepted data size.
-     */
-    DynamicArray<byte>::size_type MaxDataSize() const;
-
-    /**
-     * @brief Sets the payload size for the @c Overflow page.
-     *
-     * @param size The size in bytes.
-     * @return A reference to this builder to support a fluent interface.
-     * @throws std::length_error if the size is too large to fit in the current @c page_size.
-     */
-    std::shared_ptr<OverflowBuilder> WithPayloadSize(uint16_t size);
 
     /**
      * @brief Sets the location of the page_number @c Overflow page.
@@ -184,13 +174,24 @@ class Overflow {
     std::shared_ptr<OverflowBuilder> WithNext(PageNumber page_number);
 
     /**
-     * @brief Sets the payload payload of the @c Overflow page.
+     * @brief Shorthand for <code>OverflowBuilder::WithData(bytes, bytes.size())</code>.
      *
-     * @param payload The payload payload.
+     * @param bytes The data bytes.
      * @return A reference to this builder to support a fluent interface.
-     * @throws std::length_error of the payload size is too large to fit in the current @c page_size.
+     * @throws std::length_error if @c bytes.size() is too large to fit in the current @c page_size.
      */
-    std::shared_ptr<OverflowBuilder> WithData(DynamicArray<byte> && payload);
+    std::shared_ptr<OverflowBuilder> WithData(DynamicArray<byte> && bytes);
+
+    /**
+     * @brief Sets the data of the @c Overflow page.
+     *
+     * @param bytes The raw bytes.
+     * @param size The amount of bytes in the data.
+     * @return A reference to this builder to support a fluent interface.
+     * @throws std::length_error if @c bytes.size() is too large to fit in the current @c page_size or if @p bytes.size()
+     * is less than @p size.
+     */
+    std::shared_ptr<OverflowBuilder> WithData(DynamicArray<byte> && bytes, uint16_t size);
 };
 
 }

@@ -116,6 +116,6 @@ page number.
 
 | offset | size (bytes)        | description                             |
 |--------|---------------------|-----------------------------------------|
-| 0      | 2                   | LE `uint16_t` payload size in this page |
+| 0      | 2                   | LE `uint16_t` data size in this page    |
 | 2      | 4                   | LE `uint32_t` next overflow page number |
 | 6      | data size + padding | The data plus padding (zeroes)          |

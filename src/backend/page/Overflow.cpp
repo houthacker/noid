@@ -12,9 +12,9 @@
 
 namespace noid::backend::page {
 
-static const uint8_t PAYLOAD_SIZE_OFFSET = 0;
+static const uint8_t DATA_SIZE_OFFSET = 0;
 static const uint8_t NEXT_OVERFLOW_PAGE_OFFSET = 2;
-static const uint8_t PAYLOAD_OFFSET = Overflow::HEADER_SIZE;
+static const uint8_t DATA_OFFSET = Overflow::HEADER_SIZE;
 
 static DynamicArray<byte>& Validate(DynamicArray<byte>& data, uint16_t page_size)
 {
@@ -26,10 +26,14 @@ static DynamicArray<byte>& Validate(DynamicArray<byte>& data, uint16_t page_size
 }
 
 Overflow::Overflow(uint16_t payload_size, PageNumber next, DynamicArray<byte>&& data, uint16_t page_size)
-    :payload_size(payload_size), next(next), data(std::move(data)), page_size(page_size) { }
+    :data_size(payload_size), next(next), data(std::move(data)), page_size(page_size) { }
 
 std::shared_ptr<OverflowBuilder> Overflow::NewBuilder(uint16_t page_size)
 {
+  if (page_size <= Overflow::HEADER_SIZE) {
+    throw std::length_error("Page size too small to contain overflow data.");
+  }
+
   return std::shared_ptr<OverflowBuilder>(new OverflowBuilder(page_size));
 }
 
@@ -44,9 +48,9 @@ std::shared_ptr<OverflowBuilder> Overflow::NewBuilder(DynamicArray<byte>&& base)
       new OverflowBuilder(std::move(Validate(base, safe_cast<uint16_t>(base.size())))));
 }
 
-uint16_t Overflow::GetPayloadSize() const
+uint16_t Overflow::GetDataSize() const
 {
-  return this->payload_size;
+  return this->data_size;
 }
 
 PageNumber Overflow::GetNext() const
@@ -63,9 +67,9 @@ DynamicArray<byte> Overflow::ToBytes() const
 {
   auto bytes = DynamicArray<byte>(this->page_size);
 
-  write_le_uint16<byte>(bytes, PAYLOAD_SIZE_OFFSET, this->payload_size);
+  write_le_uint16<byte>(bytes, DATA_SIZE_OFFSET, this->data_size);
   write_le_uint32<byte>(bytes, NEXT_OVERFLOW_PAGE_OFFSET, this->next);
-  write_contiguous_container<byte>(bytes, PAYLOAD_OFFSET, this->data);
+  write_contiguous_container<byte>(bytes, DATA_OFFSET, this->data);
 
   return bytes;
 }
@@ -77,30 +81,18 @@ OverflowBuilder::OverflowBuilder(uint16_t page_size)
     :page_size(page_size) { }
 
 OverflowBuilder::OverflowBuilder(const Overflow& base)
-    :page_size(base.page_size), payload_size(base.payload_size), next(base.next), data(base.data) { }
+    :page_size(base.page_size), data_size(base.data_size), next(base.next), data(base.data) { }
 
 OverflowBuilder::OverflowBuilder(DynamicArray<byte>&& base)
     :page_size(static_cast<decltype(page_size)>(base.size())),
-     payload_size(read_le_uint16<byte>(base, PAYLOAD_SIZE_OFFSET)),
+     data_size(read_le_uint16<byte>(base, DATA_SIZE_OFFSET)),
      next(read_le_uint32<byte>(base, NEXT_OVERFLOW_PAGE_OFFSET)),
-     data(page_size - PAYLOAD_OFFSET)
+     data(page_size - DATA_OFFSET)
 {
-  write_contiguous_container<byte>(this->data, 0, base, PAYLOAD_OFFSET);
+  write_contiguous_container<byte>(this->data, 0, base, DATA_OFFSET);
 }
 
-std::unique_ptr<const Overflow> OverflowBuilder::Build()
-{
-  if (this->page_size == 0) {
-    throw std::domain_error("Cannot build Overflow: page_size is zero.");
-  }
-  else if (this->payload_size == 0) {
-    throw std::domain_error("Cannot build Overflow: payload_size is zero.");
-  }
-
-  return std::unique_ptr<const Overflow>(new Overflow(this->payload_size, this->next, std::move(this->data), this->page_size));
-}
-
-DynamicArray<byte>::size_type OverflowBuilder::MaxDataSize() const
+uint16_t OverflowBuilder::MaxDataSize() const
 {
   if (this->page_size < Overflow::HEADER_SIZE) {
     return 0;
@@ -109,16 +101,26 @@ DynamicArray<byte>::size_type OverflowBuilder::MaxDataSize() const
   return this->page_size - Overflow::HEADER_SIZE;
 }
 
-std::shared_ptr<OverflowBuilder> OverflowBuilder::WithPayloadSize(uint16_t size)
+std::unique_ptr<const Overflow> OverflowBuilder::Build()
 {
-  if (size > this->page_size - PAYLOAD_OFFSET) {
-    std::stringstream stream;
-    stream << "Payload size too large; can fit at most " << +(this->page_size - PAYLOAD_OFFSET) << " bytes.";
-    throw std::length_error(stream.str());
+  if (this->page_size <= Overflow::HEADER_SIZE) {
+    throw std::length_error("Cannot build Overflow: page_size too small.");
+  }
+  else if (this->data_size == 0) {
+    throw std::length_error("Cannot build Overflow: data_size is zero.");
   }
 
-  this->payload_size = size;
-  return this->shared_from_this();
+  DynamicArray<byte> padded_data = {0};
+  if (this->data.size() < this->MaxDataSize()) {
+    padded_data = DynamicArray<byte>(this->MaxDataSize());
+    write_container<byte>(padded_data, 0, this->data);
+  }
+  else {
+    padded_data = std::move(this->data);
+  }
+
+  return std::unique_ptr<const Overflow>(
+      new Overflow(this->data_size, this->next, std::move(padded_data), this->page_size));
 }
 
 std::shared_ptr<OverflowBuilder> OverflowBuilder::WithNext(PageNumber page_number)
@@ -127,15 +129,33 @@ std::shared_ptr<OverflowBuilder> OverflowBuilder::WithNext(PageNumber page_numbe
   return this->shared_from_this();
 }
 
-std::shared_ptr<OverflowBuilder> OverflowBuilder::WithData(DynamicArray<byte>&& payload)
+std::shared_ptr<OverflowBuilder> OverflowBuilder::WithData(DynamicArray<byte>&& bytes)
 {
-  if (payload.size() > this->MaxDataSize()) {
+  if (bytes.size() > this->MaxDataSize()) {
     std::stringstream stream;
     stream << "Data size too large; can fit at most " << +this->MaxDataSize() << " bytes.";
     throw std::length_error(stream.str());
   }
 
-  this->data = std::move(payload);
+  this->data = std::move(bytes);
+  this->data_size = static_cast<uint16_t>(this->data.size());
+  return this->shared_from_this();
+}
+
+std::shared_ptr<OverflowBuilder> OverflowBuilder::WithData(DynamicArray<byte>&& bytes, uint16_t size)
+{
+  if (bytes.size() > this->MaxDataSize()) {
+    std::stringstream stream;
+    stream << "Data size too large; can fit at most " << +this->MaxDataSize() << " bytes.";
+    throw std::length_error(stream.str());
+  }
+  else if (bytes.size() < size) {
+    throw std::length_error(
+        "Having bytes.size() being smaller than the indicated size will result in data corruption.");
+  }
+
+  this->data = std::move(bytes);
+  this->data_size = size;
   return this->shared_from_this();
 }
 
