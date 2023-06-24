@@ -120,11 +120,9 @@ class NodeRecord {
 
     /**
      * @brief Interprets the last four bytes of the payload as a @c PageNumber. If @c NodeRecord::inline_indicator
-     * is set to non-zero, calling this method will throw an exception since the retrieved value
-     * is not a @c PageNumber.
+     * is set to non-zero, calling this method will return @c NULL_PAGE.
      *
-     * @return The first overflow page number.
-     * @throws std::domain_error if called when @c NodeRecord::inline_indicator is non-zero.
+     * @return The first overflow page number, or @c NULL_PAGE if no such page exists.
      */
     [[nodiscard]] PageNumber GetOverflowPage() const;
 

@@ -63,7 +63,7 @@ const std::array<byte, NodeRecord::INLINE_PAYLOAD_SIZE>& NodeRecord::GetPayload(
 PageNumber NodeRecord::GetOverflowPage() const
 {
   if (this->inline_indicator != 0) {
-    throw std::domain_error("Inline indicator set: no overflow page exists.");
+    return NULL_PAGE;
   }
 
   return read_le_uint32<byte>(this->payload, this->payload.size() - sizeof(PageNumber));

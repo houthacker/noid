@@ -7,7 +7,6 @@
 
 #include "backend/page/LeafNode.h"
 #include "backend/page/NodeRecord.h"
-#include "backend/NoidConfig.h"
 #include "backend/Bits.h"
 #include "backend/DynamicArray.h"
 #include "backend/Types.h"

@@ -19,11 +19,11 @@
 namespace noid::backend {
 
 /**
- * @brief Dynamic array class. Implementation copied from a c++14 proposal.
+ * @brief Dynamic array class. Implementation is a slightly adjusted copy of the corresponding c++14 proposal.
  * @see https://www.open-std.org/JTC1/SC22/WG21/docs/papers/2013/n3532.html
  * @tparam T The array element type.
  */
-template<typename T> requires std::equality_comparable<T>
+template<typename T> requires std::equality_comparable<T> && std::default_initializable<T>
 class DynamicArray {
  public:
     // @formatter:off
