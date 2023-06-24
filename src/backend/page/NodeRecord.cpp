@@ -41,8 +41,8 @@ uint32_t NodeRecord::CalculateOverflow(const V& value, const uint16_t page_size)
     return 0;
   }
 
-  auto overflow_bytes = value.size() - (NodeRecord::INLINE_PAYLOAD_SIZE - sizeof(PageNumber));
-  return static_cast<uint32_t>(std::ceil(overflow_bytes / (page_size - Overflow::HEADER_SIZE)));
+  auto overflowed_bytes = value.size() - (NodeRecord::INLINE_PAYLOAD_SIZE - sizeof(PageNumber));
+  return safe_cast<uint32_t>(std::ceil(static_cast<double>(overflowed_bytes) / (page_size - Overflow::HEADER_SIZE)));
 }
 
 const std::array<byte, FIXED_KEY_SIZE>& NodeRecord::GetKey() const
