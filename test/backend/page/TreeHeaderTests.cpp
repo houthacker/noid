@@ -3,6 +3,7 @@
  */
 
 #include <catch2/catch.hpp>
+#include <limits>
 #include <stdexcept>
 
 #include "backend/page/TreeHeader.h"
@@ -24,6 +25,19 @@ TEST_CASE("Build a TreeHeader")
   REQUIRE(tree_header->GetTreeType() == TreeType::Table);
   REQUIRE(tree_header->GetRoot() == 1337);
   REQUIRE(tree_header->GetPageCount() == 13);
+  REQUIRE(tree_header->GetMaxInternalEntries() == 203); // calculated default value
+  REQUIRE(tree_header->GetMaxLeafRecords() == 169); // calculated default value
+}
+
+TEST_CASE("Build a TreeHeader with default values")
+{
+  auto tree_header = TreeHeader::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithTreeType(TreeType::Table)
+      ->Build();
+
+  REQUIRE(tree_header->GetTreeType() == TreeType::Table);
+  REQUIRE(tree_header->GetRoot() == NULL_PAGE);
+  REQUIRE(tree_header->GetPageCount() == 1);
   REQUIRE(tree_header->GetMaxInternalEntries() == 203); // calculated default value
   REQUIRE(tree_header->GetMaxLeafRecords() == 169); // calculated default value
 }
@@ -108,4 +122,11 @@ TEST_CASE("Build a TreeHeader based on a std::vector<byte>")
   REQUIRE(tree_header->GetMaxInternalEntries() == max_entries);
   REQUIRE(tree_header->GetMaxLeafRecords() == max_records);
   REQUIRE(tree_header->GetPageCount() == page_count);
+}
+
+TEST_CASE("Build a TreeHeader and try to overflow the page count")
+{
+  CHECK_THROWS_AS(TreeHeader::NewBuilder(DEFAULT_PAGE_SIZE)
+    ->WithPageCount(1)
+    ->IncrementPageCount(std::numeric_limits<uint32_t>::max()), std::overflow_error);
 }

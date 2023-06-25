@@ -238,6 +238,15 @@ class TreeHeader {
      * @throws std::out_of_range if @p count is zero.
      */
     std::shared_ptr<TreeHeaderBuilder> WithPageCount(uint32_t count);
+
+    /**
+     * @brief Increments the page count with the given amount.
+     *
+     * @param amount The increment value.
+     * @return A reference to this builder to support a fluent interface.
+     * @throws std::overflow_error if adding @p amount to the current page count would wrap around the page count value.
+     */
+    std::shared_ptr<TreeHeaderBuilder> IncrementPageCount(uint32_t amount);
 };
 
 }

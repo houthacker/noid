@@ -75,7 +75,8 @@ class BPlusTree {
      * @param type The tree type.
      */
     BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type)
-        :pager(pager), header(this->pager->template NewBuilder<page::TreeHeader, page::TreeHeaderBuilder>()->WithTreeType(type)->Build())
+        :pager(pager), header(
+        this->pager->template NewBuilder<page::TreeHeader, page::TreeHeaderBuilder>()->WithTreeType(type)->Build())
     {
       this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*this->header);
     }
@@ -120,20 +121,27 @@ class BPlusTree {
     InsertType Insert(SearchKey& key, const V& value)
     {
 
-      // Store possible overflow pages first, so we don't have to insert nodes if this fails.
+      // Store any overflow pages first, so we don't have to insert nodes if this fails.
       auto page_range = this->pager->AllocateContiguous(this->pager->CalculateOverflow(value));
       details::WriteOverflow(value, page_range, this->pager);
 
       const auto self = this;
       auto type = InsertType::Insert;
+
       if (self->header->GetRoot() == NULL_PAGE) {
-        std::shared_ptr<page::NodeRecordBuilder> record_builder = details::CreateNodeRecordBuilder(key, value,
-            page_range.first);
+        auto root_node = this->pager->template NewBuilder<page::LeafNode, page::LeafNodeBuilder>()
+            ->WithRecord(details::CreateNodeRecordBuilder(key, value, page_range.first)->Build())
+            ->Build();
+        auto root_page = this->pager->template WritePage<page::LeafNode, page::LeafNodeBuilder>(*root_node);
 
-        auto root = this->pager->template NewBuilder<page::LeafNode, page::LeafNodeBuilder>()->WithRecord(record_builder->Build())->Build();
-        auto root_page = this->pager->template WritePage<page::LeafNode, page::LeafNodeBuilder>(*root);
+        auto new_header = page::TreeHeader::NewBuilder(*this->header)
+            ->WithRootPageNumber(root_page)
+            ->IncrementPageCount(1)
+            ->Build();
+        this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*new_header);
+        this->header = std::move(new_header); //todo add old header to freelist
 
-        this->header = page::TreeHeader::NewBuilder(*this->header)->WithRootPageNumber(root_page)->Build();
+        return type;
       }
 
       return type;

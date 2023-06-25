@@ -2,6 +2,10 @@
  * Copyright 2023, noid authors. See LICENSE.md for licensing terms.
  */
 
+#include <limits>
+#include <sstream>
+#include <stdexcept>
+
 #include "TreeHeader.h"
 #include "Limits.h"
 #include "backend/Bits.h"
@@ -98,7 +102,7 @@ DynamicArray<byte> TreeHeader::ToBytes() const
 TreeHeaderBuilder::TreeHeaderBuilder(uint16_t size)
     :page_size(size), tree_type(TreeType::None),
      max_node_entries(CalculateMaxEntries(this->page_size)), max_node_records(CalculateMaxRecords(this->page_size)),
-     root(0), page_count(0) { }
+     root(0), page_count(1) { }
 
 TreeHeaderBuilder::TreeHeaderBuilder(const TreeHeader& base)
     :page_size(base.page_size), tree_type(base.tree_type), max_node_entries(base.max_node_entries),
@@ -143,6 +147,19 @@ std::shared_ptr<TreeHeaderBuilder> TreeHeaderBuilder::WithPageCount(uint32_t cou
 {
   this->page_count = count;
 
+  return this->shared_from_this();
+}
+
+std::shared_ptr<TreeHeaderBuilder> TreeHeaderBuilder::IncrementPageCount(uint32_t amount)
+{
+  if (std::numeric_limits<decltype(this->page_count)>::max() - amount < this->page_count) {
+    std::stringstream  stream;
+    stream << "Incrementing page_count with " << +amount << " will wrap around its value.";
+
+    throw std::overflow_error(stream.str());
+  }
+
+  this->page_count += amount;
   return this->shared_from_this();
 }
 
