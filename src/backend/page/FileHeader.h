@@ -55,6 +55,11 @@ class FileHeader {
     const PageNumber first_freelist_page;
 
     /**
+     * The total amount of pages in the associated database file, excluding this @c FileHeader itself (which is not a Page).
+     */
+    const uint32_t total_page_count;
+
+    /**
      * The database header checksum.
      */
     const uint32_t checksum;
@@ -62,7 +67,7 @@ class FileHeader {
     /*
      * Creates a new @c FileHeader
      */
-    FileHeader(uint16_t page_size, uint8_t key_size, PageNumber first_tree_header_page, PageNumber first_freelist_page, uint32_t checksum);
+    FileHeader(uint16_t page_size, uint8_t key_size, PageNumber first_tree_header_page, PageNumber first_freelist_page, uint32_t total_page_count, uint32_t checksum);
 
  public:
 
@@ -124,6 +129,16 @@ class FileHeader {
     [[nodiscard]] PageNumber GetFirstFreelistPage() const;
 
     /**
+     * @brief Returns the total amount of allocated pages in the database file.
+     * @details The database file will eventually contain all counted pages. This does not need to be immediate because
+     * the total page count is incremented as a part of the page allocation algorithm. Which can happen at any time
+     * after allocating new pages, when the @c Pager sees its opportunity.
+     *
+     * @return The total amount of pages in the database file.
+     */
+    [[nodiscard]] uint32_t GetTotalPageCount() const;
+
+    /**
      * @brief Returns the FNV-1a hash of the header data up until the hash itself.
      *
      * @details The header checksum is used to verify the header has not been corrupted.
@@ -142,7 +157,6 @@ class FileHeader {
 };
 
 bool operator==(const FileHeader& lhs, const FileHeader& rhs);
-bool operator!=(const FileHeader& lhs, const FileHeader& rhs);
 
 /**
  * @brief Builder for @c FileHeader instances.
@@ -157,6 +171,7 @@ bool operator!=(const FileHeader& lhs, const FileHeader& rhs);
     uint8_t key_size                    = FIXED_KEY_SIZE;
     PageNumber first_tree_header_page   = NULL_PAGE;
     PageNumber first_freelist_page      = NULL_PAGE;
+    uint32_t total_page_count           = 0;
 
     FileHeaderBuilder() =default;
     explicit FileHeaderBuilder(const FileHeader& base);
@@ -206,6 +221,15 @@ bool operator!=(const FileHeader& lhs, const FileHeader& rhs);
      * @return A reference to this builder to support a fluent interface.
      */
     std::shared_ptr<FileHeaderBuilder> WithFirstFreeListPage(PageNumber page_number);
+
+    /**
+     * @brief Increments the total page count by @p amount.
+     *
+     * @param amount The page count to increment the current total with.
+     * @return A reference to this builder to support a fluent interface.
+     * @throws std::overflow_error if incrementing the total by @p amount would overflow the value.
+     */
+    std::shared_ptr<FileHeaderBuilder> IncrementTotalPageCount(uint32_t amount);
 };
 
 }

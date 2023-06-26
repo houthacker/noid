@@ -93,13 +93,6 @@ int UnixFile::GetFileDescriptor() const
 }
 #endif
 
-void UnixFile::Grow(uintmax_t size)
-{
-  if (fseeko(this->file, size, SEEK_END) == C_API_ERROR) {
-    throw std::ios_base::failure(core::api::GetErrorText(errno), std::make_error_code(std::errc::io_error));
-  }
-}
-
 std::uintmax_t UnixFile::Size()
 {
   if (struct stat info = {0}; fstat(fd, &info) == 0) {

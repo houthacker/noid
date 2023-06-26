@@ -29,7 +29,7 @@ TEST_CASE("A newly opened database file is initialized") {
   REQUIRE(header->GetKeySize() == FIXED_KEY_SIZE);
   REQUIRE(header->GetFirstFreelistPage() == NULL_PAGE);
   REQUIRE(header->GetFirstTreeHeaderPage() == NULL_PAGE);
-  REQUIRE(header->GetChecksum() == 0xa60a2358);
+  REQUIRE(header->GetChecksum() == 0x187f00d8);
 }
 
 TEST_CASE("WritePage-ReadPage cycle") {

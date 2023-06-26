@@ -5,6 +5,7 @@
 #include <catch2/catch.hpp>
 
 #include <atomic>
+#include <fcntl.h>
 #include <thread>
 
 #include "backend/DynamicArray.h"
@@ -82,7 +83,6 @@ TEST_CASE("Can read and write using a STL container")
 
 TEST_CASE("OS file locks are preserved until the last call to close (2).")
 {
-#include <fcntl.h>
   // To test this, we open a UnixFile and acquire a unique lock on it.
   // This is a scoped file which is removed when it goes out of scope or if an exception is thrown.
   fs::path path = "noid_os_file_lock_test.ndb";
@@ -92,10 +92,9 @@ TEST_CASE("OS file locks are preserved until the last call to close (2).")
   // Then, in a different thread, we create a second UnixFile instance for the same file and destruct it immediately after.
   // This causes the locks on that particular file to be released, but must not release any other locks.
   {
-    std::thread worker([path] {
+    std::jthread worker([path] {
       std::ignore = UnixFile::Open(path);
     });
-    worker.join();
   }
 
   // Finally, we check if the OS file locks have been preserved while the first UnixFile is still in scope.
@@ -133,7 +132,7 @@ TEST_CASE("UniqueLock-request drains SharedLocks")
   auto file = UnixFile::CreateTempFile();
 
   // Start acquiring shared locks until the unique lock has been acquired.
-  std::thread shared_locks([file, &have_unique_lock] {
+  std::jthread shared_locks([file, &have_unique_lock] {
     while (!have_unique_lock) {
       NoidSharedLock auto lock = file->SharedLock();
       std::this_thread::sleep_for(1s);
@@ -146,12 +145,8 @@ TEST_CASE("UniqueLock-request drains SharedLocks")
   // Acquire the unique lock. This only succeeds if there are no shared locks.
   // To achieve this, the current shared locks must be drained, in accordance with the IntentAwareMutex.
   // TODO Implement and use TryUniqueLock(timeout)?
-  std::thread unique_lock([file, &have_unique_lock] {
+  std::jthread unique_lock([file, &have_unique_lock] {
     NoidLock auto lock = file->UniqueLock();
     have_unique_lock = true;
   });
-
-  // Wait on the threads to finish.
-  shared_locks.join();
-  unique_lock.join();
 }

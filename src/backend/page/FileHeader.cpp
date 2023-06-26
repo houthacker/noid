@@ -4,6 +4,8 @@
 
 #include <bit>
 #include <cmath>
+#include <limits>
+#include <sstream>
 #include <stdexcept>
 
 #include "FileHeader.h"
@@ -17,7 +19,8 @@ static const uint8_t PAGE_SIZE_OFFSET = 8;
 static const uint8_t KEY_SIZE_OFFSET = 10;
 static const uint8_t FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET = 11;
 static const uint8_t FIRST_FREELIST_PAGE_NUMBER_OFFSET = 15;
-static const uint8_t CHECKSUM_OFFSET = 19;
+static const uint8_t TOTAL_PAGE_COUNT_OFFSET = 19;
+static const uint8_t CHECKSUM_OFFSET = 23;
 
 static std::array<byte, FileHeader::SIZE> const& Validate(
     std::array<byte, FileHeader::SIZE> const& data)
@@ -33,10 +36,9 @@ static std::array<byte, FileHeader::SIZE> const& Validate(
 }
 
 FileHeader::FileHeader(uint16_t page_size, uint8_t key_size, PageNumber first_tree_header_page,
-    PageNumber first_freelist_page, uint32_t checksum)
-    :
-    page_size(page_size), key_size(key_size), first_tree_header_page(first_tree_header_page),
-    first_freelist_page(first_freelist_page), checksum(checksum) { }
+    PageNumber first_freelist_page, uint32_t total_page_count, uint32_t checksum)
+    :page_size(page_size), key_size(key_size), first_tree_header_page(first_tree_header_page),
+     first_freelist_page(first_freelist_page), total_page_count(total_page_count), checksum(checksum) { }
 
 std::shared_ptr<FileHeaderBuilder> FileHeader::NewBuilder()
 {
@@ -61,6 +63,7 @@ std::array<byte, FileHeader::SIZE> FileHeader::ToBytes() const
   write_uint8<byte>(bytes, KEY_SIZE_OFFSET, this->key_size);
   write_le_uint32<byte>(bytes, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET, this->first_tree_header_page);
   write_le_uint32<byte>(bytes, FIRST_FREELIST_PAGE_NUMBER_OFFSET, this->first_freelist_page);
+  write_le_uint32<byte>(bytes, TOTAL_PAGE_COUNT_OFFSET, this->total_page_count);
   write_le_uint32<byte>(bytes, CHECKSUM_OFFSET, this->checksum);
 
   return bytes;
@@ -86,6 +89,11 @@ PageNumber FileHeader::GetFirstFreelistPage() const
   return this->first_freelist_page;
 }
 
+uint32_t FileHeader::GetTotalPageCount() const
+{
+  return this->total_page_count;
+}
+
 uint32_t FileHeader::GetChecksum() const
 {
   return this->checksum;
@@ -95,7 +103,8 @@ bool FileHeader::Equals(const FileHeader& other) const
 {
   return this->checksum == other.checksum && this->page_size == other.page_size && this->key_size == other.key_size
       && this->first_tree_header_page == other.first_tree_header_page
-      && this->first_freelist_page == other.first_freelist_page;
+      && this->first_freelist_page == other.first_freelist_page
+      && this->total_page_count == other.total_page_count;
 }
 
 bool operator==(const FileHeader& lhs, const FileHeader& rhs)
@@ -103,21 +112,17 @@ bool operator==(const FileHeader& lhs, const FileHeader& rhs)
   return lhs.Equals(rhs);
 }
 
-bool operator!=(const FileHeader& lhs, const FileHeader& rhs)
-{
-  return !lhs.Equals(rhs);
-}
-
 /*** FileHeaderBuilder ***/
 
 FileHeaderBuilder::FileHeaderBuilder(const noid::backend::page::FileHeader& base)
     :page_size(base.page_size), key_size(base.key_size), first_tree_header_page(base.first_tree_header_page),
-     first_freelist_page(base.first_freelist_page) { }
+     first_freelist_page(base.first_freelist_page), total_page_count(base.total_page_count) { }
 
 FileHeaderBuilder::FileHeaderBuilder(std::array<byte, FileHeader::SIZE> const& base)
     :page_size(read_le_uint16<byte>(base, PAGE_SIZE_OFFSET)), key_size(read_uint8<byte>(base, KEY_SIZE_OFFSET)),
      first_tree_header_page(read_le_uint32<byte>(base, FIRST_TREE_HEADER_PAGE_NUMBER_OFFSET)),
-     first_freelist_page(read_le_uint32<byte>(base, FIRST_FREELIST_PAGE_NUMBER_OFFSET)) { }
+     first_freelist_page(read_le_uint32<byte>(base, FIRST_FREELIST_PAGE_NUMBER_OFFSET)),
+     total_page_count(read_le_uint32<byte>(base, TOTAL_PAGE_COUNT_OFFSET)) { }
 
 std::unique_ptr<const FileHeader> FileHeaderBuilder::Build() const
 {
@@ -127,10 +132,11 @@ std::unique_ptr<const FileHeader> FileHeaderBuilder::Build() const
       .Iterate(this->key_size)
       .Iterate(this->first_tree_header_page)
       .Iterate(this->first_freelist_page)
+      .Iterate(this->total_page_count)
       .GetState();
 
   return std::unique_ptr<FileHeader>(new FileHeader(
-      this->page_size, this->key_size, this->first_tree_header_page, this->first_freelist_page, checksum));
+      this->page_size, this->key_size, this->first_tree_header_page, this->first_freelist_page, this->total_page_count, checksum));
 }
 
 std::shared_ptr<FileHeaderBuilder> FileHeaderBuilder::WithPageSize(uint16_t size)
@@ -159,6 +165,18 @@ std::shared_ptr<FileHeaderBuilder> FileHeaderBuilder::WithFirstFreeListPage(Page
 {
   this->first_freelist_page = page_number;
 
+  return this->shared_from_this();
+}
+
+std::shared_ptr<FileHeaderBuilder> FileHeaderBuilder::IncrementTotalPageCount(uint32_t amount)
+{
+  if (this->total_page_count < std::numeric_limits<uint32_t>::max() - amount) {
+    std::stringstream stream;
+    stream << "Cannot add " << +amount << " pages to database file because the page counter will overflow.";
+    throw std::overflow_error(stream.str());
+  }
+
+  this->total_page_count += amount;
   return this->shared_from_this();
 }
 

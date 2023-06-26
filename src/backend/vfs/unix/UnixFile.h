@@ -94,15 +94,6 @@ class UnixFile : public NoidFile<UnixFileLock<IntentAwareMutex>, UnixSharedFileL
 #endif
 
     /**
-     * @brief Grows the file by @p size bytes.
-     * @note Since @p size is a @c uint32_t, the file growth is limited to at most 4 GB per call.
-     *
-     * @param size The amount of bytes to grow the file by.
-     * @throws std::ios_base::failure if the file cannot be grown the requested amount of bytes.
-     */
-    void Grow(uintmax_t size) override;
-
-    /**
      * @brief Returns the file size in bytes.
      * @details This method does not block. This allows callers to decide themselves about the blocking scope.
      *

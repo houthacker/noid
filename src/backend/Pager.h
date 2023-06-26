@@ -56,7 +56,7 @@ class Pager {
      *
      * @param file The database file.
      */
-    explicit Pager(std::shared_ptr<vfs::NoidFile<Lockable, SharedLockable>> file, uint16_t page_size)
+    Pager(std::shared_ptr<vfs::NoidFile<Lockable, SharedLockable>> file, uint16_t page_size)
         :file(std::move(file)), page_size(page_size) { }
 
  public:
@@ -123,45 +123,54 @@ class Pager {
     }
 
     /**
-     * @brief Lazily allocates new contiguous space for @p count pages.
-     * @details Since this method returns the page numbers assigned to the new allocated space, this method can be
-     * used to 'reserve' a range of page numbers to write to at a later time. This is useful for example when writing
-     * data to a leaf node which will overflow, because the required space can be calculated and then reserved to
-     * ensure contiguous storage of related data.<br />
-     * Allocating lazily means that the underlying file is grown so new page numbers can be assigned, but only actually
-     * written to when the pages are committed to the file. This can cause delayed errors if the device is full
-     * when writing.
+     * @brief Claims a contiguous range of @c size page numbers.
+     * @details This method returns a page number range of the requested size. It can be used to claim this range
+     * to write to at a later time. This is used when creating new pages, where the assigned page number must be known
+     * before it is written to storage. Additionally, this is used when writing overflowing data to a leaf node,
+     * because this ensures contiguous storage of related data.<br />
      *
-     * @see @c noid::backend::vfs::NoidFile::Grow(uint32_t)
+     * @note This is a form of lazy allocation since the actual write happens at an arbitrary later point in time and
+     * therefore can cause delayed errors.
      *
-     * @param count The amount of pages to allocate.
+     * @param size The amount of pages to allocate.
      * @return The page number range @c first (inclusive), @c last (exclusive).
-     * @throws std::domain_error if the database file is not aligned to @c Pager::page_size.
-     * @throws std::ios_base::failure if allocating the requested space fails.
+     * @throws std::overflow_error if the requested amount of pages would exceed the maximum total amount.
+     * @throws std::ios_base::failure if the updated total page size cannot be persisted on storage.
      */
-    std::pair<PageNumber, PageNumber> AllocateContiguous(uint32_t count)
+    std::pair<PageNumber, PageNumber> ClaimNextPageRange(uint32_t size)
     {
-      if (count == 0) {
+      if (size == 0) {
         return std::make_pair(NULL_PAGE, NULL_PAGE);
       }
 
+      // We require a unique lock here because a shared lock cannot be upgraded to one.
       NoidLock unique_lock = this->file->UniqueLock();
-      auto file_size = this->file->Size();
+      auto file_header = this->ReadFileHeader();
 
-      // Only return the page number range if the file size is aligned to full pages.
-      if (auto page_fraction = 1.0 * (file_size - page::FileHeader::SIZE) / this->page_size; page_fraction == std::floor(page_fraction)) {
-        auto allocation_range_start = static_cast<PageNumber>(page_fraction);
-        auto allocation_range_end = allocation_range_start + count;
+      // Create a builder and increment page size. This throws std::overflow_error if the new page size would overflow
+      // a @c uint32_t.
+      // With pages of 4Kb, this happens at 16T + FileHeader size. The ext4 file system for example has similar limits.
+      auto builder = page::FileHeader::NewBuilder(*file_header)->IncrementTotalPageCount(size);
 
-        // Now increase the file size
-        this->file->Grow(static_cast<uintmax_t>(count) * this->page_size);
+      auto allocation_range_start = file_header->GetTotalPageCount();
+      auto allocation_range_end = allocation_range_start + size;
 
-        return std::make_pair(allocation_range_start, allocation_range_end);
-      }
+      // Now update the page size in the file header.
+      this->WriteFileHeader(builder->Build());
 
-      // Throwing this exception essentially prevents vacuuming (moving WAL-pages into the database file)
-      // since no new pages can be allocated.
-      throw std::domain_error("Page allocation failed: database file is not aligned to page size.");
+      return std::make_pair(allocation_range_start, allocation_range_end);
+    }
+
+    /**
+     * @brief Shorthand for @c Pager::ClaimNextPageRange(1).first to claim the next available page number.
+     *
+     * @return The next available page number, or @c NULL_PAGE if a new page cannot be claimed.
+     * @throws std::overflow_error if claiming the page exceeds the maximum total amount of pages.
+     * @throws std::ios_base::failure if the updated total page count cannot be persisted on storage.
+     */
+    PageNumber ClaimNextPage()
+    {
+      return this->ClaimNextPageRange(1).first;
     }
 
     /**
@@ -191,13 +200,13 @@ class Pager {
      * @param header The database index page.
      * @throws std::ios_base::failure if an i/o error occurs while writing the header.
      */
-    void WriteFileHeader(const page::FileHeader& header)
+    void WriteFileHeader(const std::shared_ptr<const page::FileHeader>& header)
     {
 
       // TODO write to WAL (, page cache?)
       NoidLock unique_lock = this->file->UniqueLock();
       for (auto i = this->max_io_retries; i > 0; i--) {
-        if (this->file->Write(header.ToBytes(), 0) == page::FileHeader::SIZE) {
+        if (this->file->WriteContainer(header->ToBytes(), 0) == page::FileHeader::SIZE) {
           return this->file->Flush();
         }
       }

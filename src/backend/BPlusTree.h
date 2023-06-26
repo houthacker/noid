@@ -122,7 +122,7 @@ class BPlusTree {
     {
 
       // Store any overflow pages first, so we don't have to insert nodes if this fails.
-      auto page_range = this->pager->AllocateContiguous(this->pager->CalculateOverflow(value));
+      auto page_range = this->pager->ClaimNextPageRange(this->pager->CalculateOverflow(value));
       details::WriteOverflow(value, page_range, this->pager);
 
       const auto self = this;

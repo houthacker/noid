@@ -4,6 +4,9 @@
 
 #include <catch2/catch.hpp>
 
+#include <limits>
+#include <stdexcept>
+
 #include "backend/page/FileHeader.h"
 
 using namespace noid::backend;
@@ -22,7 +25,7 @@ TEST_CASE("Build a FileHeader")
   REQUIRE(header->GetKeySize() == 24);
   REQUIRE(header->GetFirstTreeHeaderPage() == 1);
   REQUIRE(header->GetFirstFreelistPage() == 2);
-  REQUIRE(header->GetChecksum() == 0x98a4eae7);
+  REQUIRE(header->GetChecksum() == 0x48767257);
 }
 
 TEST_CASE("Create a FileHeader with default values")
@@ -33,7 +36,7 @@ TEST_CASE("Create a FileHeader with default values")
   REQUIRE(header->GetKeySize() == FIXED_KEY_SIZE);
   REQUIRE(header->GetFirstTreeHeaderPage() == 0);
   REQUIRE(header->GetFirstFreelistPage() == 0);
-  REQUIRE(header->GetChecksum() == 0xa60a2358);
+  REQUIRE(header->GetChecksum() == 0x187f00d8);
 }
 
 TEST_CASE("Create a FileHeader based on another instance")
@@ -58,4 +61,11 @@ TEST_CASE("Compare DatabaseHeaders by using FileHeader::Equals()")
   REQUIRE_FALSE(base->Equals(*expect_not_equal));
   REQUIRE_FALSE(expect_equal->Equals(*expect_not_equal));
   REQUIRE_FALSE(base->GetChecksum() == expect_not_equal->GetChecksum());
+}
+
+TEST_CASE("Overflowing the maximum page count throws an exception")
+{
+  CHECK_THROWS_AS(FileHeader::NewBuilder()
+    ->IncrementTotalPageCount(1)
+    ->IncrementTotalPageCount(std::numeric_limits<uint32_t>::max()), std::overflow_error);
 }

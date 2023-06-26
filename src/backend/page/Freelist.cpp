@@ -37,9 +37,10 @@ static inline std::size_t SlotToIndex(uint16_t slot)
   return Freelist::HEADER_SIZE + slot * sizeof(PageNumber);
 }
 
-Freelist::Freelist(uint16_t page_size, PageNumber previous, PageNumber next, DynamicArray<PageNumber> free_pages,
-    uint16_t next_free_slot)
-    :page_size(page_size), previous(previous), next(next), free_pages(std::move(free_pages)), next_free_slot(next_free_slot) { }
+Freelist::Freelist(PageNumber location, uint16_t page_size, PageNumber previous, PageNumber next,
+    DynamicArray<PageNumber> free_pages, uint16_t next_free_slot)
+    :location(location), page_size(page_size), previous(previous), next(next), free_pages(std::move(free_pages)),
+     next_free_slot(next_free_slot) { }
 
 std::shared_ptr<FreelistBuilder> Freelist::NewBuilder(uint16_t page_size)
 {
@@ -122,8 +123,18 @@ std::unique_ptr<const Freelist> FreelistBuilder::Build() const
   std::ranges::copy(this->free_pages.begin(), this->free_pages.end(), free_list.begin());
 
   return std::unique_ptr<const Freelist>(
-      new Freelist(this->page_size, this->previous_freelist_entry, this->next_freelist_entry, std::move(free_list),
-          this->free_pages.size()));
+      new Freelist(this->location, this->page_size, this->previous_freelist_entry, this->next_freelist_entry,
+          std::move(free_list), this->free_pages.size()));
+}
+
+std::shared_ptr<FreelistBuilder> FreelistBuilder::WithLocation(PageNumber loc)
+{
+  if (loc == NULL_PAGE) {
+    throw std::domain_error("Location must be > 0");
+  }
+
+  this->location = loc;
+  return this->shared_from_this();
 }
 
 std::shared_ptr<FreelistBuilder> FreelistBuilder::WithPrevious(PageNumber previous)

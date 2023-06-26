@@ -29,8 +29,9 @@ This allows for reconstruction of the database without requiring the noid main d
 | 10     | 1            | `uint8_t` key size in bytes (multiple of 8, fixed at 16) |
 | 11     | 4            | LE `uint32_t` first tree header page number              |
 | 15     | 4            | LE `uint32_t` first freelist page number                 |
-| 19     | 4            | LE `uint32_t` checksum (fnv-1a of all preceding bytes)   |
-| 23     | 77           | Reserved for later use (zeroed)                          |
+| 19     | 4            | LE `uint32_t` total page count                           |
+| 23     | 4            | LE `uint32_t` checksum (fnv-1a of all preceding bytes)   |
+| 27     | 73           | Reserved for later use (zeroed)                          |
 
 ## Freelist Page
 
