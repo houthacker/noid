@@ -64,7 +64,7 @@ class Pager {
      * @brief Reads the first page (index 0) from the database file.
      *
      * @return The database index page.
-     * @throws std::ios_base::failure if the header cannot be read.
+     * @throws std::ios_base::failure if the file header cannot be read.
      */
     std::shared_ptr<const page::FileHeader> ReadFileHeaderUnlocked()
     {
@@ -76,7 +76,7 @@ class Pager {
         }
       }
 
-      throw std::ios_base::failure(std::string("Cannot read header; retries exhausted."));
+      throw std::ios_base::failure(std::string("Cannot read file header; retries exhausted."));
     }
 
     /**
@@ -282,7 +282,9 @@ class Pager {
         }
       }
 
-      throw std::ios_base::failure("Cannot read page; retries exhausted.");
+      std::stringstream stream;
+      stream << "Cannot read Page@" << +location << "; retries exhausted.";
+      throw std::ios_base::failure(stream.str());
     }
 
     /**

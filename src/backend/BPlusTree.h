@@ -50,7 +50,7 @@ class BPlusTree {
     /**
      * @brief The location of the @c TreeHeader page of this @c BPlusTree in (persistent) storage.
      */
-    std::unique_ptr<const page::TreeHeader> header;
+    PageNumber header_location;
 
     /**
      * @brief Creates a @c BPlusTree using the given @c Pager and reads the header page from storage.
@@ -58,13 +58,10 @@ class BPlusTree {
      * If a new tree must be created, use <code>BPlusTree(Pager, PageNumber, TreeType)</code>.
      *
      * @param pager The pager to use.
-     * @param header The number of the header page for this @c BPlusTree.
+     * @param header_location The number of the header page for this @c BPlusTree.
      */
-    BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, PageNumber header_page)
-        :pager(std::move(pager))
-    {
-      this->header = this->pager->template ReadPage<page::TreeHeader, page::TreeHeaderBuilder>(header_page);
-    }
+    BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, PageNumber header_location)
+        :pager(std::move(pager)), header_location(header_location) { }
 
     /**
      * @brief Creates a new @c BPlusTree of the given type.
@@ -74,14 +71,15 @@ class BPlusTree {
      * @param pager The pager to use.
      * @param type The tree type.
      */
-    BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type) :pager(pager)
+    BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type)
+        :pager(pager)
     {
-      auto header_page = this->pager->ClaimNextPage();
-      this->header = this->pager->template NewBuilder<page::TreeHeader, page::TreeHeaderBuilder>()
-          ->WithLocation(header_page)
+      this->header_location = this->pager->ClaimNextPage();
+      auto header = this->pager->template NewBuilder<page::TreeHeader, page::TreeHeaderBuilder>()
+          ->WithLocation(this->header_location)
           ->WithTreeType(type)
           ->Build();
-      this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*this->header);
+      this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*header);
     }
 
  public:
@@ -128,10 +126,9 @@ class BPlusTree {
       auto page_range = this->pager->ClaimNextPageRange(this->pager->CalculateOverflow(value));
       details::WriteOverflow(value, page_range, this->pager);
 
-      const auto self = this;
       auto type = InsertType::Insert;
-
-      if (self->header->GetRoot() == NULL_PAGE) {
+      if (auto current_header = this->pager->template ReadPage<page::TreeHeader, page::TreeHeaderBuilder>(
+            this->header_location); current_header->GetRoot() == NULL_PAGE) {
         auto root_page = this->pager->ClaimNextPage();
         auto root_node = this->pager->template NewBuilder<page::LeafNode, page::LeafNodeBuilder>()
             ->WithLocation(root_page)
@@ -139,12 +136,11 @@ class BPlusTree {
             ->Build();
         this->pager->template WritePage<page::LeafNode, page::LeafNodeBuilder>(*root_node);
 
-        auto new_header = page::TreeHeader::NewBuilder(*this->header)
+        auto new_header = page::TreeHeader::NewBuilder(*current_header)
             ->WithRootPageNumber(root_page)
             ->IncrementPageCount(1)
             ->Build();
         this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*new_header);
-        this->header = std::move(new_header);
 
         return type;
       }
