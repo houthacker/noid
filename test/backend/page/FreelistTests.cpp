@@ -17,11 +17,13 @@ using namespace noid::backend::page;
 TEST_CASE("Build a Freelist")
 {
   auto freelist = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(0)
+      ->WithLocation(2)
       ->WithNext(0)
       ->WithFreePage(1337)
       ->WithFreePage(1338)
       ->Build();
 
+  REQUIRE(freelist->GetLocation() == 2);
   REQUIRE(freelist->Previous() == 0);
   REQUIRE(freelist->Next() == 0);
   REQUIRE(freelist->FreePageAt(0) == 1337);
@@ -31,8 +33,11 @@ TEST_CASE("Build a Freelist")
 
 TEST_CASE("Build a Freelist with default values")
 {
-  auto freelist = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->Build();
+  auto freelist = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(2)
+      ->Build();
 
+  REQUIRE(freelist->GetLocation() == 2);
   REQUIRE(freelist->Previous() == 0);
   REQUIRE(freelist->Next() == 0);
   REQUIRE(freelist->Size() == 0);
@@ -42,15 +47,18 @@ TEST_CASE("Build a Freelist with default values")
 
 TEST_CASE("Build a Freelist based on another Freelist")
 {
-  auto base = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(0)
+  auto base = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(2)
+      ->WithPrevious(0)
       ->WithNext(0)
       ->WithFreePage(1337)
       ->Build();
 
   auto freelist = Freelist::NewBuilder(*base)->WithFreePage(1338)->Build();
-  REQUIRE(freelist->Previous() == 0);
-  REQUIRE(freelist->Next() == 0);
-  REQUIRE(freelist->FreePageAt(0) == 1337);
+  REQUIRE(freelist->GetLocation() == base->GetLocation());
+  REQUIRE(freelist->Previous() == base->Previous());
+  REQUIRE(freelist->Next() == base->Next());
+  REQUIRE(freelist->FreePageAt(0) == base->FreePageAt(0));
   REQUIRE(freelist->FreePageAt(1) == 1338);
   REQUIRE(freelist->Size() == 2);
 }
@@ -64,7 +72,8 @@ TEST_CASE("Build a Freelist from an invalid raw byte vector")
 TEST_CASE("Build a Freelist that contains exactly the maximum amount of pages")
 {
   auto default_max_pages = 1021;
-  auto builder = Freelist::NewBuilder(DEFAULT_PAGE_SIZE);
+  auto builder = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(2);
 
   for (auto i = 0; i < default_max_pages; i++) {
     CHECK_NOTHROW(builder->WithFreePage(i + 1));
@@ -76,7 +85,8 @@ TEST_CASE("Build a Freelist that contains exactly the maximum amount of pages")
 TEST_CASE("Try building a Freelist that contains too many pages")
 {
   auto default_max_pages = 1021;
-  auto builder = Freelist::NewBuilder(DEFAULT_PAGE_SIZE);
+  auto builder = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(2);
 
   for (auto i = 0; i < default_max_pages; i++) {
     builder->WithFreePage(i + 1);
@@ -87,28 +97,37 @@ TEST_CASE("Try building a Freelist that contains too many pages")
 
 TEST_CASE("Build a Freelist based on another and overwrite some free page numbers")
 {
-  auto base = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(0)
+  auto base = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(2)
+      ->WithPrevious(0)
       ->WithNext(0)
       ->WithFreePage(1337)
       ->WithFreePage(1338)
       ->Build();
 
   auto freelist = Freelist::NewBuilder(*base)->WithFreePage(1339, 0)->Build();
-  REQUIRE(freelist->Previous() == 0);
-  REQUIRE(freelist->Next() == 0);
+  REQUIRE(freelist->GetLocation() == base->GetLocation());
+  REQUIRE(freelist->Previous() == base->Previous());
+  REQUIRE(freelist->Next() == base->Next());
   REQUIRE(freelist->FreePageAt(0) == 1339);
-  REQUIRE(freelist->FreePageAt(1) == 1338);
-  REQUIRE(freelist->Size() == 2);
+  REQUIRE(freelist->FreePageAt(1) == base->FreePageAt(1));
+  REQUIRE(freelist->Size() == base->Size());
 }
 
 TEST_CASE("Freelist::ToBytes() cycle") {
-  auto original = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)->WithPrevious(1)
+  auto original = Freelist::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(2)
+      ->WithPrevious(1)
       ->WithNext(3)
       ->WithFreePage(1337)
       ->WithFreePage(1338)
       ->Build();
 
-  auto from_bytes = Freelist::NewBuilder(original->ToBytes())->Build();
+  auto from_bytes = Freelist::NewBuilder(original->ToBytes())
+      ->WithLocation(original->GetLocation())
+      ->Build();
+
+  REQUIRE(from_bytes->GetLocation() == original->GetLocation());
   REQUIRE(from_bytes->Previous() == original->Previous());
   REQUIRE(from_bytes->Next() == original->Next());
   REQUIRE(from_bytes->FreePageAt(0) == original->FreePageAt(0));

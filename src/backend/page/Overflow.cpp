@@ -25,8 +25,9 @@ static DynamicArray<byte>& Validate(DynamicArray<byte>& data, uint16_t page_size
   return data;
 }
 
-Overflow::Overflow(uint16_t payload_size, PageNumber next, DynamicArray<byte>&& data, uint16_t page_size)
-    :data_size(payload_size), next(next), data(std::move(data)), page_size(page_size) { }
+Overflow::Overflow(PageNumber location, uint16_t payload_size, PageNumber next, DynamicArray<byte>&& data,
+    uint16_t page_size)
+    :location(location), data_size(payload_size), next(next), data(std::move(data)), page_size(page_size) { }
 
 std::shared_ptr<OverflowBuilder> Overflow::NewBuilder(uint16_t page_size)
 {
@@ -46,6 +47,11 @@ std::shared_ptr<OverflowBuilder> Overflow::NewBuilder(DynamicArray<byte>&& base)
 {
   return std::shared_ptr<OverflowBuilder>(
       new OverflowBuilder(std::move(Validate(base, safe_cast<uint16_t>(base.size())))));
+}
+
+PageNumber Overflow::GetLocation() const
+{
+  return this->location;
 }
 
 uint16_t Overflow::GetDataSize() const
@@ -81,7 +87,7 @@ OverflowBuilder::OverflowBuilder(uint16_t page_size)
     :page_size(page_size) { }
 
 OverflowBuilder::OverflowBuilder(const Overflow& base)
-    :page_size(base.page_size), data_size(base.data_size), next(base.next), data(base.data) { }
+    :location(base.location), page_size(base.page_size), data_size(base.data_size), next(base.next), data(base.data) { }
 
 OverflowBuilder::OverflowBuilder(DynamicArray<byte>&& base)
     :page_size(static_cast<decltype(page_size)>(base.size())),
@@ -103,7 +109,10 @@ uint16_t OverflowBuilder::MaxDataSize() const
 
 std::unique_ptr<const Overflow> OverflowBuilder::Build()
 {
-  if (this->page_size <= Overflow::HEADER_SIZE) {
+  if (this->location == NULL_PAGE) {
+    throw std::domain_error("Cannot build Overflow: location not set.");
+  }
+  else if (this->page_size <= Overflow::HEADER_SIZE) {
     throw std::length_error("Cannot build Overflow: page_size too small.");
   }
   else if (this->data_size == 0) {
@@ -120,7 +129,17 @@ std::unique_ptr<const Overflow> OverflowBuilder::Build()
   }
 
   return std::unique_ptr<const Overflow>(
-      new Overflow(this->data_size, this->next, std::move(padded_data), this->page_size));
+      new Overflow(this->location, this->data_size, this->next, std::move(padded_data), this->page_size));
+}
+
+std::shared_ptr<OverflowBuilder> OverflowBuilder::WithLocation(PageNumber loc)
+{
+  if (loc == NULL_PAGE) {
+    throw std::domain_error("GetLocation cannot be zero.");
+  }
+
+  this->location = loc;
+  return this->shared_from_this();
 }
 
 std::shared_ptr<OverflowBuilder> OverflowBuilder::WithNext(PageNumber page_number)

@@ -35,9 +35,9 @@ static inline std::size_t SlotToIndex(uint16_t slot)
   return RECORD_COUNT_OFFSET + slot * sizeof(PageNumber);
 }
 
-LeafNode::LeafNode(uint16_t next_record_slot, PageNumber left_sibling, PageNumber right_sibling,
+LeafNode::LeafNode(PageNumber location, uint16_t next_record_slot, PageNumber left_sibling, PageNumber right_sibling,
     DynamicArray<NodeRecord>&& records, uint16_t page_size)
-    :next_record_slot(next_record_slot), left_sibling(left_sibling), right_sibling(right_sibling),
+    :location(location), next_record_slot(next_record_slot), left_sibling(left_sibling), right_sibling(right_sibling),
      records(std::move(records)), page_size(page_size) { }
 
 std::shared_ptr<LeafNodeBuilder> LeafNode::NewBuilder(uint16_t page_size)
@@ -53,6 +53,11 @@ std::shared_ptr<LeafNodeBuilder> LeafNode::NewBuilder(const LeafNode& base)
 std::shared_ptr<LeafNodeBuilder> LeafNode::NewBuilder(DynamicArray<byte>&& base)
 {
   return std::shared_ptr<LeafNodeBuilder>(new LeafNodeBuilder(std::move(Validate(base, base.size()))));
+}
+
+PageNumber LeafNode::GetLocation() const
+{
+  return this->location;
 }
 
 uint16_t LeafNode::Size() const
@@ -97,7 +102,7 @@ LeafNodeBuilder::LeafNodeBuilder(uint16_t page_size)
 }
 
 LeafNodeBuilder::LeafNodeBuilder(const LeafNode& base)
-    :page_size(base.page_size), max_record_slot(CalculateMaxRecords(page_size) - 1),
+    :location(base.location), page_size(base.page_size), max_record_slot(CalculateMaxRecords(page_size) - 1),
      left_sibling(base.left_sibling), right_sibling(base.right_sibling), records(base.next_record_slot)
 {
   std::ranges::copy(base.records.begin(), base.records.begin() + base.next_record_slot, this->records.begin());
@@ -119,17 +124,31 @@ LeafNodeBuilder::LeafNodeBuilder(DynamicArray<byte>&& base)
 
 std::unique_ptr<const LeafNode> LeafNodeBuilder::Build()
 {
+  if (this->location == NULL_PAGE) {
+    throw std::domain_error("Cannot build LeafNode: location not set.");
+  }
+
   auto record_list = DynamicArray<NodeRecord>(this->max_record_slot + 1);
   std::ranges::copy(this->records.begin(), this->records.end(), record_list.begin());
 
   return std::unique_ptr<const LeafNode>(
-      new LeafNode(safe_cast<uint16_t>(this->records.size()), this->left_sibling, this->right_sibling,
+      new LeafNode(this->location, safe_cast<uint16_t>(this->records.size()), this->left_sibling, this->right_sibling,
           std::move(record_list), this->page_size));
 }
 
 bool LeafNodeBuilder::IsFull() const
 {
   return this->records.size() == safe_cast<decltype(max_record_slot)>(max_record_slot + 1);
+}
+
+std::shared_ptr<LeafNodeBuilder> LeafNodeBuilder::WithLocation(PageNumber loc)
+{
+  if (loc == NULL_PAGE) {
+    throw std::domain_error("GetLocation cannot be zero.");
+  }
+
+  this->location = loc;
+  return this->shared_from_this();
 }
 
 std::shared_ptr<LeafNodeBuilder> LeafNodeBuilder::WithLeftSibling(PageNumber sibling)

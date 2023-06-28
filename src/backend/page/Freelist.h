@@ -96,7 +96,7 @@ class Freelist {
     /**
      * @return The location within the database file.
      */
-    [[nodiscard]] PageNumber Location() const;
+    [[nodiscard]] PageNumber GetLocation() const;
 
     /**
      * @brief Returns the page number of the previous freelist page. A @c PageNumber of zero means no previous page.
@@ -144,7 +144,7 @@ class Freelist {
     /**
      * @brief The location within the database file.
      */
-    PageNumber location;
+    PageNumber location = NULL_PAGE;
 
     /**
      * @brief The page number of the previous freelist entry.
@@ -188,7 +188,7 @@ class Freelist {
      * @brief Creates a new @c Freelist based on the provided data.
      *
      * @return The new @c Freelist instance.
-     * @throws std::domain_error if @c FreelistBuilder::location is unset.
+     * @throws std::domain_error if @c FreelistBuilder::location is unset or @c NULL_PAGE.
      */
     [[nodiscard]] std::unique_ptr<const Freelist> Build() const;
 
@@ -197,6 +197,7 @@ class Freelist {
      *
      * @param loc The absolute location within the database file.
      * @return A reference to this builder to support a fluent interface.
+     * @throws std::domain_error if @p loc is @c NULL_PAGE.
      */
     std::shared_ptr<FreelistBuilder> WithLocation(PageNumber loc);
 

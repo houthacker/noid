@@ -170,7 +170,7 @@ std::shared_ptr<FileHeaderBuilder> FileHeaderBuilder::WithFirstFreeListPage(Page
 
 std::shared_ptr<FileHeaderBuilder> FileHeaderBuilder::IncrementTotalPageCount(uint32_t amount)
 {
-  if (this->total_page_count < std::numeric_limits<uint32_t>::max() - amount) {
+  if (this->total_page_count >= std::numeric_limits<uint32_t>::max() - amount) {
     std::stringstream stream;
     stream << "Cannot add " << +amount << " pages to database file because the page counter will overflow.";
     throw std::overflow_error(stream.str());

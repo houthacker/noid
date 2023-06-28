@@ -31,6 +31,11 @@ class LeafNode : public Node {
     friend class LeafNodeBuilder;
 
     /**
+     * @brief The location of this page withing the database file.
+     */
+    const PageNumber  location;
+
+    /**
      * @brief The position of the next empty record slot in this @c LeafNode.
      */
     const uint16_t next_record_slot;
@@ -57,7 +62,7 @@ class LeafNode : public Node {
      */
     const uint16_t page_size;
 
-    LeafNode(uint16_t next_record_slot, PageNumber left_sibling, PageNumber right_sibling, DynamicArray<NodeRecord> && records, uint16_t page_size);
+    LeafNode(PageNumber location, uint16_t next_record_slot, PageNumber left_sibling, PageNumber right_sibling, DynamicArray<NodeRecord> && records, uint16_t page_size);
  public:
 
     ~LeafNode() override =default;
@@ -87,6 +92,11 @@ class LeafNode : public Node {
      * @throws std::invalid_argument if the given raw bytes do not represent a valid @c LeafNode.
      */
     static std::shared_ptr<LeafNodeBuilder> NewBuilder(DynamicArray<byte> && base);
+
+    /**
+     * @return The location within the database file.
+     */
+    [[nodiscard]] PageNumber GetLocation() const;
 
     /**
      * @return The amount of records in this @c LeafNode.
@@ -128,6 +138,11 @@ class LeafNode : public Node {
  class LeafNodeBuilder : public std::enable_shared_from_this<LeafNodeBuilder> {
  private:
     friend class LeafNode;
+
+     /**
+      * @brief The location of the page withing the database file.
+      */
+     PageNumber location = NULL_PAGE;
 
     /**
      * @brief The configured page size in bytes. Defaults to @c NoidConfig::vfs_page_size.
@@ -173,6 +188,15 @@ class LeafNode : public Node {
      * @return Whether the maximum amount of slots are occupied.
      */
     bool IsFull() const;
+
+     /**
+       * @brief Sets or overwrites the location of the LeafNode within the database file.
+       *
+       * @param loc The absolute location within the database file.
+       * @return A reference to this builder to support a fluent interface.
+       * @throws std::domain_error if @p loc is @c NULL_PAGE.
+       */
+     std::shared_ptr<LeafNodeBuilder> WithLocation(PageNumber loc);
 
     /**
      * @brief Sets the left sibling for the @c LeafNode.

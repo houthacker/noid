@@ -58,7 +58,7 @@ class IntentAwareMutex {
       // This will also allow threads having a shared lock to finish up and release it, but deny new shared locks until
       // the unique lock that is being requested here is released again.
       {
-        std::unique_lock<std::shared_mutex> lock(this->unique_lock_intent_mutex);
+        std::unique_lock lock(this->unique_lock_intent_mutex);
         this->unique_lock_requested = true;
       }
       this->cv.notify_all();
@@ -69,7 +69,7 @@ class IntentAwareMutex {
       // When the unique lock has been acquired, notify all waiting threads that the unique lock is not requested
       // anymore, allowing them to acquire a shared lock after this unique lock has been released later.
       {
-        std::unique_lock<std::shared_mutex> lock(this->unique_lock_intent_mutex);
+        std::unique_lock lock(this->unique_lock_intent_mutex);
         this->unique_lock_requested = false;
       }
       this->cv.notify_all();
@@ -102,8 +102,8 @@ class IntentAwareMutex {
     void lock_shared() {
       // Acquire a shared lock on the unique_lock_intent_mutex since multiple threads may want to get a shared lock
       // of course. If a unique lock has been requested by another thread, block until it has been released.
-      std::shared_lock<std::shared_mutex> lock(this->unique_lock_intent_mutex);
-      this->cv.wait(lock, [&]{return !this->unique_lock_requested; });
+      std::shared_lock lock(this->unique_lock_intent_mutex);
+      this->cv.wait(lock, [this]{return !this->unique_lock_requested; });
 
       // Now acquire the shared lock while having unique_lock_intent_mutex, since this prevents acquiring a unique lock on
       // the mutex used below.

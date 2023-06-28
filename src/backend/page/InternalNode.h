@@ -52,6 +52,11 @@ class InternalNode : public Node {
     friend class InternalNodeBuilder;
 
     /**
+     * @brief The location of this page within the database file.
+     */
+    const PageNumber location;
+
+    /**
      * @brief The position of the next empty entry slot in this @c InternalNode.
      */
     const uint16_t next_entry_slot;
@@ -78,7 +83,7 @@ class InternalNode : public Node {
      */
     const uint16_t page_size;
 
-    InternalNode(uint16_t next_entry_slot, PageNumber leftmost_child, DynamicArray<NodeEntry>&& entries,
+    InternalNode(PageNumber location, uint16_t next_entry_slot, PageNumber leftmost_child, DynamicArray<NodeEntry>&& entries,
         uint16_t page_size);
 
  public:
@@ -110,6 +115,11 @@ class InternalNode : public Node {
      * @throws std::invalid_argument if the given raw bytes are not a valid @c InternalNode.
      */
     static std::shared_ptr<InternalNodeBuilder> NewBuilder(DynamicArray<byte>&& base);
+
+    /**
+     * @return The location within the database file.
+     */
+    [[nodiscard]] PageNumber GetLocation() const;
 
     /**
      * @return The amount of entries contained in this @c InternalNode
@@ -145,6 +155,11 @@ class InternalNode : public Node {
  class InternalNodeBuilder : public std::enable_shared_from_this<InternalNodeBuilder> {
  private:
     friend class InternalNode;
+
+    /**
+     * @brief The location of the page withing the database file.
+     */
+    PageNumber location = NULL_PAGE;
 
     /**
      * @brief The configured page size in bytes. Defaults to @c NoidConfig::vfs_page_size.
@@ -185,6 +200,15 @@ class InternalNode : public Node {
      * @return Whether the node-to-be contains the maximum amount of entries.
      */
     bool IsFull() const;
+
+     /**
+      * @brief Sets or overwrites the location of the InternalNode within the database file.
+      *
+      * @param loc The absolute location within the database file.
+      * @return A reference to this builder to support a fluent interface.
+      * @throws std::domain_error if @p loc is @c NULL_PAGE.
+      */
+     std::shared_ptr<InternalNodeBuilder> WithLocation(PageNumber loc);
 
     /**
      * @brief Sets the leftmost child page for the @c InternalNode

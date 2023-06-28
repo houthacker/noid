@@ -36,16 +36,17 @@ TEST_CASE("WritePage-ReadPage cycle") {
   auto vfs = std::make_unique<UnixVFS>();
   auto file =  vfs->CreateTempFile();
   auto pager = UnixPager::Open(std::move(file));
-  PageNumber page_location = 2;
 
-  auto freelist = pager->NewBuilder<page::Freelist, page::FreelistBuilder>()->WithPrevious(1)
+  auto freelist = pager->NewBuilder<page::Freelist, page::FreelistBuilder>()
+      ->WithLocation(2)
+      ->WithPrevious(1)
       ->WithNext(3)
       ->WithFreePage(1337)
       ->WithFreePage(1338)
       ->Build();
 
-  pager->WritePage<page::Freelist, page::FreelistBuilder>(*freelist, page_location);
-  auto retrieved = pager->ReadPage<page::Freelist, page::FreelistBuilder>(page_location);
+  pager->WritePage<page::Freelist, page::FreelistBuilder>(*freelist);
+  auto retrieved = pager->ReadPage<page::Freelist, page::FreelistBuilder>(freelist->GetLocation());
 
   REQUIRE(retrieved->Previous() == freelist->Previous());
   REQUIRE(retrieved->Next() == freelist->Next());
@@ -59,14 +60,16 @@ TEST_CASE("Store some pages at end of file") {
   auto file =  vfs->CreateTempFile();
   auto pager = UnixPager::Open(std::move(file));
 
-  auto freelist = pager->NewBuilder<page::Freelist, page::FreelistBuilder>()->WithPrevious(1)
+  auto freelist = pager->NewBuilder<page::Freelist, page::FreelistBuilder>()
+      ->WithLocation(2)
+      ->WithPrevious(1)
       ->WithNext(3)
       ->WithFreePage(1337)
       ->WithFreePage(1338)
       ->Build();
 
   for (PageNumber p = 1; p <= 3; p++) {
-    REQUIRE(pager->WritePage<page::Freelist, page::FreelistBuilder>(*freelist) == p);
+    CHECK_NOTHROW(pager->WritePage<page::Freelist, page::FreelistBuilder>(*freelist));
   }
 }
 

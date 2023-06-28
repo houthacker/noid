@@ -34,6 +34,11 @@ class Overflow {
     friend class OverflowBuilder;
 
     /**
+     * @brief The location of this page withing the database file.
+     */
+    const PageNumber  location;
+
+    /**
      * @brief The payload size in this page.
      */
     const uint16_t data_size;
@@ -59,7 +64,7 @@ class Overflow {
      */
     const uint16_t page_size;
 
-    Overflow(uint16_t payload_size, PageNumber next, DynamicArray<byte> && data, uint16_t page_size);
+    Overflow(PageNumber location, uint16_t payload_size, PageNumber next, DynamicArray<byte> && data, uint16_t page_size);
 
  public:
 
@@ -93,6 +98,11 @@ class Overflow {
     static std::shared_ptr<OverflowBuilder> NewBuilder(DynamicArray<byte> && base);
 
     /**
+     * @return The location within the database file.
+     */
+    [[nodiscard]] PageNumber GetLocation() const;
+
+    /**
      * @return The size in bytes of the payload contained in this @c Overflow page.
      */
     [[nodiscard]] uint16_t GetDataSize() const;
@@ -121,6 +131,11 @@ class Overflow {
  class OverflowBuilder : public std::enable_shared_from_this<OverflowBuilder> {
  private:
     friend class Overflow;
+
+    /**
+     * @brief The location of the page within the database file.
+     */
+    PageNumber location = NULL_PAGE;
 
     /**
      * @brief The configured page size in bytes. Defaults to @c NoidConfig::vfs_page_size.
@@ -162,8 +177,18 @@ class Overflow {
      *
      * @return The new @c Overflow page instance.
      * @throws std::length_error if @c page_size or @c data_size is zero, or if @c page_size is too small to fit any data.
+     * @throws std::domain_error if @c location has not been set.
      */
     [[nodiscard]] std::unique_ptr<const Overflow> Build();
+
+     /**
+        * @brief Sets or overwrites the location of the Overflow within the database file.
+        *
+        * @param loc The absolute location within the database file.
+        * @return A reference to this builder to support a fluent interface.
+        * @throws std::domain_error if @p loc is @c NULL_PAGE.
+        */
+     std::shared_ptr<OverflowBuilder> WithLocation(PageNumber loc);
 
     /**
      * @brief Sets the location of the page_number @c Overflow page.

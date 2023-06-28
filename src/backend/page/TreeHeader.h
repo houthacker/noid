@@ -53,6 +53,11 @@ class TreeHeader {
     friend class TreeHeaderBuilder;
 
     /**
+     * @brief The location of this page withing the database file.
+     */
+    const PageNumber location;
+
+    /**
      * @brief The type of tree this is the header of.
      */
     const TreeType tree_type;
@@ -88,10 +93,10 @@ class TreeHeader {
      * but is itself not serialized into the @c TreeHeader. Instead, the page size is stored in the serialized
      * @c FileHeader of a database.
      */
-     const uint16_t page_size;
+    const uint16_t page_size;
 
-    TreeHeader(TreeType tree_type, uint16_t max_node_entries, uint16_t max_node_records, PageNumber root,
-        uint32_t page_count, uint16_t page_size);
+    TreeHeader(PageNumber location, TreeType tree_type, uint16_t max_node_entries, uint16_t max_node_records,
+        PageNumber root, uint32_t page_count, uint16_t page_size);
 
  public:
 
@@ -122,6 +127,11 @@ class TreeHeader {
      * node records are not supported using the page size used by the current @c Pager.
      */
     static std::shared_ptr<TreeHeaderBuilder> NewBuilder(DynamicArray<byte>&& base);
+
+    /**
+     * @return The location within the database file.
+     */
+    [[nodiscard]] PageNumber GetLocation() const;
 
     /**
      * @return The type of b+tree this is the header for.
@@ -162,9 +172,14 @@ class TreeHeader {
     [[nodiscard]] DynamicArray<byte> ToBytes() const;
 };
 
- class TreeHeaderBuilder : public std::enable_shared_from_this<TreeHeaderBuilder> {
+class TreeHeaderBuilder : public std::enable_shared_from_this<TreeHeaderBuilder> {
  private:
     friend class TreeHeader;
+
+    /**
+     * @brief The location of the page within the database file.
+     */
+    PageNumber location = NULL_PAGE;
 
     /**
      * @brief The configured page size in bytes. Defaults to @c NoidConfig::vfs_page_size.
@@ -202,15 +217,24 @@ class TreeHeader {
 
  public:
 
-    TreeHeaderBuilder() =delete;
+    TreeHeaderBuilder() = delete;
 
     /**
      * @brief Creates a new @c TreeHeader based on the provided data.
      *
      * @return The new @c TreeHeader instance.
-     * @throws std::domain_error if the tree type or the root page has not been set.
+     * @throws std::domain_error if either the tree type, the root page or the location has not been set.
      */
     [[nodiscard]] std::unique_ptr<const TreeHeader> Build();
+
+    /**
+        * @brief Sets or overwrites the location of the TreeHeader within the database file.
+        *
+        * @param loc The absolute location within the database file.
+        * @return A reference to this builder to support a fluent interface.
+        * @throws std::domain_error if @p loc is @c NULL_PAGE.
+        */
+    std::shared_ptr<TreeHeaderBuilder> WithLocation(PageNumber loc);
 
     /**
      * @brief Sets the type of b+tree this header is for.

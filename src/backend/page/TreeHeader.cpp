@@ -36,10 +36,10 @@ static DynamicArray<byte>& Validate(DynamicArray<byte>& data, uint16_t page_size
   return data;
 }
 
-TreeHeader::TreeHeader(TreeType tree_type, uint16_t max_node_entries, uint16_t max_node_records, PageNumber root,
-    uint32_t page_count, uint16_t page_size)
-    :tree_type(tree_type), max_node_entries(max_node_entries), max_node_records(max_node_records), root(root),
-     page_count(page_count), page_size(page_size) { }
+TreeHeader::TreeHeader(PageNumber location, TreeType tree_type, uint16_t max_node_entries, uint16_t max_node_records,
+    PageNumber root, uint32_t page_count, uint16_t page_size)
+    :location(location), tree_type(tree_type), max_node_entries(max_node_entries), max_node_records(max_node_records),
+     root(root), page_count(page_count), page_size(page_size) { }
 
 std::shared_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(uint16_t page_size)
 {
@@ -58,6 +58,11 @@ std::shared_ptr<TreeHeaderBuilder> TreeHeader::NewBuilder(DynamicArray<byte>&& b
 {
   return std::shared_ptr<TreeHeaderBuilder>(
       new TreeHeaderBuilder(std::move(Validate(base, safe_cast<uint16_t>(base.size())))));
+}
+
+PageNumber TreeHeader::GetLocation() const
+{
+  return this->location;
 }
 
 TreeType TreeHeader::GetTreeType() const
@@ -105,7 +110,7 @@ TreeHeaderBuilder::TreeHeaderBuilder(uint16_t size)
      root(0), page_count(1) { }
 
 TreeHeaderBuilder::TreeHeaderBuilder(const TreeHeader& base)
-    :page_size(base.page_size), tree_type(base.tree_type), max_node_entries(base.max_node_entries),
+    :location(base.location), page_size(base.page_size), tree_type(base.tree_type), max_node_entries(base.max_node_entries),
      max_node_records(base.max_node_records), root(base.root), page_count(base.page_count) { }
 
 TreeHeaderBuilder::TreeHeaderBuilder(DynamicArray<byte>&& base)
@@ -119,12 +124,25 @@ TreeHeaderBuilder::TreeHeaderBuilder(DynamicArray<byte>&& base)
 std::unique_ptr<const TreeHeader> TreeHeaderBuilder::Build()
 {
   if (this->tree_type == TreeType::None) {
-    throw std::domain_error("Tree type of TreeHeader not set.");
+    throw std::domain_error("Cannot build TreeHeader: tree type not set.");
+  }
+  else if (this->location == NULL_PAGE) {
+    throw std::domain_error("Cannot build TreeHeader: location not set.");
   }
 
   return std::unique_ptr<const TreeHeader>(
-      new TreeHeader(this->tree_type, this->max_node_entries, this->max_node_records, this->root, this->page_count,
+      new TreeHeader(this->location, this->tree_type, this->max_node_entries, this->max_node_records, this->root, this->page_count,
           this->page_size));
+}
+
+std::shared_ptr<TreeHeaderBuilder> TreeHeaderBuilder::WithLocation(PageNumber loc)
+{
+  if (loc == NULL_PAGE) {
+    throw std::domain_error("location cannot be zero.");
+  }
+
+  this->location = loc;
+  return this->shared_from_this();
 }
 
 std::shared_ptr<TreeHeaderBuilder> TreeHeaderBuilder::WithTreeType(TreeType type)
@@ -153,7 +171,7 @@ std::shared_ptr<TreeHeaderBuilder> TreeHeaderBuilder::WithPageCount(uint32_t cou
 std::shared_ptr<TreeHeaderBuilder> TreeHeaderBuilder::IncrementPageCount(uint32_t amount)
 {
   if (std::numeric_limits<decltype(this->page_count)>::max() - amount < this->page_count) {
-    std::stringstream  stream;
+    std::stringstream stream;
     stream << "Incrementing page_count with " << +amount << " will wrap around its value.";
 
     throw std::overflow_error(stream.str());

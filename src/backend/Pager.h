@@ -59,6 +59,45 @@ class Pager {
     Pager(std::shared_ptr<vfs::NoidFile<Lockable, SharedLockable>> file, uint16_t page_size)
         :file(std::move(file)), page_size(page_size) { }
 
+
+    /**
+     * @brief Reads the first page (index 0) from the database file.
+     *
+     * @return The database index page.
+     * @throws std::ios_base::failure if the header cannot be read.
+     */
+    std::shared_ptr<const page::FileHeader> ReadFileHeaderUnlocked()
+    {
+      // TODO check WAL, page cache
+      std::array<byte, page::FileHeader::SIZE> bytes = {0};
+      for (auto i = this->max_io_retries; i > 0; i--) {
+        if (this->file->ReadContainer(bytes, 0) == page::FileHeader::SIZE) {
+          return page::FileHeader::NewBuilder(bytes)->Build();
+        }
+      }
+
+      throw std::ios_base::failure(std::string("Cannot read header; retries exhausted."));
+    }
+
+    /**
+     * @brief Writes the header page (index 0) to the database file and flushes the user-space buffers.
+     *
+     * @param header The database index page.
+     * @throws std::ios_base::failure if an i/o error occurs while writing the header.
+     */
+    void WriteFileHeaderUnlocked(const std::shared_ptr<const page::FileHeader>& header)
+    {
+
+      // TODO write to WAL (, page cache?)
+      for (auto i = this->max_io_retries; i > 0; i--) {
+        if (this->file->WriteContainer(header->ToBytes(), 0) == page::FileHeader::SIZE) {
+          return this->file->Flush();
+        }
+      }
+
+      throw std::ios_base::failure(std::string("Cannot write header; retries exhausted."));
+    }
+
  public:
     ~Pager() = default;
 
@@ -145,18 +184,18 @@ class Pager {
 
       // We require a unique lock here because a shared lock cannot be upgraded to one.
       NoidLock unique_lock = this->file->UniqueLock();
-      auto file_header = this->ReadFileHeader();
+      auto file_header = this->ReadFileHeaderUnlocked();
 
       // Create a builder and increment page size. This throws std::overflow_error if the new page size would overflow
       // a @c uint32_t.
       // With pages of 4Kb, this happens at 16T + FileHeader size. The ext4 file system for example has similar limits.
       auto builder = page::FileHeader::NewBuilder(*file_header)->IncrementTotalPageCount(size);
 
-      auto allocation_range_start = file_header->GetTotalPageCount();
+      auto allocation_range_start = file_header->GetTotalPageCount() + 1 /* Cannot allocate page zero, because that is the FileHeader */;
       auto allocation_range_end = allocation_range_start + size;
 
       // Now update the page size in the file header.
-      this->WriteFileHeader(builder->Build());
+      this->WriteFileHeaderUnlocked(builder->Build());
 
       return std::make_pair(allocation_range_start, allocation_range_end);
     }
@@ -181,17 +220,8 @@ class Pager {
      */
     std::shared_ptr<const page::FileHeader> ReadFileHeader()
     {
-      std::array<byte, page::FileHeader::SIZE> bytes = {0};
-
-      // TODO check WAL, page cache
       NoidSharedLock shared_lock = this->file->SharedLock();
-      for (auto i = this->max_io_retries; i > 0; i--) {
-        if (this->file->ReadContainer(bytes, 0) == page::FileHeader::SIZE) {
-          return page::FileHeader::NewBuilder(bytes)->Build();
-        }
-      }
-
-      throw std::ios_base::failure(std::string("Cannot read header; retries exhausted."));
+      return this->ReadFileHeaderUnlocked();
     }
 
     /**
@@ -202,16 +232,8 @@ class Pager {
      */
     void WriteFileHeader(const std::shared_ptr<const page::FileHeader>& header)
     {
-
-      // TODO write to WAL (, page cache?)
       NoidLock unique_lock = this->file->UniqueLock();
-      for (auto i = this->max_io_retries; i > 0; i--) {
-        if (this->file->WriteContainer(header->ToBytes(), 0) == page::FileHeader::SIZE) {
-          return this->file->Flush();
-        }
-      }
-
-      throw std::ios_base::failure(std::string("Cannot write header; retries exhausted."));
+      return this->WriteFileHeaderUnlocked(header);
     }
 
     /**
@@ -254,52 +276,13 @@ class Pager {
       NoidSharedLock shared_lock = this->file->SharedLock();
       for (auto i = this->max_io_retries; i > 0; i--) {
         if (this->file->ReadContainer(data, file_pos, this->page_size) == this->page_size) {
-          return P::NewBuilder(std::move(data))->Build();
+          return P::NewBuilder(std::move(data))
+            ->WithLocation(location)
+            ->Build();
         }
       }
 
       throw std::ios_base::failure("Cannot read page; retries exhausted.");
-    }
-
-    /**
-     * @brief Writes the given page to storage at the given location.
-     * @details This method blocks until a unique lock on the associated database file has been acquired and then tries
-     * to write the page at the given location. If the write fails, this method retries <code>Page::max_io_retries - 1</code>
-     * times. After that, it gives up and throws and exception.
-     *
-     * @tparam P The page type.
-     * @tparam B The builder type with which to build pages of type @c P.
-     * @param page The page to write to storage.
-     * @param location The location at which the page must reside.
-     * @throws std::domain_error if the page size is not the configured page size.
-     * @throws std::ios_base::failure if the page cannot be written.
-     * @throws std::out_of_range if @p location equals @c noid::backend::NULL_PAGE
-     */
-    template<typename P, typename B>
-    requires page::Page<P, B>
-    void WritePage(const P& page, PageNumber location)
-    {
-      if (location == NULL_PAGE) {
-        throw std::out_of_range("Given location references a null page.");
-      }
-
-      Position page_index = (location - 1) * this->page_size + page::FileHeader::SIZE;
-      auto data = page.ToBytes();
-
-      // TODO write to WAL only
-      NoidLock unique_lock = this->file->UniqueLock();
-      for (auto i = this->max_io_retries; i > 0; i--) {
-        if (data.size() == this->page_size) {
-          if (this->file->WriteContainer(data, page_index) == page_size) {
-            return this->file->Flush();
-          }
-        }
-        else {
-          throw std::domain_error("Cannot write page because its size is not the configured page size.");
-        }
-      }
-
-      throw std::ios_base::failure("Cannot write page; retries exhausted.");
     }
 
     /**
@@ -308,41 +291,30 @@ class Pager {
      * @tparam P The page type.
      * @tparam B The builder type with which to build pages of type @c P.
      * @param page The page to write to storage.
-     * @return The page number at which the given page resides.
-     * @throws std::ios_base::failure if the page cannot be written.
-     * @throws std::domain_error if the page size is not the configured page size, or if the storage itself is not
-     * aligned to the page size.
+     * @throws std::ios_base::failure if the page cannot be written and retries have been exhausted.
+     * @throws std::domain_error if the page size is not the configured page size.
      */
     template<typename P, typename B>
     requires page::Page<P, B>
-    PageNumber WritePage(const P& page)
+    void WritePage(const P& page)
     {
       auto data = page.ToBytes();
+      Position page_index = (page.GetLocation() - 1) * this->page_size + page::FileHeader::SIZE;
 
       // TODO write to WAL only
       NoidLock unique_lock = this->file->UniqueLock();
-      auto file_size = this->file->Size();
-
-      // Check if the file size is aligned to this->page_size. If not, this is an indication of file corruption.
-      if (auto page_fraction = 1.0 * (file_size - page::FileHeader::SIZE) / this->page_size; page_fraction == std::floor(page_fraction)) {
-        for (auto i = this->max_io_retries; i > 0; i--) {
-          if (data.size() == this->page_size) {
-            if (this->file->WriteContainer(data, static_cast<Position>(file_size)) == this->page_size) {
-              this->file->Flush();
-              return static_cast<PageNumber>(page_fraction + 1);
-            }
-          }
-          else {
-            throw std::domain_error("Cannot write page because its size is not the configured page size.");
-          }
+      for (decltype(this->max_io_retries) i = this->max_io_retries; i > 0; i--) {
+        if (data.size() != this->page_size) {
+          throw std::domain_error("Cannot write page because its size is not the configured page size.");
         }
 
-        throw std::ios_base::failure("Cannot write page; retries exhausted.");
+        if (this->file->WriteContainer(data, page_index) == this->page_size) {
+          this->file->Flush();
+          return;
+        }
       }
 
-      std::stringstream stream;
-      stream << "Cannot write page: file size is not aligned to page_size of " << +this->page_size << ".";
-      throw std::domain_error(stream.str());
+      throw std::ios_base::failure("Cannot write page: retries exhausted.");
     }
 };
 

@@ -88,8 +88,8 @@ void WriteOverflow(const V& value, std::pair<PageNumber, PageNumber> page_range,
 
   // Set up all pages and write them using the Pager.
   for (PageNumber current_page = page_range.first; current_page < page_range.second; current_page++) {
-    std::shared_ptr<page::OverflowBuilder> overflow_builder = pager->template NewBuilder<page::Overflow,
-                                                                                         page::OverflowBuilder>();
+    std::shared_ptr<page::OverflowBuilder> overflow_builder =
+        pager->template NewBuilder<page::Overflow,page::OverflowBuilder>()->WithLocation(current_page);
 
     // Always create a payload of maximum data size, since this keeps the page size on storage consistent.
     auto payload = DynamicArray<byte>(overflow_builder->MaxDataSize());
@@ -103,8 +103,10 @@ void WriteOverflow(const V& value, std::pair<PageNumber, PageNumber> page_range,
     write_contiguous_container<byte>(payload, 0, value, value_cursor, write_size);
 
     // And create & write the overflow page
-    auto overflow_page = overflow_builder->WithData(std::move(payload), write_size)->Build();
-    pager->template WritePage<page::Overflow, page::OverflowBuilder>(*overflow_page, current_page);
+    auto overflow_page = overflow_builder
+        ->WithData(std::move(payload), write_size)
+        ->Build();
+    pager->template WritePage<page::Overflow, page::OverflowBuilder>(*overflow_page);
 
     value_cursor += write_size;
   }

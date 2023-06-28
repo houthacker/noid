@@ -74,10 +74,13 @@ class BPlusTree {
      * @param pager The pager to use.
      * @param type The tree type.
      */
-    BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type)
-        :pager(pager), header(
-        this->pager->template NewBuilder<page::TreeHeader, page::TreeHeaderBuilder>()->WithTreeType(type)->Build())
+    BPlusTree(std::shared_ptr<Pager<Lockable, SharedLockable>> pager, page::TreeType type) :pager(pager)
     {
+      auto header_page = this->pager->ClaimNextPage();
+      this->header = this->pager->template NewBuilder<page::TreeHeader, page::TreeHeaderBuilder>()
+          ->WithLocation(header_page)
+          ->WithTreeType(type)
+          ->Build();
       this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*this->header);
     }
 
@@ -129,17 +132,19 @@ class BPlusTree {
       auto type = InsertType::Insert;
 
       if (self->header->GetRoot() == NULL_PAGE) {
+        auto root_page = this->pager->ClaimNextPage();
         auto root_node = this->pager->template NewBuilder<page::LeafNode, page::LeafNodeBuilder>()
+            ->WithLocation(root_page)
             ->WithRecord(details::CreateNodeRecordBuilder(key, value, page_range.first)->Build())
             ->Build();
-        auto root_page = this->pager->template WritePage<page::LeafNode, page::LeafNodeBuilder>(*root_node);
+        this->pager->template WritePage<page::LeafNode, page::LeafNodeBuilder>(*root_node);
 
         auto new_header = page::TreeHeader::NewBuilder(*this->header)
             ->WithRootPageNumber(root_page)
             ->IncrementPageCount(1)
             ->Build();
         this->pager->template WritePage<page::TreeHeader, page::TreeHeaderBuilder>(*new_header);
-        this->header = std::move(new_header); //todo add old header to freelist
+        this->header = std::move(new_header);
 
         return type;
       }

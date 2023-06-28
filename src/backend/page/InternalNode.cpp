@@ -43,9 +43,9 @@ bool NodeEntry::operator==(const NodeEntry& other) const
   return this->right_child == other.right_child && this->key == other.key;
 }
 
-InternalNode::InternalNode(uint16_t next_entry_slot, PageNumber leftmost_child, DynamicArray<NodeEntry>&& entries,
-    uint16_t page_size)
-    :next_entry_slot(next_entry_slot), leftmost_child(leftmost_child), entries(std::move(entries)),
+InternalNode::InternalNode(PageNumber location, uint16_t next_entry_slot, PageNumber leftmost_child,
+    DynamicArray<NodeEntry>&& entries, uint16_t page_size)
+    :location(location), next_entry_slot(next_entry_slot), leftmost_child(leftmost_child), entries(std::move(entries)),
      page_size(page_size) { }
 
 std::shared_ptr<InternalNodeBuilder> InternalNode::NewBuilder(uint16_t page_size)
@@ -61,6 +61,11 @@ std::shared_ptr<InternalNodeBuilder> InternalNode::NewBuilder(const InternalNode
 std::shared_ptr<InternalNodeBuilder> InternalNode::NewBuilder(DynamicArray<byte>&& base)
 {
   return std::shared_ptr<InternalNodeBuilder>(new InternalNodeBuilder(std::move(Validate(base, base.size()))));
+}
+
+PageNumber InternalNode::GetLocation() const
+{
+  return this->location;
 }
 
 uint16_t InternalNode::Size() const
@@ -108,7 +113,7 @@ InternalNodeBuilder::InternalNodeBuilder(uint16_t page_size)
 }
 
 InternalNodeBuilder::InternalNodeBuilder(const InternalNode& base)
-    :page_size(base.page_size), max_entry_slot(CalculateMaxEntries(page_size) - 1),
+    :location(base.location), page_size(base.page_size), max_entry_slot(CalculateMaxEntries(page_size) - 1),
      leftmost_child(base.leftmost_child), entries(base.next_entry_slot)
 {
   std::ranges::copy(base.entries.begin(), base.entries.begin() + base.next_entry_slot, this->entries.begin());
@@ -132,17 +137,31 @@ InternalNodeBuilder::InternalNodeBuilder(DynamicArray<byte>&& base)
 
 std::unique_ptr<const InternalNode> InternalNodeBuilder::Build()
 {
+  if (this->location == NULL_PAGE) {
+    throw std::domain_error("Cannot build InternalNode: location not set.");
+  }
+
   auto entry_list = DynamicArray<NodeEntry>(CalculateMaxEntries(this->page_size));
   std::ranges::copy(this->entries.begin(), this->entries.end(), entry_list.begin());
 
   return std::unique_ptr<const InternalNode>(
-      new InternalNode(safe_cast<uint16_t>(this->entries.size()), this->leftmost_child, std::move(entry_list),
+      new InternalNode(this->location, safe_cast<uint16_t>(this->entries.size()), this->leftmost_child, std::move(entry_list),
           this->page_size));
 }
 
 bool InternalNodeBuilder::IsFull() const
 {
   return this->entries.size() - 1 == this->max_entry_slot;
+}
+
+std::shared_ptr<InternalNodeBuilder> InternalNodeBuilder::WithLocation(PageNumber loc)
+{
+  if (loc == NULL_PAGE) {
+    throw std::domain_error("GetLocation cannot be zero.");
+  }
+
+  this->location = loc;
+  return this->shared_from_this();
 }
 
 std::shared_ptr<InternalNodeBuilder> InternalNodeBuilder::WithLeftmostChild(PageNumber page_number)

@@ -17,6 +17,7 @@ using namespace noid::backend::page;
 TEST_CASE("Build a LeafNode with an inline payload")
 {
   auto leaf_node = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(10)
       ->WithLeftSibling(1)
       ->WithRightSibling(3)
       ->WithRecord(NodeRecord::NewBuilder()
@@ -25,6 +26,7 @@ TEST_CASE("Build a LeafNode with an inline payload")
           ->Build())
       ->Build();
 
+  REQUIRE(leaf_node->GetLocation() == 10);
   REQUIRE(leaf_node->GetLeftSibling() == 1);
   REQUIRE(leaf_node->GetRightSibling() == 3);
   REQUIRE(leaf_node->Size() == 1);
@@ -41,10 +43,12 @@ TEST_CASE("Build a LeafNode with an inline payload")
 TEST_CASE("Build a LeafNode with an overflowing NodeRecord")
 {
   auto leaf_node = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(10)
       ->WithRecord(NodeRecord::NewBuilder()
           ->WithSearchKey({0})->WithOverflowPayload({5, 0, 0}, 1337)->Build())
       ->Build();
 
+  REQUIRE(leaf_node->GetLocation() == 10);
   REQUIRE(leaf_node->GetLeftSibling() == 0);
   REQUIRE(leaf_node->GetRightSibling() == 0);
   REQUIRE(leaf_node->Size() == 1);
@@ -58,7 +62,8 @@ TEST_CASE("Build a LeafNode with an overflowing NodeRecord")
 
 TEST_CASE("Build a LeafNode and overflow it")
 {
-  auto builder = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE);
+  auto builder = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(10);
 
   uint16_t i = 0;
   for (; !builder->IsFull(); i++) {
@@ -78,6 +83,7 @@ TEST_CASE("Build a LeafNode and overflow it")
 TEST_CASE("Build a LeafNode based on another and overwrite a record")
 {
   auto base = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(10)
       ->WithLeftSibling(1)
       ->WithRightSibling(3)
       ->WithRecord(NodeRecord::NewBuilder()->WithSearchKey({0})->WithInlinePayload({1, 3, 3, 7}, 4)->Build())
@@ -86,6 +92,7 @@ TEST_CASE("Build a LeafNode based on another and overwrite a record")
   auto leaf_node = LeafNode::NewBuilder(*base)
       ->WithRecord(NodeRecord::NewBuilder()->WithSearchKey({1})->WithInlinePayload({3, 1, 4, 1, 5}, 5)->Build(), 0)
       ->Build();
+  REQUIRE(leaf_node->GetLocation() == base->GetLocation());
   REQUIRE(leaf_node->GetLeftSibling() == base->GetLeftSibling());
   REQUIRE(leaf_node->GetRightSibling() == base->GetRightSibling());
   REQUIRE_FALSE(leaf_node->RecordAt(0) == base->RecordAt(0));
@@ -105,6 +112,7 @@ TEST_CASE("Try building a LeafNode from an invalid raw byte vector")
 TEST_CASE("Check that a LeafNode contains a given NodeRecord")
 {
   auto node = LeafNode::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(10)
       ->WithLeftSibling(1)
       ->WithRightSibling(3)
       ->WithRecord(NodeRecord::NewBuilder()->WithSearchKey({0})->WithInlinePayload({1, 3, 3, 7}, 4)->Build())

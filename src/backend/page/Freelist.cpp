@@ -57,6 +57,11 @@ std::shared_ptr<FreelistBuilder> Freelist::NewBuilder(DynamicArray<byte>&& base)
   return std::shared_ptr<FreelistBuilder>(new FreelistBuilder(std::move(Validate(base, base.size()))));
 }
 
+PageNumber Freelist::GetLocation() const
+{
+  return this->location;
+}
+
 PageNumber Freelist::Previous() const
 {
   return this->previous;
@@ -98,7 +103,7 @@ FreelistBuilder::FreelistBuilder(uint16_t size)
      max_slot(((page_size - Freelist::HEADER_SIZE) / sizeof(PageNumber)) - 1), cursor(0), free_pages(0) { }
 
 FreelistBuilder::FreelistBuilder(const Freelist& base)
-    :previous_freelist_entry(base.previous), next_freelist_entry(base.next), page_size(base.page_size),
+    :location(base.location), previous_freelist_entry(base.previous), next_freelist_entry(base.next), page_size(base.page_size),
      max_slot(((page_size - Freelist::HEADER_SIZE) / sizeof(PageNumber)) - 1), cursor(base.next_free_slot),
      free_pages(base.next_free_slot)
 {
@@ -119,6 +124,10 @@ FreelistBuilder::FreelistBuilder(DynamicArray<byte>&& base)
 
 std::unique_ptr<const Freelist> FreelistBuilder::Build() const
 {
+  if (this->location == NULL_PAGE) {
+    throw std::domain_error("Cannot build Freelist: location is unset.");
+  }
+
   auto free_list = DynamicArray<PageNumber>((this->page_size - Freelist::HEADER_SIZE) / sizeof(PageNumber));
   std::ranges::copy(this->free_pages.begin(), this->free_pages.end(), free_list.begin());
 
@@ -130,7 +139,7 @@ std::unique_ptr<const Freelist> FreelistBuilder::Build() const
 std::shared_ptr<FreelistBuilder> FreelistBuilder::WithLocation(PageNumber loc)
 {
   if (loc == NULL_PAGE) {
-    throw std::domain_error("Location must be > 0");
+    throw std::domain_error("GetLocation cannot be zero.");
   }
 
   this->location = loc;

@@ -16,7 +16,8 @@
 namespace noid::backend::page {
 
 template<typename B, typename P>
-concept PageBuilder = requires(B builder) {
+concept PageBuilder = requires(B builder, PageNumber location) {
+  { builder.WithLocation(location) } -> std::same_as<std::shared_ptr<B>>;
   { builder.Build() } -> std::convertible_to<std::unique_ptr<const P>>;
 };
 
@@ -25,6 +26,7 @@ concept Page = PageBuilder<B, P> && requires(P, B, P page, const P& page_ref, ui
   { P::NewBuilder(page_size) } -> std::same_as<std::shared_ptr<B>>;
   { P::NewBuilder(page_ref) } -> std::same_as<std::shared_ptr<B>>;
   { P::NewBuilder(std::move(data)) } -> std::same_as<std::shared_ptr<B>>;
+  { page.GetLocation() } -> std::same_as<PageNumber>;
   { page.ToBytes() } -> std::convertible_to<DynamicArray<byte>>;
 };
 

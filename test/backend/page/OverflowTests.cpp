@@ -15,6 +15,7 @@ using namespace noid::backend::page;
 TEST_CASE("Create a valid Overflow page")
 {
   auto overflow = Overflow::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(5)
       ->WithData({1, 2, 3, 4, 5, 0, 0, 0}, 5)
       ->WithNext(2)
       ->Build();
@@ -22,6 +23,7 @@ TEST_CASE("Create a valid Overflow page")
   auto expected_data = DynamicArray<byte>(DEFAULT_PAGE_SIZE - Overflow::HEADER_SIZE);
   write_container<byte>(expected_data, 0, DynamicArray<byte>{1, 2, 3, 4, 5});
 
+  REQUIRE(overflow->GetLocation() == 5);
   REQUIRE(overflow->GetData() == expected_data);
   REQUIRE(overflow->GetDataSize() == 5);
   REQUIRE(overflow->GetNext() == 2);
@@ -30,11 +32,13 @@ TEST_CASE("Create a valid Overflow page")
 TEST_CASE("Create an Overflow page based on another")
 {
   auto base = Overflow::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(5)
       ->WithData({1, 2, 3, 4, 5, 0, 0, 0}, 5)
       ->WithNext(2)
       ->Build();
 
   auto overflow = Overflow::NewBuilder(*base)->Build();
+  REQUIRE(overflow->GetLocation() == base->GetLocation());
   REQUIRE(overflow->GetData() == base->GetData());
   REQUIRE(overflow->GetDataSize() == base->GetDataSize());
   REQUIRE(overflow->GetNext() == base->GetNext());
@@ -42,11 +46,14 @@ TEST_CASE("Create an Overflow page based on another")
 
 TEST_CASE("Overflow page (de)serialization cycle"){
   auto base = Overflow::NewBuilder(DEFAULT_PAGE_SIZE)
+      ->WithLocation(5)
       ->WithData({1, 2, 3, 4, 5, 0, 0, 0}, 5)
       ->WithNext(2)
       ->Build();
 
-  auto deserialized = Overflow::NewBuilder(base->ToBytes())->Build();
+  auto deserialized = Overflow::NewBuilder(base->ToBytes())
+      ->WithLocation(5)
+      ->Build();
   REQUIRE(deserialized->GetData() == base->GetData());
   REQUIRE(deserialized->GetDataSize() == base->GetDataSize());
   REQUIRE(deserialized->GetNext() == base->GetNext());
